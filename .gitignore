@@ -1,0 +1,40 @@
+# Python 기본 캐시 및 가상환경 파일 제외
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 환경 변수 파일 (보안 중요)
+.env
+
+# 개발중에만 사용
+
+# 데이터베이스 파일 제외 (SQLite 등)
+db.sqlite3
+*.sqlite3
+
+# Django 마이그레이션 캐시 제외
+# **/migrations/*.pyc
+# **/migrations/*.py
+# !**/migrations/__init__.py
+
+# 로그 파일 제외
+*.log
+*.out
+*.err
+
+# 미디어 및 정적 파일 (수동 업로드 방지)
+# media/
+# staticfiles/
+# static/
+node_modules/
+
+# VS Code 및 IDE 설정 파일 제외
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Docker 관련 파일 제외 (사용할 경우)
+docker-compose.override.yml
