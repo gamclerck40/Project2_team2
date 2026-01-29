@@ -2,7 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 
+
+# 회원가입 -> 로그인 후 "내 정보 페이지" 에서 "정보 등록"기능을 일괄적으로 생성.
 class Account(models.Model):
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts")
     
     name = models.CharField(max_length=50)  # a_name -> name
@@ -17,9 +20,9 @@ class Account(models.Model):
     def masked_account_number(self) -> str:
         # 예: 110-****-1234 (형식이 다양할 수 있으니 단순 규칙)
         s = self.account_number or ""
-        if len(s) <= 4:
-            return "****"
-        return "****-" + s[-4:]
+        if len(s) <= 5:
+            return "*****"
+        return "*****" + s[-5:]
 
     def __str__(self):
         return f"{self.name} ({self.bank_name}) {self.masked_account_number()}"
