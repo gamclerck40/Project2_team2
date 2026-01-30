@@ -1,0 +1,7 @@
+<h1>제품 상세 Page</h1>
+<h2>{{object.name}}</h2>
+{% for images in object.images.all %}
+    <img src="{{ images.image.url }}">
+{% endfor %}
+<p>가격: {{ object.price }}</p>
+<p>{{ object.description }}</p>

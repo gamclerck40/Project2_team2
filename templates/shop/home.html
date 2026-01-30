@@ -1,0 +1,17 @@
+<h1>상품 목록 List</h1>
+
+{% if product_list %}
+  {% for product in product_list %}
+    <p>
+      <a href="{% url 'shop:product-detail' product.pk %}">
+        {% if product.main_image %}
+          <img src="{{ product.main_image.url }}" alt="{{ product.name }}">
+        {% else %}
+          <span>이미지 없음</span>
+        {% endif %}
+      </a>
+    </p>
+  {% endfor %}
+{% else %}
+  <p>상품이 없습니다.</p>
+{% endif %}

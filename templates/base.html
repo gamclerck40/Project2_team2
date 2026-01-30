@@ -1,0 +1,16 @@
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}우리 가게{% endblock %}</title>
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="container" style="min-height: 600px; padding: 20px;">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>

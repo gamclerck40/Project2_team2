@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}상품 목록{% endblock %}
+
+{% block content %} 
+<h2>🛍️ 판매 중인 상품들</h2>
+<hr>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px;"> 
+    {% for product in products %}
+        <div style="border: 1px solid #ddd; padding: 15px; width: 200px; border-radius: 10px;">
+            
+            <div style="width: 100%; height: 150px; overflow: hidden; background: #f8f8f8; margin-bottom: 10px;">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% else %}
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc;">No Image</div>
+                {% endif %}
+            </div>
+
+            <h3 style="margin: 5px 0;">{{ product.name }}</h3>
+            <p style="color: #666;">{{ product.price }}원</p>
+            
+            <a href="{% url 'product_detail' product.pk %}" style="color: #007bff; text-decoration: none;">상세보기</a>
+        </div>
+    {% empty %}
+        <p>등록된 상품이 없습니다.</p>
+    {% endfor %}
+</div>
+{% endblock %}
