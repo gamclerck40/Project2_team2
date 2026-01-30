@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
-from django.contrib import admin
 
 # 회원가입 간 입력할 대부분의 정보
 class Account(models.Model):
@@ -9,12 +8,15 @@ class Account(models.Model):
 		#USER는 대체 왜 쓰는가? -> User는 단순히 데이터를 다르게 저장하기 위한 객체가 아니라, 서비스 내에서 정체성·소유권·권한·행위의 기준점 역할을 한다.
 		#User는 ‘데이터를 담는 객체’가 아니라 ‘모든 데이터가 연결되는 중심 좌표’다.
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts")
+
     #"사용자 이름" >>
     name = models.CharField(max_length=50)
     # a_name -> name
     bank_name = models.CharField(max_length=50)
+  
     #masked_account_number >> 로 마스킹을 하고 원본 데이터만 저장.
     account_number = models.CharField(max_length=50)
+
     #잔액(충전 방식으로 해당 앱에서 구매할 때 적용되도록)
     balance = models.DecimalField(max_digits=14, decimal_places=0, default=0)
     # 원 단위 정수처럼 사용
@@ -59,21 +61,25 @@ class Category(models.Model):
         return self.name
 
 class Product(models.Model):
-  name = models.CharField(max_length=120)
-  category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)  
-  price = models.DecimalField(max_digits=14, decimal_places=0, validators=[MinValueValidator(1)])
-  description = models.TextField(blank=True)
-  stock = models.PositiveIntegerField(default=0)    
-  def __str__(self):
-      return f"{self.name} | {self.category}"  
-
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="products"
+    ) 
+    name = models.CharField(max_length=120) 
+    price = models.DecimalField(max_digits=14, decimal_places=0, validators=[MinValueValidator(1)])
+    description = models.TextField(blank=True)
+    stock = models.PositiveIntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.name}"
 # MyPage 내 정보 확인에서 접속하는 거래내역, 계좌정보 확인 등
 class Transaction(models.Model):
 	  # 계좌 선택 -> 원하는 금액만큼 Account.balance 추가.
 	  # 보여주기식으로 구현하는것을 목표로.
     IN = "IN"
     OUT = "OUT"
-    TX_TYPE_CHOICES = [(IN, "구매"), (OUT, "환불")]
+    TX_TYPE_CHOICES = [(IN, "입금"), (OUT, "출금")]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions")
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name="transactions")
