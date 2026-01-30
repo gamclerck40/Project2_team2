@@ -14,4 +14,3 @@ class ProductDetailView(DetailView):
     model = Product
     template_name = 'shop/product_dateil.html'
     context_object_name = "product"
-# Create your views here.
