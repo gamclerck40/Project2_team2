@@ -30,7 +30,7 @@ class SignUpForm(UserCreationForm):
 
 # ✅ 회원가입 View
 class SignUpView(View):
-    template_name = "account/signup.html"
+    template_name = "registration/signup.html"
 
     def get(self, request):
         form = SignUpForm()
@@ -50,7 +50,7 @@ class SignUpView(View):
             name=form.cleaned_data["name"],
             bank_name=form.cleaned_data["bank_name"],
             account_number=form.cleaned_data["account_number"],
-            balance=0,
+            balance=form.cleaned_data["balance"],
             is_active=True,
         )
 

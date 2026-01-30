@@ -8,10 +8,8 @@ urlpatterns = [
     path("", RedirectView.as_view(url="/shop/", permanent=False)),
     path('admin/', admin.site.urls),
     path('shop/', include('shop.urls')),
-
     # ✅ Django 기본 로그인/로그아웃/비번변경 등 제공
     path("accounts/", include("django.contrib.auth.urls")),
-
     # ✅ 우리가 만든 회원가입(계좌 Account 생성 포함)
     path("accounts/", include("account.urls")),
 ]

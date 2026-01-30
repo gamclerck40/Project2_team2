@@ -51,6 +51,10 @@
         <label>계좌번호</label><br/>
         {{ form.account_number }}
       </div>
+      <div style="margin-bottom: 10px;">
+        <label>잔액</label><br/>
+        {{ form.balance }}
+      </div>
 
       <button type="submit" style="padding: 10px 14px;">가입하기</button>
       <a href="{% url 'login' %}" style="margin-left: 10px;">이미 계정이 있어요</a>

@@ -15,7 +15,13 @@
 
     {% if user.is_authenticated %}
       <span style="margin-left: 15px;">안녕하세요, {{ user.username }}님</span>
-      <a href="{% url 'logout' %}" style="color: white; margin: 0 15px;">로그아웃</a>
+      <form method="post" action="{% url 'logout' %}" style="display:inline; margin: 0 15px;">
+        {% csrf_token %}
+        <button type="submit"
+                style="background:none; border:none; color:white; cursor:pointer;">
+            로그아웃
+        </button>
+</form>
     {% else %}
       <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>
       <a href="{% url 'account_signup' %}" style="color: white; margin: 0 15px;">회원가입</a>
