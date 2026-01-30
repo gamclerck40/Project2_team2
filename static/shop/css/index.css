@@ -1,0 +1,233 @@
+/* shop/static/shop/css/index.css */
+
+.product-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.product-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.product-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.product-price {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.product-stock {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+
+header {
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 하단 그림자 */
+    padding: 0 2rem;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    position: sticky; /* 스크롤 내려도 상단 고정 */
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 로고 스타일 */
+.logo a {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #333;
+    text-decoration: none;
+    letter-spacing: -1px;
+}
+
+.logo span {
+    color: #3498db; /* 포인트 컬러 파란색 */
+}
+
+/* 중앙 메뉴 리스트 */
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-menu li a {
+    text-decoration: none;
+    color: #555;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: color 0.3s ease;
+}
+
+.nav-menu li a:hover {
+    color: #3498db; /* 마우스 올리면 파란색으로 */
+}
+
+/* 우측 사용자 버튼 섹션 */
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-name {
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+/* 공통 버튼 스타일 */
+.btn-login, .btn-signup {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+/* 로그인 버튼 */
+.btn-login {
+    background-color: #3498db;
+    color: white !important;
+}
+
+.btn-login:hover {
+    background-color: #2980b9;
+}
+
+/* 회원가입 버튼 */
+.btn-signup {
+    border: 2px solid #3498db;
+    color: #3498db !important;
+}
+
+.btn-signup:hover {
+    background-color: #3498db;
+    color: white !important;
+}
+
+/* 로그아웃 버튼 (강조색) */
+.logout {
+    background-color: #e74c3c !important; /* 빨간색 계열 */
+}
+
+.logout:hover {
+    background-color: #c0392b !important;
+}
+
+
+/* --- Footer Style --- */
+footer {
+    background-color: #2d3436; /* 어두운 차콜색 배경 */
+    color: #dfe6e9; /* 밝은 회색 글자 */
+    padding: 3rem 0 1.5rem 0;
+    margin-top: 60px; /* 본문과 푸터 사이 간격 */
+}
+
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    gap: 40px;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+/* 푸터 로고 스타일 */
+.footer-logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 1.2rem;
+    color: #ffffff;
+}
+
+.footer-logo span {
+    color: #3498db; /* 헤더 로고와 동일한 포인트 컬러 */
+}
+
+.footer-section h4 {
+    color: #ffffff;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+/* 소제목 아래 짧은 선 */
+.footer-section h4::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    width: 35px;
+    height: 2px;
+    background-color: #3498db;
+}
+
+/* 푸터 링크 리스트 */
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin-bottom: 12px;
+}
+
+.footer-section ul li a {
+    color: #b2bec3;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.footer-section ul li a:hover {
+    color: #ffffff;
+}
+
+.footer-section p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: #b2bec3;
+}
+
+/* 최하단 저작권 표시 */
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #444;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    font-size: 0.85rem;
+    color: #636e72;
+}
