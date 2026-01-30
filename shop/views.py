@@ -1,6 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.generic import *
-from .models import Product
+from .models import Product, Account
+from django import forms
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import get_user_model, login
+from django.db import transaction
+
 
 #상품 목록 페이지(사진,이름,가격 등의 리스트)
 class ProductListView(ListView):
@@ -12,5 +17,9 @@ class ProductListView(ListView):
 # 상품의 상세 페이지 (상세 설명, 남은 개수)
 class ProductDetailView(DetailView):
     model = Product
-    template_name = 'shop/product_dateil.html'
+    template_name = 'shop/product_detail.html'
     context_object_name = "product"
+
+
+    
+

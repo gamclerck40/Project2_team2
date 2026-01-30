@@ -8,7 +8,6 @@ class Account(models.Model):
 		#USER는 대체 왜 쓰는가? -> User는 단순히 데이터를 다르게 저장하기 위한 객체가 아니라, 서비스 내에서 정체성·소유권·권한·행위의 기준점 역할을 한다.
 		#User는 ‘데이터를 담는 객체’가 아니라 ‘모든 데이터가 연결되는 중심 좌표’다.
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="accounts")
-
     #"사용자 이름" >>
     name = models.CharField(max_length=50)
     # a_name -> name

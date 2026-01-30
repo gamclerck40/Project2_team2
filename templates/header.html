@@ -1,7 +1,24 @@
-<header style="background: #333; color: white; padding: 20px; text-align: center;">
+<!-- <header style="background: #333; color: white; padding: 20px; text-align: center;">
     <h1>🛒</h1>
     <nav>
         <a href="{% url 'product_list' %}" style="color: white; margin: 0 15px;">상품목록</a>
         <a href="/admin/" style="color: white; margin: 0 15px;">관리자</a>
     </nav>
+</header> 성현님 ver-->
+
+<header style="background: #333; color: white; padding: 20px; text-align: center;">
+  <h1>🛒</h1>
+
+  <nav>
+    <a href="{% url 'product_list' %}" style="color: white; margin: 0 15px;">상품목록</a>
+    <a href="/admin/" style="color: white; margin: 0 15px;">관리자</a>
+
+    {% if user.is_authenticated %}
+      <span style="margin-left: 15px;">안녕하세요, {{ user.username }}님</span>
+      <a href="{% url 'logout' %}" style="color: white; margin: 0 15px;">로그아웃</a>
+    {% else %}
+      <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>
+      <a href="{% url 'account_signup' %}" style="color: white; margin: 0 15px;">회원가입</a>
+    {% endif %}
+  </nav>
 </header>
