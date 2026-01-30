@@ -43,3 +43,6 @@ docker-compose.override.yml
 ### 추가 모듈 uv pip install pillow
 ### dateil.html 구성 및 구현 테스트 완료 
 ### list.html 즉 기본 화면 구성 및 테스트 완료 
+
+----------------------------------------------
+# 2026.01.30 16:06 환경 전체 초기화.
