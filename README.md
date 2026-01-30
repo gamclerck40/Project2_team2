@@ -42,3 +42,5 @@ docker-compose.override.yml
 ### 성현의 브랜치
 ## SH 브랜치 입니다
 # 살아있는지 확인
+
+### 추가 모듈 uv pip install pillow

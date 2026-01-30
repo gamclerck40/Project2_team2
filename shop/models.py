@@ -70,7 +70,11 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=14, decimal_places=0, validators=[MinValueValidator(1)])
     description = models.TextField(blank=True)
     stock = models.PositiveIntegerField(default=0)
-    
+    #어드민에서 이미지를 추가 할 수 있게 해줌,png,jpg,jpeg,gif,webp,tiff,bmp 등 bmp는 비추천 용량 이슈 pdf,mp4는 불가능 
+    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    #이미지 필드를 사용하려면 pillow는 필수
+
+
     def __str__(self):
         return f"{self.name}"
 # MyPage 내 정보 확인에서 접속하는 거래내역, 계좌정보 확인 등
