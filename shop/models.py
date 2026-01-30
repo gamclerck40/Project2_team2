@@ -70,12 +70,20 @@ class Product(models.Model):
     description = models.TextField(blank=True)
     stock = models.PositiveIntegerField(default=0)
     #어드민에서 이미지를 추가 할 수 있게 해줌,png,jpg,jpeg,gif,webp,tiff,bmp 등 bmp는 비추천 용량 이슈 pdf,mp4는 불가능 
-    image = models.ImageField(upload_to='products/', null=True, blank=True)
-    #이미지 필드를 사용하려면 pillow는 필수
+    image1 = models.ImageField(upload_to='products/', help_text="대표 이미지 (필수)")
+    image2 = models.ImageField(upload_to='products/', blank=True, null=True)
+    image3 = models.ImageField(upload_to='products/', blank=True, null=True)
+    image4 = models.ImageField(upload_to='products/', blank=True, null=True)
+    image5 = models.ImageField(upload_to='products/', blank=True, null=True)
 
-
+    # --- [하단 상세 설명용 데이터] ---
+    description_text1 = models.TextField(blank=True, help_text="상세 설명 첫 번째 문단")
+    description_image1 = models.ImageField(upload_to='products/desc/', blank=True, null=True)
+    description_text2 = models.TextField(blank=True, help_text="상세 설명 두 번째 문단")
+    description_image2 = models.ImageField(upload_to='products/desc/', blank=True, null=True)
     def __str__(self):
-        return f"{self.name}"
+      return self.name
+
 # MyPage 내 정보 확인에서 접속하는 거래내역, 계좌정보 확인 등
 class Transaction(models.Model):
 	  # 계좌 선택 -> 원하는 금액만큼 Account.balance 추가.
