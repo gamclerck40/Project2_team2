@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>ID 조회 결과</h2>
+<a>{{users.phone}}</a>
+{% if users %}
+    {% for user in users %}
+        <a>{{user.username}}</a>
+    {% endfor %}
+{% else %}
+<a>조회 결과 없음.</a> 
+{% endif %}
+{% endblock %}

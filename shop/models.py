@@ -11,10 +11,12 @@ class Account(models.Model):
     #"사용자 이름" >>
     name = models.CharField(max_length=50)
     # a_name -> name
+
+    phone = models.CharField(max_length=11, unique=True)
     bank_name = models.CharField(max_length=50)
   
     #masked_account_number >> 로 마스킹을 하고 원본 데이터만 저장.
-    account_number = models.CharField(max_length=50)
+    account_number = models.CharField(max_length=50, unique=True)
 
     #잔액(충전 방식으로 해당 앱에서 구매할 때 적용되도록)
     balance = models.DecimalField(max_digits=14, decimal_places=0, default=0)
@@ -59,6 +61,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
 class Product(models.Model):
     category = models.ForeignKey(
         Category,
@@ -83,6 +86,26 @@ class Product(models.Model):
     description_image2 = models.ImageField(upload_to='products/desc/', blank=True, null=True)
     def __str__(self):
       return self.name
+    
+class Cart(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
+    #유저 한명이 여러개의 사품을 담을 수 있게
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    #상품 정보 DB를 연결 받아 가져옴 
+
+    quantity = models.PositiveIntegerField(default=1)
+    #상품을 담은 갯수 양수 1부터 음수 (-1)는 들어갈수없음
+
+    added_at = models.DateTimeField(auto_now_add=True)
+    #언제 담았는지 장바구니 생성시 생성 날짜를 적어줌
+
+    def total_price(self):
+        #상품 개당 가격 * 장바구니 수량 곱해서 반환
+        return self.product.price * self.quantity
+
+    def __str__(self):
+        return f"{self.user.username}의 장바구니 - {self.product.name}"
 
 # MyPage 내 정보 확인에서 접속하는 거래내역, 계좌정보 확인 등
 class Transaction(models.Model):

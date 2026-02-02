@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>ID 찾기</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div style="margin-bottom: 10px;">
+      {{ form.phone.label_tag }}<br>
+      {{ form.phone }}
+      {{ form.phone.errors }}
+    </div>
+
+    <button type="submit">확인</button>
+  </form>
+{% endblock %}

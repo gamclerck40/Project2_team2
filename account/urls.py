@@ -1,5 +1,5 @@
 from django.urls import include,path
-from .views import SignUpView, MypageView
+from .views import SignUpView, MypageView, FindIDView
 from django.contrib.auth.views import LoginView,LogoutView
 
 urlpatterns = [
@@ -8,6 +8,8 @@ urlpatterns = [
     path("login/", 
          LoginView.as_view(template_name='account/login.html'), 
          name='login'),
+    path("findid/",
+         FindIDView.as_view(), name="find_id"),
     path("logout/", 
          LogoutView.as_view(), 
          name='logout'),
