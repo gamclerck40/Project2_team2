@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model, login
@@ -5,6 +6,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 from django.db import transaction
+from django.core.exceptions import ValidationError
+from shop.models import Account
+
+
 
 from shop.models import Account,Transaction  # Account 모델 위치 주의
 
@@ -31,6 +36,17 @@ class SignUpForm(UserCreationForm):
             "account_number",
             "balance"
         )
+        def clean_phone(self):
+            phone = self.cleaned_data.get("phone", "")
+            phone = re.sub(r"[^0-9]", "", phone)  # 숫자만 남김 (하이픈/공백 제거)
+
+            if not re.match(r"^010\d{7,8}$", phone):
+                raise ValidationError("전화번호 형식이 올바르지 않습니다. (예: 01012345678)")
+
+            if Account.objects.filter(phone=phone).exists():
+                raise ValidationError("이미 사용 중인 전화번호입니다.")
+
+            return phone
 
 # ✅ 회원가입 View
 class SignUpView(View):

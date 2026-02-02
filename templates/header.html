@@ -6,31 +6,46 @@
     </nav>
 </header> 성현님 ver-->
 
-<header style="background: #333; color: white; padding: 20px; text-align: center;">
-  <h1>🛒</h1>
-
+<header style="background: #333; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0; font-size: 24px;">
+            <a href="{% url 'product_list' %}" style="text-decoration: none; color: white;">🛒</a>
+        </h1>
   <nav>
     <a href="{% url 'product_list' %}" style="color: white; margin: 0 15px;">상품목록</a>
     <a href="/admin/" style="color: white; margin: 0 15px;">관리자</a>
+    <a href="{% url 'cart_list' %}" style="color: white; margin: 0 15px; text-decoration: none;">
+            🛒 장바구니</a>
 
     {% if user.is_authenticated %}
       <span style="margin-left: 15px;">안녕하세요, {{ user.username }}님</span>
+
       <form method="post" action="{% url 'logout' %}" style="display:inline; margin: 0 15px;">
         {% csrf_token %}
-        <button type="submit"
+        <div style="display: flex; gap: 15px; font-size: 14px;">
+          <button type="submit"
                 style="background:none; border:none; color:white; cursor:pointer;">
             로그아웃
-        </button>
-        </form>
-      <form method="get" action="{% url 'mypage' %}" style="display:inline; margin: 0 15px;">
+          </button>
+      </form>
+      <div style="display: flex; gap: 15px; font-size: 14px;">
+        <a href="{% url 'mypage' %}" style="color: #bbb; text-decoration: none;">내 정보</a>
+      </div>
+
+      <!-- <form method="get" action="{% url 'mypage' %}" style="display:inline; margin: 0 15px;">
         <button type="submit"
           style="background:none; border:none; color:white; cursor:pointer;">
           내 정보
         </button>
-</form>
+        </div>
+      </form> -->
+
     {% else %}
-      <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>
-      <a href="{% url 'account_signup' %}" style="color: white; margin: 0 15px;">회원가입</a>
+          <div style="display: flex; gap: 15px; font-size: 14px;">
+            <a href="{% url 'login' %}" style="color: #bbb; text-decoration: none;">로그인</a>
+            <a href="{% url 'account_signup' %}" style="color: #bbb; text-decoration: none;">회원가입</a>
+          </div>
+      <!-- <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>
+      <a href="{% url 'account_signup' %}" style="color: white; margin: 0 15px;">회원가입</a> -->
     {% endif %}
   </nav>
 </header>

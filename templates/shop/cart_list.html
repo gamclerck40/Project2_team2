@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 50px auto; padding: 20px; font-family: 'Apple SD Gothic Neo', sans-serif;">
+    <h2 style="text-align: center; margin-bottom: 30px;">🛒 내 장바구니</h2>
+
+    {% if cart_items %}
+        <div style="border-top: 2px solid #333; border-bottom: 2px solid #333;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f9f9f9; border-bottom: 1px solid #ddd;">
+                    <th style="padding: 15px;">상품 정보</th>
+                    <th style="padding: 15px;">수량</th>
+                    <th style="padding: 15px;">가격</th>
+                    <th style="padding: 15px;">총 금액</th>
+                    <th style="padding: 15px;">비우기</th>
+                    </tr>
+                </thead>             
+<tbody>
+    {% for item in cart_items %}
+    <tr style="border-bottom: 1px solid #eee; text-align: center;">
+        <td style="padding: 20px; display: flex; align-items: center; gap: 15px; text-align: left;">
+            <img src="{{ item.product.image1.url }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+            <strong style="font-size: 16px;">{{ item.product.name }}</strong>
+        </td>
+
+        <td style="padding: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <form action="{% url 'remove_from_cart' item.id %}" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="mode" value="decrease"> 
+                    <button type="submit" 
+                        {% if item.quantity <= 1 %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}
+                        style="width: 25px; height: 25px; border: 1px solid #ddd; background: white; border-radius: 3px; cursor: pointer;">
+                        -
+                    </button>
+                </form>
+
+                <span style="font-weight: bold; min-width: 30px;">{{ item.quantity }}</span>
+
+                <form action="{% url 'remove_from_cart' item.id %}" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="mode" value="increase"> 
+                    <button type="submit" 
+                        {% if item.quantity >= item.product.stock %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}
+                        style="width: 25px; height: 25px; border: 1px solid #ddd; background: white; border-radius: 3px; cursor: pointer;">
+                        +
+                    </button>
+                </form>
+            </div>
+            {% if item.product.stock <= item.quantity %}
+                <div style="font-size: 11px; color: #ff9900; margin-top: 5px;">최대 재고입니다</div>
+            {% endif %}
+        </td>
+
+        <td style="padding: 20px;">{{ item.product.price|intcomma }}원</td>
+
+        <td style="padding: 20px; font-weight: bold; color: #e44d26;">
+            {{ item.total_price|intcomma }}원
+        </td>
+
+        <td style="padding: 20px;">
+            <form action="{% url 'remove_from_cart' item.id %}" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" style="background: #ffeded; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                    삭제
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 30px; text-align: right; background: #f8f9fa; padding: 30px; border-radius: 10px;">
+            <h3 style="margin: 0; color: #333;">총 결제 예정 금액: <span style="color: #e44d26; font-size: 28px;">{{ total_amount|intcomma }}원</span></h3>
+            <button style="margin-top: 20px; padding: 15px 40px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;">
+                주문하기
+            </button>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 100px 0;">
+            <p style="font-size: 18px; color: #888;">장바구니가 텅 비었습니다.</p>
+            <a href="{% url 'product_list' %}" style="display: inline-block; margin-top: 20px; padding: 10px 25px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">쇼핑하러 가기</a>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

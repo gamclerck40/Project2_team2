@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}상품 목록{% endblock %}
+{% load humanize %}
 
 {% block content %} 
 
 <form method="get" action="." id="filter-form">
-
+    
     <div style="display: flex; justify-content: center; margin: 30px 0 50px 0;">
         <div style="display: flex; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden;">
             <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="찾으시는 상품이 있으신가요?" 
@@ -14,83 +15,75 @@
             </button>
         </div>
     </div>
-
+    
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <h2 style="margin: 0; font-size: 22px;">🛍️ 판매 중인 상품</h2>
-
+            
+            
             <select name="category" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
                 <option value="">전체 카테고리</option>
-                <option value="food" {% if request.GET.category == 'food' %}selected{% endif %}>식품</option>
-                <option value="electronics" {% if request.GET.category == 'electronics' %}selected{% endif %}>가전</option>
+                
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
+                <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>최신순</option>
+                <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>가격 낮은 순</option>
+                <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>가격 높은 순</option>
             </select>
         </div>
-
-        <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
-            <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>최신순</option>
-            <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>가격 낮은 순</option>
-            <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>가격 높은 순</option>
-        </select>
-    </div>
-</form>
-
-<hr style="border: 0; height: 1px; background: #eee; margin-bottom: 30px;">
-
-<h2>🛍️ 판매 중인 상품들</h2>
-<hr>
-
-<div style="display: flex; flex-wrap: wrap; gap: 20px;"> 
+    </form>
+    
+    <h2>🛍️ 판매 중인 상품들</h2>
+    
+    <hr>
+    
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px;"> 
     {% for product in products %}
-        <div style="border: 1px solid #ddd; padding: 15px; width: 200px; border-radius: 10px;">
-
-            <div style="width: 100%; height: 150px; overflow: hidden; background: #f8f8f8; margin-bottom: 10px;">
-                {% if product.image %}
-                    <img src="{{ product.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+        <div style="border: 1px solid #eee; padding: 15px; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; background: white; display: flex; flex-direction: column;">
+            
+            <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px;">
+                {% if product.image1 %}
+                    <img src="{{ product.image1.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                 {% else %}
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc;">No Image</div>
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 14px;">No Image</div>
                 {% endif %}
             </div>
 
-            <h3 style="margin: 5px 0;">{{ product.name }}</h3>
-            <p style="color: #666;">{{ product.price }}원</p>
-
-            <a href="{% url 'product_detail' product.pk %}" style="color: #007bff; text-decoration: none;">상세보기</a>
+            <div style="flex-grow: 1;">
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333; font-weight: 600;">{{ product.name }}</h3>
+                <p style="margin: 0; color: #e44d26; font-weight: bold; font-size: 18px;">{{ product.price |intcomma }}원</p>
+            </div>
+            
+            <a href="{% url 'product_detail' product.pk %}" style="display: block; margin-top: 15px; padding: 8px 0; background: #f4f4f4; color: #666; text-decoration: none; text-align: center; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                상세보기
+            </a>
         </div>
     {% empty %}
-        <p>등록된 상품이 없습니다.</p>
+        <div style="grid-column: span 4; text-align: center; padding: 50px 0; color: #999;">
+            등록된 상품이 없습니다.
+        </div>
     {% endfor %}
 </div>
+
+<div style="display: flex; justify-content: center; margin: 40px 0; gap: 8px;">
+    {% if is_paginated %}
+        {% if page_obj.has_previous %}
+            <a href="?page=1&search={{ request.GET.search }}&category={{ request.GET.category }}&sort={{ request.GET.sort }}" style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px;">처음</a>
+        {% endif %}
+
+        <span style="padding: 10px 20px; background: #333; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}&sort={{ request.GET.sort }}" style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px;">다음</a>
+        {% endif %}
+    {% endif %}
+</div>
 {% endblock %}
-<!-- <!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>상품 목록</title>
-</head>
-<body>
-
-  {% include "header.html" %}
-
-  <div style="max-width: 900px; margin: 30px auto;">
-    <h2>상품 목록</h2>
-
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-      {% for p in products %}
-        <div style="border:1px solid #ddd; padding: 12px;">
-          {% if p.image %}
-            <img src="{{ p.image.url }}" alt="{{ p.name }}" style="width: 100%; height: 200px; object-fit: cover;" />
-          {% endif %}
-          <h3 style="margin: 10px 0 6px;">
-            <a href="{% url 'product_detail' p.pk %}">{{ p.name }}</a>
-          </h3>
-          <div>{{ p.price }}원</div>
-          <div>재고: {{ p.stock }}</div>
-        </div>
-      {% empty %}
-        <p>상품이 없습니다.</p>
-      {% endfor %}
-    </div>
-  </div>
-
-</body>
-</html> Ver.2-->
