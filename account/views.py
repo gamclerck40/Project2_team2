@@ -1,12 +1,12 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import get_user_model
-from django.contrib.auth import login
+from django.contrib.auth import get_user_model, login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.views import View
 from django.db import transaction
 
-from shop.models import Account  # Account 모델 위치 주의
+from shop.models import Account,Transaction  # Account 모델 위치 주의
 
 User = get_user_model()
 
@@ -16,6 +16,7 @@ class SignUpForm(UserCreationForm):
     name = forms.CharField(max_length=50, label="이름")
     bank_name = forms.CharField(max_length=50, label="은행명")
     account_number = forms.CharField(max_length=50, label="계좌번호")
+    balance = forms.DecimalField(max_digits=14, label="현재 잔액")
 
     class Meta:
         model = User
@@ -26,11 +27,12 @@ class SignUpForm(UserCreationForm):
             "name",
             "bank_name",
             "account_number",
+            "balance"
         )
 
 # ✅ 회원가입 View
 class SignUpView(View):
-    template_name = "registration/signup.html"
+    template_name = "account/signup.html"
 
     def get(self, request):
         form = SignUpForm()
@@ -56,3 +58,13 @@ class SignUpView(View):
 
         login(request, user)
         return redirect("product_list")
+    
+class MypageView(LoginRequiredMixin, View):
+    template_name = "account/mypage.html"
+    login_url = "login"
+    redirect_field_name = "next"
+
+    def get(self, request):
+        account = Account.objects.filter(user=request.user).first()
+        return render(request, self.template_name,{"user_obj":request.user,
+                                                    "account":account})

@@ -21,6 +21,12 @@
                 style="background:none; border:none; color:white; cursor:pointer;">
             로그아웃
         </button>
+        </form>
+      <form method="get" action="{% url 'mypage' %}" style="display:inline; margin: 0 15px;">
+        <button type="submit"
+          style="background:none; border:none; color:white; cursor:pointer;">
+          내 정보
+        </button>
 </form>
     {% else %}
       <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>

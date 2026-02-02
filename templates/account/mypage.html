@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>내 정보</h2>
+
+<p><b>아이디:</b> {{ user_obj.username }}</p>
+<p><b>아이디:</b> {{ user_obj.username }}</p>
+
+{% if account %}
+  <hr>
+  <h3>계좌 정보</h3>
+  <p><b>예금주명:</b> {{ account.name }}</p>
+  <p><b>은행:</b> {{ account.bank_name }}</p>
+  <p><b>계좌번호:</b> {{ account.account_number }}</p>
+  <p><b>잔액:</b> {{ account.balance }}</p>
+{% else %}
+  <p style="color:red;">계좌 정보가 없습니다.</p>
+{% endif %}
+
+{% endblock %}
