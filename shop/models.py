@@ -1,8 +1,20 @@
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
+import re
 
 # 회원가입 간 입력할 대부분의 정보
+class Bank(models.Model):
+    name = models.CharField(max_length=50, unique=True)  # 예: 국민은행
+    min_len = models.PositiveSmallIntegerField()
+    max_len = models.PositiveSmallIntegerField()
+    prefixes_csv = models.CharField(max_length=50, blank=True, default="")  # 예: "351,352,356"
+
+    def prefixes(self):
+        return [p.strip() for p in (self.prefixes_csv or "").split(",") if p.strip()]
+
+    def __str__(self):
+        return self.name
 class Account(models.Model):
     #해당 함수에 대해서는 더 공부가 필요함.
 		#USER는 대체 왜 쓰는가? -> User는 단순히 데이터를 다르게 저장하기 위한 객체가 아니라, 서비스 내에서 정체성·소유권·권한·행위의 기준점 역할을 한다.
@@ -11,10 +23,8 @@ class Account(models.Model):
     #"사용자 이름" >>
     name = models.CharField(max_length=50)
     # a_name -> name
-
     phone = models.CharField(max_length=11, unique=True)
-    bank_name = models.CharField(max_length=50)
-  
+    bank = models.ForeignKey(Bank, on_delete=models.PROTECT, related_name="accounts")  
     #masked_account_number >> 로 마스킹을 하고 원본 데이터만 저장.
     account_number = models.CharField(max_length=50, unique=True)
 
@@ -27,16 +37,14 @@ class Account(models.Model):
 
     #생성시 생성 당일 날짜에 맞게 DB에 저장.
     created_at = models.DateTimeField(auto_now_add=True)
-
     #"내 정보 수정" 따위의 기능을 넣을 때 수정 날짜가 저장 되도록.
     updated_at = models.DateTimeField(auto_now=True)
 
     def masked_account_number(self) -> str:
-        # 예: 110-****-1234 (형식이 다양할 수 있으니 단순 규칙)
-        s = self.account_number or ""
-        if len(s) <= 5:
-            return "*****"
-        return "*****" + s[-5:]
+        s = re.sub(r"[^0-9]", "", self.account_number or "")
+        if len(s) <= 4:
+            return "****"
+        return "****" + s[-4:]
     
     def phone_number_alignment(self) -> str:
         p = self.phone or ""
@@ -45,7 +53,7 @@ class Account(models.Model):
 
 
     def __str__(self):
-        return f"{self.name} ({self.bank_name}) {self.masked_account_number()}|{self.phone_number_alignment()} "
+        return f"{self.name} ({self.bank}) {self.masked_account_number()}|{self.phone_number_alignment()} "
 
 class Category(models.Model):
     # IN = "IN"
@@ -129,6 +137,9 @@ class Transaction(models.Model):
     category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.SET_NULL)
 
+        # 💡 [에이스님 추가분] 구매 수량을 기록하는 테이블 역할 필드
+    quantity = models.PositiveIntegerField(default=1, verbose_name="구매 수량")
+    product_name = models.CharField(max_length=200, null=True, blank=True)
 		#TX_TYPE_CHOICES를 읽어와 "IN / OUT" 중 하나를 저장
     tx_type = models.CharField(max_length=3, choices=TX_TYPE_CHOICES)
 		
@@ -151,6 +162,8 @@ class Transaction(models.Model):
             raise ValidationError("본인 계좌로만 거래를 생성할 수 있습니다.")
 
     def __str__(self):
-        return f"{self.user} {self.tx_type} {self.amount} @ {self.occurred_at}"
+        # 영수증처럼 보이도록 수량 정보도 포함
+        product_name = self.product.name if self.product else "삭제된 상품"
+        return f"{self.user} | {product_name}({self.quantity}개) | {self.tx_type} {self.amount}원"
 
 		# 현재 이 상태에서 product(Product FK), quantity(주문량)등의 정보가 더 필요할 것.

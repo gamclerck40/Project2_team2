@@ -87,13 +87,31 @@
 
             <div>
               <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
+
+              <!-- ✅ Bank FK용 select -->
               <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.bank_name }}
+                <style>
+                  /* 이 템플릿에서만 select를 input처럼 보이게 */
+                  select[name="bank"]{
+                    width: 100%;
+                    border: none;
+                    outline: none;
+                    background: transparent;
+                    font-size: 14px;
+                    padding: 0;
+                    margin: 0;
+                    appearance: none;   /* 브라우저 기본 화살표 최소화 */
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
+                  }
+                </style>
+                {{ form.bank }}
               </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.bank_name.errors }}
-              </div>
-            </div>
+
+  <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+    {{ form.bank.errors }}
+  </div>
+</div>
 
             <div>
               <div style="margin-bottom: 8px; font-weight: 800; color:#333;">계좌번호</div>

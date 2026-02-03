@@ -2,70 +2,372 @@
 {% load humanize %}
 {% block content %}
 
+<style>
+  .tabbar {
+    display:flex;
+    gap:10px;
+    padding: 12px 14px;
+    background:#333;
+    color:#fff;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .tabbtn{
+    appearance:none;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.06);
+    color:#fff;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor:pointer;
+    font-weight: 900;
+    font-size: 13px;
+    opacity: .9;
+  }
+  .tabbtn[aria-selected="true"]{
+    background: rgba(255,255,255,.18);
+    opacity: 1;
+  }
+  .tabpanel{ display:none; }
+  .tabpanel.active{ display:block; }
+
+  .card {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid #eee;
+  }
+  .section { padding: 22px; }
+  .grid2 {
+    display:grid;
+    grid-template-columns: 140px 1fr;
+    row-gap: 14px;
+    column-gap: 12px;
+    align-items:center;
+  }
+  .label { color:#666; font-weight:600; }
+  .valueStrong { color:#333; font-weight:700; }
+  .divider { height: 1px; background: #eee; }
+
+  .inputWrap{
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: white;
+  }
+  .inputWrap input{
+    width:100%;
+    border:none;
+    outline:none;
+    font-size:14px;
+    background: transparent;
+  }
+  .help { margin-top: 6px; color:#888; font-size: 13px; }
+
+  .btnPrimary{
+    background:#333;
+    color:#fff;
+    border:none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .btnGhost{
+    background:#f4f4f4;
+    color:#555;
+    border:none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+</style>
+
 <div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
   <div style="width:100%; max-width: 900px;">
 
     <h2 style="margin: 0 0 18px 10px;">🙋 내 정보</h2>
 
-    <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
-      
-      <!-- 상단 헤더 -->
-      <div style="background: #333; color: white; padding: 18px 22px;">
-        <span style="font-weight: 700; font-size: 16px;">프로필</span>
+    <div class="card">
+
+      <!-- ✅ 탭 헤더 -->
+      <div class="tabbar" role="tablist" aria-label="마이페이지 탭">
+        <button class="tabbtn" type="button" role="tab" data-tab="profile" aria-selected="true">
+          프로필
+        </button>
+        <button class="tabbtn" type="button" role="tab" data-tab="edit" aria-selected="false">
+          내정보 수정
+        </button>
+        <button class="tabbtn" type="button" role="tab" data-tab="receipt" aria-selected="false">
+          영수증
+        </button>
       </div>
 
-      <!-- 기본 정보 -->
-      <div style="padding: 22px;">
-        <div style="display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; align-items: center;">
-          <div style="color:#666; font-weight: 600;">아이디</div>
-          <div style="color:#333; font-weight: 700;">{{ user_obj.username }}</div>
+      <!-- ✅ TAB 1: 프로필 -->
+      <div class="tabpanel active" id="tab-profile" role="tabpanel" aria-label="프로필 탭">
+        <div class="section">
+          <div class="grid2">
+            <div class="label">아이디</div>
+            <div class="valueStrong">
+              {{ user_obj.username }}
+            </div>
 
-          <div style="color:#666; font-weight: 600;">전화번호</div>
-          <div style="color:#333;">
-            {% if formatted_phone %}
-              <span style="font-weight: 700;">{{ formatted_phone}}</span>
-            {% else %}
-              <span style="color:#999;">등록된 전화번호 없음</span>
-            {% endif %}
+            <div class="label">전화번호</div>
+            <div style="color:#333;">
+              {% if formatted_phone %}
+                <span class="valueStrong">{{ formatted_phone }}</span>
+              {% else %}
+                <span style="color:#999;">등록된 전화번호 없음</span>
+              {% endif %}
+            </div>
+            
           </div>
+
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section">
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+
+          {% if account %}
+            <div class="grid2">
+              <div class="label">예금주명</div>
+              <div style="color:#333; font-weight:600;">{{ account.name }}</div>
+
+              <div class="label">은행</div>
+              <div style="color:#333; font-weight:600;">{{ account.bank }}</div>
+
+              <div class="label">계좌번호</div>
+              <div style="color:#333; font-weight:600;">{{ account.masked_account_number  }}</div>
+
+              <div class="label">잔액</div>
+              <div style="color:#e44d26; font-weight: 800; font-size: 18px;">
+                {{ account.balance|intcomma }}원
+              </div>
+            </div>
+          {% else %}
+            <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
+              계좌 정보가 없습니다.
+            </div>
+          {% endif %}
         </div>
       </div>
 
-      <!-- 구분선 -->
-      <div style="height: 1px; background: #eee;"></div>
+      <!-- ✅ TAB 2: 내정보 수정 (미구현 기반) -->
+      <div class="tabpanel" id="tab-edit" role="tabpanel" aria-label="내정보 수정 탭">
+        <div class="section">
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">✏️ 내정보 수정</h3>
 
-      <!-- 계좌 정보 -->
-      <div style="padding: 22px;">
-        <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+      <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px;
+                  color: #1b4a7a; margin-bottom: 16px; line-height: 1.6;">
+        <b>내 정보 수정</b> 탭에서는<br> 등록된 <b>전화번호</b>, <b>은행 정보</b>, <b>계좌번호</b>를 직접 수정할 수 있습니다.<br>
+          변경 사항은 저장 즉시 계정 정보에 반영됩니다.
+      </div>
 
-        {% if account %}
-          <div style="display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; align-items: center;">
-            <div style="color:#666; font-weight: 600;">예금주명</div>
-            <div style="color:#333; font-weight: 600;">{{ account.name }}</div>
+          <form method="post" action="{% url 'mypage_update' %}" autocomplete="off">
+            {% csrf_token %}
 
-            <div style="color:#666; font-weight: 600;">은행</div>
-            <div style="color:#333; font-weight: 600;">{{ account.bank_name }}</div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
 
-            <div style="color:#666; font-weight: 600;">계좌번호</div>
-            <div style="color:#333; font-weight: 600;">{{ account.account_number }}</div>
+              <div>
+                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">전화번호</div>
+                <div class="inputWrap">
+                  <input name="phone"
+                         value="{% if account %}{{ account.phone }}{% endif %}"
+                         placeholder="01012345678" />
+                </div>
+                <div class="help">예) 01012345678 (하이픈 없이)</div>
+              </div>
 
-            <div style="color:#666; font-weight: 600;">잔액</div>
-            <div style="color:#e44d26; font-weight: 800; font-size: 18px;">
-              {{ account.balance|intcomma }}원
+              <div>
+                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
+
+                <div class="inputWrap">
+                  <select name="bank" style="width:100%; border:none; outline:none; background:transparent;">
+                    <option value="">은행 선택</option>
+                    {% for b in banks %}
+                     <option value="{{ b.id }}"
+                        {% if account and account.bank_id == b.id %}selected{% endif %}>
+                          {{ b.name }}
+                        </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">계좌번호</div>
+                <div class="inputWrap">
+                  <input name="account_number"
+                         value="{% if account %}{{ account.account_number }}{% endif %}"
+                         placeholder="예: 1101234567890" />
+                </div>
+                <div class="help">※ 실제 저장/검증 로직은 추후 View/Form에서 구현</div>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top: 6px;">
+                <!-- ✅ 중요: 지금은 submit(저장) 되면 기능이 없으니 버튼은 type=button으로 막아둠 -->
+                <button type="button" class="btnGhost"
+                        onclick="history.back()">
+                  취소
+                </button>
+                <button type="submit" class="btnPrimary">
+                  저장
+                </button>
+              </div>
+
             </div>
-          </div>
-        {% else %}
-          <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
-            계좌 정보가 없습니다.
-          </div>
-        {% endif %}
+          </form>
+          <div class="divider" style="margin: 18px 0;"></div>
+
+<h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
+
+<div style="
+  padding: 12px 16px;
+  background: #eef7ff;
+  border: 1px solid #cfe6ff;
+  border-radius: 12px;
+  color: #1b4a7a;
+  margin-bottom: 14px;
+  line-height: 1.6;
+">
+  안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.
+</div>
+
+{% if not pw_verified %}
+  <!-- ✅ Step 1: 본인인증(현재 비밀번호 확인) -->
+  <form method="post" action="{% url 'pw_verify' %}" autocomplete="off">
+    {% csrf_token %}
+
+    <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">현재 비밀번호</div>
+      <div class="inputWrap">
+        <input type="password" name="current_password" placeholder="현재 비밀번호를 입력하세요" autocomplete="current-password" />
       </div>
     </div>
 
-    <!-- 아래 여백 -->
-    <div style="height: 30px;"></div>
+    <button type="submit" class="btnPrimary">본인 인증</button>
+  </form>
 
+{% else %}
+  <!-- ✅ Step 2: 새 비밀번호 입력 -->
+  <form method="post" action="{% url 'pw_change' %}" autocomplete="off">
+    {% csrf_token %}
+
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 12px;">
+      <div>
+        <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호</div>
+        <div class="inputWrap">
+          <input type="password" name="new_password1" placeholder="새 비밀번호" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div>
+        <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호 확인</div>
+        <div class="inputWrap">
+          <input type="password" name="new_password2" placeholder="새 비밀번호 확인" autocomplete="new-password" />
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <a href="/accounts/mypage/?tab=edit"
+         class="btnGhost"
+         style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
+        취소
+      </a>
+      <button type="submit" class="btnPrimary">비밀번호 변경</button>
+    </div>
+  </form>
+{% endif %}
+        </div>
+        
+      </div>
+
+
+      <!-- ✅ TAB 3: 영수증 (미구현 기반) -->
+      <div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
+        <div class="section">
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
+
+          <div style="padding: 12px 14px; background:#eef7ff; border:1px solid #cfe6ff; border-radius: 12px; color:#1b4a7a; margin-bottom: 14px;">
+            아직 기능 구현 전이에요. 향후 거래(Transaction) / 주문(Order) 데이터를 여기에 표시하면 됩니다.
+          </div>
+
+          <!-- ✅ receipts 변수가 없어도 템플릿이 터지지 않도록 방어 -->
+          {% if receipts %}
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              {% for r in receipts %}
+                <div style="border:1px solid #eee; border-radius: 14px; padding: 12px 14px;">
+                  <div style="display:flex; justify-content:space-between; gap:10px;">
+                    <div style="font-weight:900; color:#333;">
+                      {{ r.title }}
+                    </div>
+                    <div style="color:#888; font-size:13px;">
+                      {{ r.created_at }}
+                    </div>
+                  </div>
+                  <div style="margin-top:6px; color:#444;">
+                    {{ r.amount|intcomma }}원
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#777;">
+              표시할 영수증이 없습니다. (추후 구현 예정)
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <div style="height: 30px;"></div>
   </div>
 </div>
+
+<script>
+  (function(){
+    const tabButtons = Array.from(document.querySelectorAll('.tabbtn'));
+    const panels = {
+      profile: document.getElementById('tab-profile'),
+      edit: document.getElementById('tab-edit'),
+      receipt: document.getElementById('tab-receipt'),
+    };
+
+    function activate(tabName, pushState=true){
+      tabButtons.forEach(btn => {
+        const isOn = btn.dataset.tab === tabName;
+        btn.setAttribute('aria-selected', isOn ? 'true' : 'false');
+      });
+
+      Object.keys(panels).forEach(k => {
+        panels[k].classList.toggle('active', k === tabName);
+      });
+
+      // ✅ ?tab=... 유지(이건 URL reverse가 아니라 querystring 변경이라 안전)
+      if(pushState){
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => activate(btn.dataset.tab));
+    });
+
+    const url = new URL(window.location.href);
+    const initial = url.searchParams.get('tab');
+    if(initial && panels[initial]){
+      activate(initial, false);
+    } else {
+      activate('profile', false);
+    }
+  })();
+</script>
 
 {% endblock %}

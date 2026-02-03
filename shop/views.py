@@ -1,8 +1,11 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from django.views.generic import *
-from .models import Product,Cart,Category
+from .models import Product,Cart,Category,Transaction,Account
 from django.views import View
 from django.contrib import messages
+from django.db import transaction
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
 
 #상품 목록 페이지(사진,이름,가격 등의 리스트)
 class ProductListView(ListView):
@@ -55,6 +58,11 @@ class ProductDetailView(DetailView):
 #장바구니 담기 기능을 처리하는 클래스 기반 view
 class AddToCartView(View):
     def post(self, request, product_id):
+        #1. 담으려는 상품 정보를 DB에서 가져옴
+        # 로그인 체크
+        if not request.user.is_authenticated:
+            messages.error(request, "장바구니는 로그인 후 이용 가능합니다.")
+            return redirect('login') # 혹은 상세페이지로 리다이렉트
 
         #1. 담으려는 상품 정보를 DB에서 가져옴
         product = get_object_or_404(Product, id=product_id)
@@ -153,3 +161,129 @@ class RemoveFromCartView(View):
             cart_item.delete()
         # 모든 처리가 끝난 후 장바구니 화면으로 이동 
         return redirect('cart_list')
+class OrderExecutionView(LoginRequiredMixin, View):
+    """
+    장바구니 결제 실행 (예외 처리 강화 버전)
+    """
+    # LoginRequiredMixin이 로그인이 안 된 사용자를 자동으로 로그인 페이지로 보냅니다.
+    login_url = '/accounts/login/' 
+
+    def post(self, request):
+        # 1. 계좌 정보 확인 (Account 객체 자체가 없는 경우 대비)
+        user_account = Account.objects.filter(user=request.user).first()
+        
+        if not user_account:
+            messages.error(request, "결제 가능한 계좌 정보가 없습니다. 관리자에게 문의하세요.")
+            return redirect('cart_list')
+
+        # 2. 장바구니 품목 가져오기
+        cart_items = Cart.objects.filter(user=request.user)
+        if not cart_items.exists():
+            messages.error(request, "결제할 상품이 장바구니에 없습니다.")
+            return redirect('cart_list')
+
+        # 3. 총 결제 금액 계산
+        total_price = sum(item.total_price() for item in cart_items)
+
+        try:
+            with transaction.atomic():
+                # (1) 잔액 검증: 돈이 모자라는 경우
+                if user_account.balance < total_price:
+                    # 사용자에게 더 친절한 메시지 전달
+                    diff = total_price - user_account.balance
+                    raise Exception(f"잔액이 {diff:,}원 부족합니다. (현재 잔액: {user_account.balance:,}원)")
+
+                # (2) 상품별 재고 검증 및 차감
+                for item in cart_items:
+                    target_product = item.product
+                    
+                    # 재고가 부족한 경우
+                    if target_product.stock < item.quantity:
+                        raise Exception(f"[{target_product.name}] 상품의 재고가 부족합니다. (남은 수량: {target_product.stock}개)")
+
+                    # 실제 재고 차감
+                    target_product.stock -= item.quantity
+                    target_product.save()
+
+                    # (3) 거래 내역(Transaction) 데이터 생성 
+                    Transaction.objects.create(
+                        user=request.user,
+                        account=user_account,
+                        product=target_product,
+                        product_name=target_product.name, # 상품 삭제 대비
+                        quantity=item.quantity,
+                        tx_type=Transaction.OUT,
+                        amount=item.total_price(),
+                        occurred_at=timezone.now(),
+                        memo=f"장바구니 구매: {target_product.name}"
+                    )
+
+                # (4) 유저 잔액 차감
+                user_account.balance -= total_price
+                user_account.save()
+
+                # (5) 장바구니 비우기
+                cart_items.delete()
+
+            messages.success(request, f"성공적으로 결제되었습니다! ({total_price:,}원 차감)")
+            return redirect('mypage')
+
+        except Exception as e:
+            # 모든 에러 메시지를 사용자에게 알림으로 전달
+            messages.error(request, f"결제 실패: {str(e)}")
+            return redirect('cart_list')
+class DirectPurchaseView(LoginRequiredMixin, View):
+    """
+    상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
+    """
+    def post(self, request, product_id):
+        # 1. 대상 상품 및 계좌 확인
+        target_product = get_object_or_404(Product, id=product_id)
+        user_account = Account.objects.filter(user=request.user).first()
+
+        # 수량 가져오기 (HTML의 <input name="quantity"> 값)
+        buy_quantity = int(request.POST.get('quantity', 1))
+        total_price = target_product.price * buy_quantity
+
+        if not user_account:
+            messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
+            return redirect('product_detail', pk=product_id)
+
+        # 2. 결제 로직 (트랜잭션)
+        try:
+            with transaction.atomic():
+                # (1) 잔액 검증
+                if user_account.balance < total_price:
+                    raise Exception(f"잔액이 부족합니다. (현재 잔액: {user_account.balance:,}원)")
+
+                # (2) 재고 검증
+                if target_product.stock < buy_quantity:
+                    raise Exception(f"재고가 부족합니다. (현재 재고: {target_product.stock}개)")
+
+                # (3) 재고 차감 및 저장
+                target_product.stock -= buy_quantity
+                target_product.save()
+
+                # (4) 거래 내역 생성 (상품 삭제 대비 product_name 포함)
+                Transaction.objects.create(
+                    user=request.user,
+                    account=user_account,
+                    product=target_product,
+                    product_name=target_product.name,
+                    quantity=buy_quantity,
+                    tx_type=Transaction.OUT,
+                    amount=total_price,
+                    occurred_at=timezone.now(),
+                    memo=f"바로구매: {target_product.name}"
+                )
+
+                # (5) 잔액 차감
+                user_account.balance -= total_price
+                user_account.save()
+
+            messages.success(request, f"[{target_product.name}] {buy_quantity}개 결제가 완료되었습니다!")
+            return redirect('mypage')
+
+        except Exception as e:
+            messages.error(request, f"결제 실패: {str(e)}")
+            return redirect('product_detail', pk=product_id)
