@@ -37,9 +37,15 @@ class Account(models.Model):
         if len(s) <= 5:
             return "*****"
         return "*****" + s[-5:]
+    
+    def phone_number_alignment(self) -> str:
+        p = self.phone or ""
+        if len(p)==11:
+            return p[:3]+"-"+p[3:7]+"-"+p[7:]
+
 
     def __str__(self):
-        return f"{self.name} ({self.bank_name}) {self.masked_account_number()}"
+        return f"{self.name} ({self.bank_name}) {self.masked_account_number()}|{self.phone_number_alignment()} "
 
 class Category(models.Model):
     # IN = "IN"

@@ -1,20 +1,71 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block content %}
 
-<h2>내 정보</h2>
+<div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
+  <div style="width:100%; max-width: 900px;">
 
-<p><b>아이디:</b> {{ user_obj.username }}</p>
-<p><b>전화번호:</b> {{ user_obj.phone }}</p>
+    <h2 style="margin: 0 0 18px 10px;">🙋 내 정보</h2>
 
-{% if account %}
-  <hr>
-  <h3>계좌 정보</h3>
-  <p><b>예금주명:</b> {{ account.name }}</p>
-  <p><b>은행:</b> {{ account.bank_name }}</p>
-  <p><b>계좌번호:</b> {{ account.account_number }}</p>
-  <p><b>잔액:</b> {{ account.balance }}</p>
-{% else %}
-  <p style="color:red;">계좌 정보가 없습니다.</p>
-{% endif %}
+    <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
+      
+      <!-- 상단 헤더 -->
+      <div style="background: #333; color: white; padding: 18px 22px;">
+        <span style="font-weight: 700; font-size: 16px;">프로필</span>
+      </div>
+
+      <!-- 기본 정보 -->
+      <div style="padding: 22px;">
+        <div style="display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; align-items: center;">
+          <div style="color:#666; font-weight: 600;">아이디</div>
+          <div style="color:#333; font-weight: 700;">{{ user_obj.username }}</div>
+
+          <div style="color:#666; font-weight: 600;">전화번호</div>
+          <div style="color:#333;">
+            {% if formatted_phone %}
+              <span style="font-weight: 700;">{{ formatted_phone}}</span>
+            {% else %}
+              <span style="color:#999;">등록된 전화번호 없음</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- 구분선 -->
+      <div style="height: 1px; background: #eee;"></div>
+
+      <!-- 계좌 정보 -->
+      <div style="padding: 22px;">
+        <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+
+        {% if account %}
+          <div style="display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; align-items: center;">
+            <div style="color:#666; font-weight: 600;">예금주명</div>
+            <div style="color:#333; font-weight: 600;">{{ account.name }}</div>
+
+            <div style="color:#666; font-weight: 600;">은행</div>
+            <div style="color:#333; font-weight: 600;">{{ account.bank_name }}</div>
+
+            <div style="color:#666; font-weight: 600;">계좌번호</div>
+            <div style="color:#333; font-weight: 600;">{{ account.account_number }}</div>
+
+            <div style="color:#666; font-weight: 600;">잔액</div>
+            <div style="color:#e44d26; font-weight: 800; font-size: 18px;">
+              {{ account.balance|intcomma }}원
+            </div>
+          </div>
+        {% else %}
+          <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
+            계좌 정보가 없습니다.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 아래 여백 -->
+    <div style="height: 30px;"></div>
+
+  </div>
+</div>
 
 {% endblock %}

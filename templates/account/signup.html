@@ -8,62 +8,130 @@
 
   {% include "header.html" %}
 
-  <div style="max-width: 520px; margin: 30px auto;">
-    <h2>회원가입</h2>
+  <div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
+    <div style="width:100%; max-width: 520px;">
 
-    <form method="post">
-      {% csrf_token %}
+      <h2 style="margin: 0 0 18px 10px;">📝 회원가입</h2>
 
-      {% if form.errors %}
-        <div style="padding: 10px; background:#ffecec; border:1px solid #ffb3b3; margin-bottom: 15px;">
-          {{ form.errors }}
+      <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
+
+        <div style="background:#333; color:white; padding: 18px 22px; font-weight: 700;">
+          계정 정보 입력
         </div>
-      {% endif %}
 
-      <div style="margin-bottom: 10px;">
-        <label>아이디</label><br/>
-        {{ form.username }}
+        <form method="post" style="padding: 22px;">
+          {% csrf_token %}
+
+          {% if form.errors %}
+            <div style="padding: 12px 14px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; margin-bottom: 16px; color:#c0392b;">
+              {{ form.errors }}
+            </div>
+          {% endif %}
+
+          <div style="display:flex; flex-direction: column; gap: 14px;">
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">아이디</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.username }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.username.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">비밀번호</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.password1 }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.password1.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">비밀번호 확인</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.password2 }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.password2.errors }}
+              </div>
+            </div>
+
+            <div style="height: 1px; background:#eee; margin: 6px 0;"></div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">이름</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.name }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.name.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">폰 번호</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.phone }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.phone.errors }}
+              </div>
+              <div style="margin-top: 6px; color:#888; font-size: 13px;">
+                예) 01012345678 (하이픈 없이)
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.bank_name }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.bank_name.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">계좌번호</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.account_number }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.account_number.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">잔액</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.balance }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.balance.errors }}
+              </div>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 18px; display:flex; gap: 10px;">
+            <button type="submit"
+                    style="flex:1; padding: 12px 14px; background: #333; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 900;">
+              가입하기
+            </button>
+            <a href="{% url 'login' %}"
+               style="flex:1; text-align:center; padding: 12px 14px; background: #f4f4f4; color: #666; border-radius: 12px; text-decoration: none; font-weight: 900;">
+              이미 계정이 있어요
+            </a>
+          </div>
+
+        </form>
       </div>
 
-      <div style="margin-bottom: 10px;">
-        <label>비밀번호</label><br/>
-        {{ form.password1 }}
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <label>비밀번호 확인</label><br/>
-        {{ form.password2 }}
-      </div>
-
-      <hr/>
-
-      <div style="margin-bottom: 10px;">
-        <label>이름</label><br/>
-        {{ form.name }}
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <label>폰 번호</label><br/>
-        {{ form.phone }}
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <label>은행명</label><br/>
-        {{ form.bank_name }}
-      </div>
-
-      <div style="margin-bottom: 10px;">
-        <label>계좌번호</label><br/>
-        {{ form.account_number }}
-      </div>
-      <div style="margin-bottom: 10px;">
-        <label>잔액</label><br/>
-        {{ form.balance }}
-      </div>
-
-      <button type="submit" style="padding: 10px 14px;">가입하기</button>
-      <a href="{% url 'login' %}" style="margin-left: 10px;">이미 계정이 있어요</a>
-    </form>
+    </div>
   </div>
 
 </body>

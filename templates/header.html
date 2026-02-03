@@ -1,51 +1,101 @@
-<!-- <header style="background: #333; color: white; padding: 20px; text-align: center;">
-    <h1>🛒</h1>
-    <nav>
-        <a href="{% url 'product_list' %}" style="color: white; margin: 0 15px;">상품목록</a>
-        <a href="/admin/" style="color: white; margin: 0 15px;">관리자</a>
-    </nav>
-</header> 성현님 ver-->
+<header style="
+  background:#333; color:#fff;
+  padding: 14px 20px;
+  display:flex; align-items:center; justify-content:space-between;
+">
+  <!-- 로고 -->
+  <h1 style="margin:0; font-size:24px; line-height:1;">
+    <a href="{% url 'product_list' %}" style="color:#fff; text-decoration:none;">
+      🛒
+    </a>
+  </h1>
 
-<header style="background: #333; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-        <h1 style="margin: 0; font-size: 24px;">
-            <a href="{% url 'product_list' %}" style="text-decoration: none; color: white;">🛒</a>
-        </h1>
-  <nav>
-    <a href="{% url 'product_list' %}" style="color: white; margin: 0 15px;">상품목록</a>
-    <a href="/admin/" style="color: white; margin: 0 15px;">관리자</a>
-    <a href="{% url 'cart_list' %}" style="color: white; margin: 0 15px; text-decoration: none;">
-            🛒 장바구니</a>
+  <!-- 네비게이션 -->
+  <nav style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+
+    <!-- 공통 메뉴 -->
+    <a href="{% url 'product_list' %}" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
+      상품목록
+    </a>
+    <a href="/admin/" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
+      관리자
+    </a>
 
     {% if user.is_authenticated %}
-      <span style="margin-left: 15px;">안녕하세요, {{ user.username }}님</span>
+      <!-- 로그인 시에만 장바구니 표시 -->
+      <a href="{% url 'cart_list' %}" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
+        🛒 장바구니
+      </a>
+    {% endif %}
 
-      <form method="post" action="{% url 'logout' %}" style="display:inline; margin: 0 15px;">
-        {% csrf_token %}
-        <div style="display: flex; gap: 15px; font-size: 14px;">
-          <button type="submit"
-                style="background:none; border:none; color:white; cursor:pointer;">
+    <!-- 구분선 -->
+    <span style="width:1px; height:18px; background: rgba(255,255,255,.25);"></span>
+
+    {% if user.is_authenticated %}
+      <!-- 로그인 상태 -->
+      <span style="color:#ddd; font-size:14px; white-space:nowrap;">
+        안녕하세요, <b style="color:#fff;">{{ user.username }}</b>님
+      </span>
+
+      <div style="display:flex; align-items:center; gap:12px;">
+        <!-- 로그아웃 (POST 유지) -->
+        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" style="
+            background: transparent;
+            border: 1px solid rgba(255,255,255,.25);
+            color:#fff;
+            padding: 7px 10px;
+            border-radius: 10px;
+            cursor:pointer;
+            font-weight:800;
+            font-size:13px;
+          ">
             로그아웃
           </button>
-      </form>
-      <div style="display: flex; gap: 15px; font-size: 14px;">
-        <a href="{% url 'mypage' %}" style="color: #bbb; text-decoration: none;">내 정보</a>
+        </form>
+
+        <a href="{% url 'mypage' %}" style="
+          color:#bbb;
+          text-decoration:none;
+          font-weight:800;
+          font-size:13px;
+          padding: 7px 10px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.18);
+        ">
+          내 정보
+        </a>
       </div>
 
-      <!-- <form method="get" action="{% url 'mypage' %}" style="display:inline; margin: 0 15px;">
-        <button type="submit"
-          style="background:none; border:none; color:white; cursor:pointer;">
-          내 정보
-        </button>
-        </div>
-      </form> -->
-
     {% else %}
-          <div style="display: flex; gap: 15px; font-size: 14px;">
-            <a href="{% url 'login' %}" style="color: #bbb; text-decoration: none;">로그인</a>
-            <a href="{% url 'account_signup' %}" style="color: #bbb; text-decoration: none;">회원가입</a>
-          </div>
-      <!-- <a href="{% url 'login' %}" style="color: white; margin: 0 15px;">로그인</a>
-      <a href="{% url 'account_signup' %}" style="color: white; margin: 0 15px;">회원가입</a> -->
+      <!-- 비로그인 상태 -->
+      <div style="display:flex; align-items:center; gap:12px;">
+        <a href="{% url 'login' %}" style="
+          color:#bbb;
+          text-decoration:none;
+          font-weight:800;
+          font-size:13px;
+          padding: 7px 10px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.18);
+        ">
+          로그인
+        </a>
+        <a href="{% url 'account_signup' %}" style="
+          color:#fff;
+          text-decoration:none;
+          font-weight:900;
+          font-size:13px;
+          padding: 7px 12px;
+          border-radius: 10px;
+          background: rgba(255,255,255,.12);
+          border: 1px solid rgba(255,255,255,.18);
+        ">
+          회원가입
+        </a>
+      </div>
     {% endif %}
+
   </nav>
 </header>
