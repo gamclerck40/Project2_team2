@@ -122,7 +122,37 @@
                 {{ form.account_number.errors }}
               </div>
             </div>
+            <div style="height: 1px; background:#eee; margin: 6px 0;"></div>
 
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">우편번호</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.zip_code }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.zip_code.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">기본 주소</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.address }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.address.errors }}
+              </div>
+            </div>
+
+            <div>
+              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">상세 주소</div>
+              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+                {{ form.detail_address }}
+              </div>
+              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+                {{ form.detail_address.errors }}
+              </div>
+            </div>
             <div>
               <div style="margin-bottom: 8px; font-weight: 800; color:#333;">잔액</div>
               <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">

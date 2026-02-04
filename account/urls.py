@@ -1,5 +1,5 @@
 from django.urls import include,path
-from .views import SignUpView, MypageView, FindAccountView, MypageUpdateView, PasswordVerifyView, PasswordChangeAfterVerifyView, PasswordResetView, PasswordResetVerifyView, PasswordResetSetView
+from .views import *
 from django.contrib.auth.views import LoginView,LogoutView
 
 urlpatterns = [
@@ -22,5 +22,5 @@ urlpatterns = [
      # ✅ 비밀번호 변경 플로우
     path("mypage/password/verify/", PasswordVerifyView.as_view(), name="pw_verify"),
     path("mypage/password/change/", PasswordChangeAfterVerifyView.as_view(), name="pw_change"),
-    
+    path('address/delete/<int:address_id>/', AddressDeleteView.as_view(), name='address_delete'),
 ]

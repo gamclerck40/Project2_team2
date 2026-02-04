@@ -54,7 +54,16 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.bank}) {self.masked_account_number()}|{self.phone_number_alignment()} "
+class Address(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='addresses')
+    zip_code = models.CharField(max_length=10)        # 우편번호
+    address = models.CharField(max_length=255)         # 기본 주소
+    detail_address = models.CharField(max_length=255)  # 상세 주소
+    is_default = models.BooleanField(default=True)     # 기본 배송지 여부
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"[{self.zip_code}] {self.address}"
 class Category(models.Model):
     # IN = "IN"
     # OUT = "OUT"
@@ -139,8 +148,7 @@ class Transaction(models.Model):
 
         # 💡 [에이스님 추가분] 구매 수량을 기록하는 테이블 역할 필드
     quantity = models.PositiveIntegerField(default=1, verbose_name="구매 수량")
-    product_name = models.CharField(max_length=200, null=True, blank=True)
-		#TX_TYPE_CHOICES를 읽어와 "IN / OUT" 중 하나를 저장
+    product_name = models.CharField(max_length=200, null=True, blank=True, verbose_name="결제시 상품명")		#TX_TYPE_CHOICES를 읽어와 "IN / OUT" 중 하나를 저장
     tx_type = models.CharField(max_length=3, choices=TX_TYPE_CHOICES)
 		
 		#입금/거래량

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">나의 거래 내역</h2>
+
+    <div class="tab-menu" style="display: flex; gap: 5px; margin-bottom: 20px;">
+        <button onclick="openTab('in-tab')" class="tab-btn active" id="defaultOpen" style="padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; border-radius: 8px 8px 0 0; background: #f8f9fa; font-weight: bold;">
+            💰 입금 내역
+        </button>
+        <button onclick="openTab('out-tab')" class="tab-btn" style="padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; border-radius: 8px 8px 0 0; background: #f8f9fa; font-weight: bold;">
+            🛍️ 출금/구매 내역
+        </button>
+    </div>
+
+    <div id="in-tab" class="tab-content" style="display: block; border: 1px solid #ccc; padding: 20px; border-radius: 0 0 8px 8px;">
+        <h3 style="color: #28a745;">입금 내역 (IN)</h3>
+        <table class="table w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>날짜</th>
+                    <th>계좌</th>
+                    <th>금액</th>
+                    <th>메모</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                    {% if tx.tx_type == "IN" %}
+                    <tr>
+                        <td>{{ tx.occurred_at|date:"Y-m-d H:i" }}</td>
+                        <td>{{ tx.account.account_number }}</td>
+                        <td style="color: #28a745; font-weight: bold;">+{{ tx.amount|intcomma }}원</td>
+                        <td>{{ tx.memo|default:"-" }}</td>
+                    </tr>
+                    {% endif %}
+                {% empty %}
+                    <tr><td colspan="4" class="text-center">입금 내역이 없습니다.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="out-tab" class="tab-content" style="display: none; border: 1px solid #ccc; padding: 20px; border-radius: 0 0 8px 8px;">
+        <h3 style="color: #dc3545;">출금/구매 내역 (OUT)</h3>
+        <table class="table w-100">
+            <thead class="table-light">
+                <tr>
+                    <th>날짜</th>
+                    <th>상품명(수량)</th>
+                    <th>금액</th>
+                    <th>카테고리</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                    {% if tx.tx_type == "OUT" %}
+                    <tr>
+                        <td>{{ tx.occurred_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if tx.product %}
+                                {{ tx.product.name }} ({{ tx.quantity }}개)
+                            {% else %}
+                                {{ tx.product_name|default:"일반 지출" }}
+                            {% endif %}
+                        </td>
+                        <td style="color: #dc3545; font-weight: bold;">-{{ tx.amount|intcomma }}원</td>
+                        <td>{{ tx.category.name|default:"미분류" }}</td>
+                    </tr>
+                    {% endif %}
+                {% empty %}
+                    <tr><td colspan="4" class="text-center">출금 내역이 없습니다.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function openTab(tabId) {
+    // 1. 모든 컨텐츠 숨기기
+    var contents = document.getElementsByClassName("tab-content");
+    for (var i = 0; i < contents.length; i++) {
+        contents[i].style.display = "none";
+    }
+    
+    // 2. 모든 버튼 비활성화 스타일 (배경색 초기화)
+    var buttons = document.getElementsByClassName("tab-btn");
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].style.background = "#f8f9fa";
+        buttons[i].style.borderBottom = "1px solid #ccc";
+    }
+
+    // 3. 선택한 탭만 보이기
+    document.getElementById(tabId).style.display = "block";
+    
+    // 4. 선택한 버튼만 활성화 스타일
+    event.currentTarget.style.background = "#fff";
+    event.currentTarget.style.borderBottom = "none";
+}
+// 초기 로드 시 첫 번째 탭 버튼 활성화 상태 표시
+document.getElementById("defaultOpen").style.background = "#fff";
+document.getElementById("defaultOpen").style.borderBottom = "none";
+</script>
+{% endblock %}

@@ -23,7 +23,9 @@ class SignUpForm(UserCreationForm):
     )
     account_number = forms.CharField(max_length=50, label="계좌번호")
     balance = forms.DecimalField(max_digits=14, label="현재 잔액")
-
+    zip_code = forms.CharField(max_length=10, label="우편번호", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '예) 12345'}))
+    address = forms.CharField(max_length=255, label="기본 주소", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '시/도 구/군 도로명'}))
+    detail_address = forms.CharField(max_length=255, label="상세 주소", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '동/호수 등 상세정보'}))
     class Meta:
         model = User
         fields = (
@@ -35,6 +37,9 @@ class SignUpForm(UserCreationForm):
             "bank",
             "account_number",
             "balance",
+            "zip_code", 
+            "address", 
+            "detail_address",
         )
 
     def clean_phone(self):
@@ -67,7 +72,9 @@ class MypageUpdateForm(forms.Form):
         label="은행"
     )
     account_number = forms.CharField(max_length=50, required=False, label="계좌번호")
-
+    zip_code = forms.CharField(max_length=10, required=False)
+    address = forms.CharField(max_length=255, required=False)
+    detail_address = forms.CharField(max_length=255, required=False)
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "") or ""
         phone = re.sub(r"[^0-9]", "", phone)

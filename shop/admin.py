@@ -47,3 +47,4 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
 admin.site.register(Bank)
+admin.site.register(Address)

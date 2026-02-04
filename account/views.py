@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
-from shop.models import Account, Transaction, Bank
+from shop.models import Account, Transaction, Bank, Address
 from .forms import (
     SignUpForm,
     FindIDForm,
@@ -51,6 +51,13 @@ class SignUpView(View):
                     balance=form.cleaned_data["balance"],
                     is_active=True,
                 )
+                Address.objects.create(
+                    user=user,
+                    zip_code=form.cleaned_data["zip_code"],
+                    address=form.cleaned_data["address"],
+                    detail_address=form.cleaned_data["detail_address"],
+                    is_default=True
+                )
         except IntegrityError:
             # phone unique 등에서 터질 수 있음
             form.add_error(None, "이미 사용 중인 정보가 있습니다.")
@@ -89,7 +96,7 @@ class MypageView(LoginRequiredMixin, View):
             return digits
 
         account = Account.objects.filter(user=request.user).first()
-
+        addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-id') # <-- 전체 목록
         formatted_phone = ""
         if account:
             formatted_phone = format_korean_phone(account.phone)
@@ -100,6 +107,7 @@ class MypageView(LoginRequiredMixin, View):
             {
                 "user_obj": request.user,
                 "account": account,
+                "addresses": addresses,
                 "formatted_phone": formatted_phone,
                 "receipts": [],
                 "pw_verified": pw_verified,
@@ -182,7 +190,7 @@ class MypageUpdateView(LoginRequiredMixin, View):
 
         #해당 사용자에 맞는 Account의 모든 정보 호출.
         account = Account.objects.filter(user=request.user).first()
-
+        address_obj = Address.objects.filter(user=request.user, is_default=True).first()
         # 계정 정보가 없을 때
         if not account:
             messages.warning(request, "수정할 계좌 정보가 없습니다. 먼저 계좌를 등록하세요.")
@@ -192,7 +200,13 @@ class MypageUpdateView(LoginRequiredMixin, View):
         phone = form.cleaned_data["phone"]
         bank = form.cleaned_data["bank"]  # ✅ Bank 객체 or None
         account_number = form.cleaned_data["account_number"]
+        zip_code = request.POST.get("zip_code")
+        address = request.POST.get("address")
+        detail_address = request.POST.get("detail_address")
 
+        new_zip = request.POST.get("new_zip_code")
+        new_addr = request.POST.get("new_address")
+        new_detail = request.POST.get("new_detail_address")
         try:
             with transaction.atomic():
                 if phone != "":
@@ -203,11 +217,31 @@ class MypageUpdateView(LoginRequiredMixin, View):
                     account.account_number = account_number
 
                 account.save()  # ✅ updated_at 자동 갱신
+                address_obj = Address.objects.filter(user=request.user, is_default=True).first()
+                if address_obj:
+                    # ✅ form.cleaned_data["zip_code"] -> zip_code 로 변경
+                    if zip_code: address_obj.zip_code = zip_code
+                    if address: address_obj.address = address
+                    if detail_address: address_obj.detail_address = detail_address
+                    address_obj.save()
+
+                # --- [추가] 새 배송지 등록 로직 ---
+                if new_zip and new_addr:
+                    Address.objects.create(
+                        user=request.user,
+                        zip_code=new_zip,
+                        address=new_addr,
+                        detail_address=new_detail,
+                        is_default=False  # 새로 추가하는 건 일반 배송지
+                    )
+                    messages.success(request, "새 배송지가 추가되었습니다.")
         except IntegrityError:
             messages.warning(request, "이미 사용 중인 계좌번호이거나 저장할 수 없는 값입니다.")
             return redirect("/accounts/mypage/?tab=edit")
-
-        messages.success(request, "내 정보가 수정되었습니다.")
+        except Exception as e:
+            messages.error(request, f"오류가 발생했습니다: {str(e)}")
+            return redirect("/accounts/mypage/?tab=edit")        
+        messages.success(request, "내 정보와 주소가 성공적으로 수정되었습니다.")
         return redirect("/accounts/mypage/?tab=profile")
 @method_decorator(never_cache, name="dispatch")
 class PasswordResetView(LoginRequiredMixin, View):
@@ -355,3 +389,13 @@ class PasswordResetSetView(View):
 
         messages.success(request, "비밀번호가 변경되었습니다. 로그인해 주세요.")
         return redirect("/accounts/login/")
+@method_decorator(never_cache, name="dispatch")    
+class AddressDeleteView(LoginRequiredMixin, View):
+    def post(self, request, address_id):
+        address = Address.objects.filter(id=address_id, user=request.user).first()
+        if address and not address.is_default:
+            address.delete()
+            messages.success(request, "배송지가 삭제되었습니다.")
+        else:
+            messages.warning(request, "기본 배송지는 삭제할 수 없습니다.")
+        return redirect("/accounts/mypage/?tab=profile")

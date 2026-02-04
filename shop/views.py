@@ -232,6 +232,55 @@ class OrderExecutionView(LoginRequiredMixin, View):
             # 모든 에러 메시지를 사용자에게 알림으로 전달
             messages.error(request, f"결제 실패: {str(e)}")
             return redirect('cart_list')
+        
+class OrderExecutionView(View):
+    def post(self, request):
+        user_account = get_object_or_404(Account, user=request.user)
+        cart_items = Cart.objects.filter(user=request.user)
+        
+        if not cart_items.exists():
+            messages.error(request, "결제할 상품이 없습니다.")
+            return redirect('cart_list')
+
+        total_price = sum(item.total_price() for item in cart_items)
+
+        try:
+            with transaction.atomic(): # 🛡️ 안전장치 시작
+                if user_account.balance < total_price:
+                    raise Exception(f"잔액 부족 (잔액: {user_account.balance}원 / 필요: {total_price}원)")
+
+                for item in cart_items:
+                    if item.product.stock < item.quantity:
+                        raise Exception(f"{item.product.name} 재고 부족")
+
+                    # 재고 차감
+                    item.product.stock -= item.quantity
+                    item.product.save()
+
+                    # 거래 내역 생성 
+                    Transaction.objects.create(
+                        user=request.user,
+                        account=user_account,
+                        product=item.product,
+                        quantity=item.quantity, 
+                        tx_type=Transaction.OUT,
+                        amount=item.total_price(),
+                        occurred_at=timezone.now(),
+                        memo=f"장바구니 구매: {item.product.name}"
+                    )
+
+                # 최종 잔액 차감 및 장바구니 비우기
+                user_account.balance -= total_price
+                user_account.save()
+                cart_items.delete()
+
+            messages.success(request, "결제가 성공적으로 완료되었습니다!")
+            return redirect('mypage')
+
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect('cart_list')
+
 class DirectPurchaseView(LoginRequiredMixin, View):
     """
     상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
@@ -269,7 +318,7 @@ class DirectPurchaseView(LoginRequiredMixin, View):
                     user=request.user,
                     account=user_account,
                     product=target_product,
-                    product_name=target_product.name,
+                    category=target_product.category,                    product_name=target_product.name,
                     quantity=buy_quantity,
                     tx_type=Transaction.OUT,
                     amount=total_price,
@@ -287,3 +336,12 @@ class DirectPurchaseView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"결제 실패: {str(e)}")
             return redirect('product_detail', pk=product_id)
+
+class TransactionHistoryView(LoginRequiredMixin, ListView):
+    model = Transaction
+    template_name = 'shop/transaction_list.html' 
+    context_object_name = 'transactions'
+
+    def get_queryset(self):
+        # 로그인한 사용자의 내역만 최신순으로 가져오기
+        return Transaction.objects.filter(user=self.request.user).order_by('-occurred_at')
