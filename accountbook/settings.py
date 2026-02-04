@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-(8h4-k3%&c_*1mpiv0+zf-%4e$cox(x60j%s#mw14vz$vq$$9i
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+CSRF_FAILURE_VIEW = "account.views.csrf_failure"
 ALLOWED_HOSTS = []
 LOGIN_REDIRECT_URL = "/shop/"
 LOGOUT_REDIRECT_URL = "/shop/"
