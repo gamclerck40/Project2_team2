@@ -1,31 +1,59 @@
 import re
+
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import SetPasswordForm, UserCreationForm
 from django.core.exceptions import ValidationError
 
-from shop.models import Account, Bank
+from account.models import Account, Bank
 
 User = get_user_model()
 
-#회원가입 페이지 Form
+
+# 회원가입 페이지 Form
 class SignUpForm(UserCreationForm):
     name = forms.CharField(max_length=50, label="이름")
     phone = forms.CharField(
-        max_length=11,
-        label="전화번호",
-        help_text="숫자만 입력 (예: 01012345678)"
+        max_length=11, label="전화번호", help_text="숫자만 입력 (예: 01012345678)"
     )
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.all().order_by("name"),
         empty_label="은행 선택",
-        label="은행"
+        label="은행",
     )
     account_number = forms.CharField(max_length=50, label="계좌번호")
     balance = forms.DecimalField(max_digits=14, label="현재 잔액")
-    zip_code = forms.CharField(max_length=10, label="우편번호", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '예) 12345'}))
-    address = forms.CharField(max_length=255, label="기본 주소", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '시/도 구/군 도로명'}))
-    detail_address = forms.CharField(max_length=255, label="상세 주소", widget=forms.TextInput(attrs={'style': 'width:100%; border:none; outline:none;', 'placeholder': '동/호수 등 상세정보'}))
+    zip_code = forms.CharField(
+        max_length=10,
+        label="우편번호",
+        widget=forms.TextInput(
+            attrs={
+                "style": "width:100%; border:none; outline:none;",
+                "placeholder": "예) 12345",
+            }
+        ),
+    )
+    address = forms.CharField(
+        max_length=255,
+        label="기본 주소",
+        widget=forms.TextInput(
+            attrs={
+                "style": "width:100%; border:none; outline:none;",
+                "placeholder": "시/도 구/군 도로명",
+            }
+        ),
+    )
+    detail_address = forms.CharField(
+        max_length=255,
+        label="상세 주소",
+        widget=forms.TextInput(
+            attrs={
+                "style": "width:100%; border:none; outline:none;",
+                "placeholder": "동/호수 등 상세정보",
+            }
+        ),
+    )
+
     class Meta:
         model = User
         fields = (
@@ -37,8 +65,8 @@ class SignUpForm(UserCreationForm):
             "bank",
             "account_number",
             "balance",
-            "zip_code", 
-            "address", 
+            "zip_code",
+            "address",
             "detail_address",
         )
 
@@ -47,34 +75,43 @@ class SignUpForm(UserCreationForm):
         phone = re.sub(r"[^0-9]", "", phone)
 
         if not re.match(r"^010\d{7,8}$", phone):
-            raise ValidationError("전화번호 형식이 올바르지 않습니다. (예: 01012345678)")
+            raise ValidationError(
+                "전화번호 형식이 올바르지 않습니다. (예: 01012345678)"
+            )
 
         if Account.objects.filter(phone=phone).exists():
             raise ValidationError("이미 사용 중인 전화번호입니다.")
 
         return phone
+    def clean_bank(self):
+        bank = self.cleaned_data.get("bank")
+        if not bank:
+            raise ValidationError("은행을 선택해 주세요.")
+        return bank
 
-#ID 찾기 UI
+
+# ID 찾기 UI
 class FindIDForm(forms.Form):
     phone = forms.CharField(
         label="휴대폰 번호",
         max_length=11,
-        widget=forms.TextInput(attrs={"placeholder": "01012345678"})
+        widget=forms.TextInput(attrs={"placeholder": "01012345678"}),
     )
 
-#내 정보 수정 Form
+# 내 정보 수정 Form
 class MypageUpdateForm(forms.Form):
     phone = forms.CharField(max_length=11, required=False, label="전화번호")
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.all().order_by("name"),
         required=False,
         empty_label="은행 선택",
-        label="은행"
+        label="은행",
     )
     account_number = forms.CharField(max_length=50, required=False, label="계좌번호")
     zip_code = forms.CharField(max_length=10, required=False)
     address = forms.CharField(max_length=255, required=False)
     detail_address = forms.CharField(max_length=255, required=False)
+
     def clean_phone(self):
         phone = self.cleaned_data.get("phone", "") or ""
         phone = re.sub(r"[^0-9]", "", phone)
@@ -83,7 +120,9 @@ class MypageUpdateForm(forms.Form):
             return phone
 
         if not re.match(r"^010\d{7,8}$", phone):
-            raise ValidationError("전화번호 형식이 올바르지 않습니다. (예: 01012345678)")
+            raise ValidationError(
+                "전화번호 형식이 올바르지 않습니다. (예: 01012345678)"
+            )
         return phone
 
     def clean_account_number(self):
@@ -94,8 +133,9 @@ class MypageUpdateForm(forms.Form):
 class PasswordVerifyForm(forms.Form):
     current_password = forms.CharField(
         label="현재 비밀번호",
-        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"})
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )
+
 
 class PasswordResetVerifyForm(forms.Form):
     username = forms.CharField(label="아이디")
@@ -131,4 +171,3 @@ class PasswordResetVerifyForm(forms.Form):
         # 뷰에서 쓰기 위해 저장
         self.user = user
         return cleaned
-    

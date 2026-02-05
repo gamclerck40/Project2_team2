@@ -1,109 +1,150 @@
-{%extends 'base.html' %}
+{% extends 'base.html' %}
 
-{#base.html을 가져옴#}
+{# base.html을 가져옴 #}
 
 {% load humanize %}
 
-{%block content%}
-{#콘텐츠 시작 점#}
-<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-    <a href="{% url 'product_list' %}" style="text-decoration: none; color: #666;">← 목록으로 돌아가기</a>
-    {%comment%}
-    최대 넓이 800px로 제한 margin: 0 auto를 써서 중앙 배치, padding : 20px = 박스 안쪽의 여백. 
-        a태그 = 다시 상품으로 돌아감 url 'product_list' 
+{% block content %}
+  {# 콘텐츠 시작 점 #}
 
-    추가 설명 "text-decoration" = a태그의 밑줄을 제거함 ex커서를 가져갔을 시 생기는 파란 밑 줄 
+  <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <a href="{% url 'product_list' %}" style="text-decoration: none; color: #666;">
+      ← 목록으로 돌아가기
+    </a>
 
-    {%endcomment%}
+    {% comment %}
+      최대 넓이 800px로 제한 margin: 0 auto를 써서 중앙 배치, padding : 20px = 박스 안쪽의 여백.
+      a태그 = 다시 상품으로 돌아감 url 'product_list'
+
+      추가 설명 "text-decoration" = a태그의 밑줄을 제거함 ex커서를 가져갔을 시 생기는 파란 밑 줄
+    {% endcomment %}
 
     <div style="display: flex; gap: 40px; margin-top: 20px;">
-        <div style="flex: 1;">
-            {%comment%}
-            사진과 설명을 좌 우(flex) 배치 사이 간격 (gap)은 40px, margit-top = 박스 위쪽 바깥의 여백. > 목록으로 돌아가기 링크와 사진 사이 20px의 거리를 줌
+      <div style="flex: 1;">
+        {% comment %}
+          사진과 설명을 좌 우(flex) 배치 사이 간격 (gap)은 40px, margit-top = 박스 위쪽 바깥의 여백. > 목록으로 돌아가기 링크와 사진 사이 20px의 거리를 줌
 
-                사진 영역과 설명 영역의 비율을 1:1로 나누기
-            {%endcomment%}
+          사진 영역과 설명 영역의 비율을 1:1로 나누기
+        {% endcomment %}
 
+        {% if product.image1 %}
+          <img
+            src="{{ product.image1.url }}"
+            style="width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"
+          >
+        {% else %}
+          <div style="background: #f0f0f0; height: 300px; display: flex; align-items: center; justify-content: center;">
+            이미지가 없습니다
+          </div>
+        {% endif %}
 
-            {% if product.image1 %}
-            <img src="{{ product.image1.url }}" style="width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            {% else %}
-            <div style="background: #f0f0f0; height: 300px; display: flex; align-items: center; justify-content: center;">이미지가 없습니다</div>
-            {% endif %}
-            <div style="display: flex; gap: 5px; margin-top: 10px;">
-            {% if product.image2 %}<img src="{{ product.image2.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
-            {% if product.image3 %}<img src="{{ product.image3.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
-            {% if product.image4 %}<img src="{{ product.image4.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
-            {% if product.image5 %}<img src="{{ product.image5.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
-            </div>
-            {%comment%}
-            이 상품에 등록된 사진이 있는가? Trun >> 너비를 100% 채우고, 테두리는 둥글게 깍음 추가로 box-shadow를 줘서 은은한 그림자를 추가함 추가 box-shadow에서 0은 가로 4는 세로 10은 번짐을 의미 
-
-            사진이 없는 상품이라면 >> 회색 박스를 만든 뒤 이미지가 없습니다 문구 생성 , 
-            align-items:center = 위 아래 수직 중앙 정렬 '이미지가 없습니다'의 문구를 박스 높이 정중앙에 오게 함
-            justify-content = 좌우 수평 중앙 정렬 글자가 박스 가로 정중앙에 배치  
-            {%endcomment%}
-
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
+          {% if product.image2 %}
+            <img src="{{ product.image2.url }}" style="width: 19%; border-radius: 5px;">
+          {% endif %}
+          {% if product.image3 %}
+            <img src="{{ product.image3.url }}" style="width: 19%; border-radius: 5px;">
+          {% endif %}
+          {% if product.image4 %}
+            <img src="{{ product.image4.url }}" style="width: 19%; border-radius: 5px;">
+          {% endif %}
+          {% if product.image5 %}
+            <img src="{{ product.image5.url }}" style="width: 19%; border-radius: 5px;">
+          {% endif %}
         </div>
-        <div style="flex: 1;">
-            <h1 style="margin-bottom: 10px;">{{ product.name }}</h1>
-            <p style="font-size: 24px; color: #e44d26; font-weight: bold;">{{ product.price|intcomma }}원</p>
-            {%comment%}
-            상품명을 크고 굵은 제목으로 표시 margin-bottom으로 상품 제목 바로 밑 가격이 너무 붙지 않게하기 위해 10px 띄워줌
 
-            가격을 강조하기 위해 글자 크기 up 주황빛 빨간색으로 눈에 띄게 
-            font-weight:bold = 글자를 두껍게 
-            {%endcomment%}
+        {% comment %}
+          이 상품에 등록된 사진이 있는가? Trun >> 너비를 100% 채우고, 테두리는 둥글게 깍음 추가로 box-shadow를 줘서 은은한 그림자를 추가함
+          추가 box-shadow에서 0은 가로 4는 세로 10은 번짐을 의미
 
+          사진이 없는 상품이라면 >> 회색 박스를 만든 뒤 이미지가 없습니다 문구 생성 ,
+          align-items:center = 위 아래 수직 중앙 정렬 '이미지가 없습니다'의 문구를 박스 높이 정중앙에 오게 함
+          justify-content = 좌우 수평 중앙 정렬 글자가 박스 가로 정중앙에 배치
+        {% endcomment %}
+      </div>
 
-            <hr> {#중앙선 생성#}
+      <div style="flex: 1;">
+        <h1 style="margin-bottom: 10px;">{{ product.name }}</h1>
+        <p style="font-size: 24px; color: #e44d26; font-weight: bold;">
+          {{ product.price|intcomma }}원
+        </p>
 
+        {% comment %}
+          상품명을 크고 굵은 제목으로 표시 margin-bottom으로 상품 제목 바로 밑 가격이 너무 붙지 않게하기 위해 10px 띄워줌
 
-            <p style="line-height: 1.6; color: #333;">{{ product.description }}</p>
-            <p style="color: #888;">남은 수량: {{ product.stock }}개</p>
-            {%comment%}
-            상품의 설명을 보여줌, line-height 줄 간격을 넉넉히 줌 가독성 증가
-            재고의 남은 수량을 회색 작은 글씨로 표시함
-            {%endcomment%}
+          가격을 강조하기 위해 글자 크기 up 주황빛 빨간색으로 눈에 띄게
+          font-weight:bold = 글자를 두껍게
+        {% endcomment %}
+
+        <hr> {# 중앙선 생성 #}
+
+        <p style="line-height: 1.6; color: #333;">{{ product.description }}</p>
+        <p style="color: #888;">남은 수량: {{ product.stock }}개</p>
+
+        {% comment %}
+          상품의 설명을 보여줌, line-height 줄 간격을 넉넉히 줌 가독성 증가
+          재고의 남은 수량을 회색 작은 글씨로 표시함
+        {% endcomment %}
 
         <form method="post" style="margin-top: 20px;">
-        {% csrf_token %}
+          {% csrf_token %}
 
-        <div style="margin-bottom: 20px;">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+
+          <div style="margin-bottom: 20px;">
             <label for="quantity">수량: </label>
-            <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}" 
-                style="width: 60px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
-            <span style="color: #888; font-size: 14px; margin-left: 10px;">(재고: {{ product.stock }}개)</span>
-        </div>
+            <input
+              type="number"
+              id="quantity"
+              name="quantity"
+              value="1"
+              min="1"
+              max="{{ product.stock }}"
+              style="width: 60px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;"
+            >
+            <span style="color: #888; font-size: 14px; margin-left: 10px;">
+              (재고: {{ product.stock }}개)
+            </span>
+          </div>
 
-        <button type="submit" 
-                formaction="{% url 'add_to_cart' product.id %}"
-                style="width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-bottom: 10px;">
+          <button
+            type="submit"
+            formaction="{% url 'add_to_cart' product.id %}"
+            style="width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-bottom: 10px;"
+          >
             장바구니 담기
-        </button>
-        <button type="submit" 
-                formaction="{% url 'direct_purchase' product.id %}"
-                style="width: 100%; padding: 15px; background: #e44d26; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;">
+          </button>
+
+          <button
+            type="submit"
+            formaction="{% url 'checkout' %}"
+            style="width: 100%; padding: 15px; background: #e44d26; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;"
+          >
             바로 구매하기
-        </button>
+          </button>
         </form>
-            {#큰 버튼을 생성함 색상은 파란색, cursor:point >> 버튼에 커서를 가져가면 손가락 모양으로 바뀜#}
-            <hr style="margin: 40px 0;">
-        </div> 
+
+        {# 큰 버튼을 생성함 색상은 파란색, cursor:point >> 버튼에 커서를 가져가면 손가락 모양으로 바뀜 #}
+
+        <hr style="margin: 40px 0;">
+      </div>
     </div>
+
     <div style="margin-top: 20px;"></div>
+
     <hr>
-   <h3 style="text-align: center; margin-bottom: 30px;">상품 상세 설명</h3>
-   <hr>
+    <h3 style="text-align: center; margin-bottom: 30px;">상품 상세 설명</h3>
+    <hr>
 
     {% if product.description_image1 %}
-        <img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">
+      <img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">
     {% endif %}
     <p style="line-height: 1.8; margin-bottom: 30px;">{{ product.description_text1 }}</p>
 
     {% if product.description_image2 %}
-        <img src="{{ product.description_image2.url }}" style="width: 100%; margin-bottom: 15px;">
+      <img src="{{ product.description_image2.url }}" style="width: 100%; margin-bottom: 15px;">
     {% endif %}
     <p style="line-height: 1.8;">{{ product.description_text2 }}</p>
-</div>
-{%endblock%}
+  </div>
+
+{% endblock %}

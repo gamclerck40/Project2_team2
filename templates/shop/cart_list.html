@@ -76,13 +76,14 @@
 
         <div style="margin-top: 30px; text-align: right; background: #f8f9fa; padding: 30px; border-radius: 10px;">
             <h3 style="margin: 0; color: #333;">총 결제 예정 금액: <span style="color: #e44d26; font-size: 28px;">{{ total_amount|intcomma }}원</span></h3>
-            <form action="{% url 'order_execute' %}" method="post" style="margin-top: 20px;">
-                {% csrf_token %}
-                <button type="submit" 
-                        onclick="return confirm('정말로 결제하시겠습니까? 총 {{ total_amount|intcomma }}원이 차감됩니다.')"
-                        style="padding: 15px 40px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;">
-                    전체 상품 결제하기
-                </button>
+            
+            <form action="{% url 'checkout' %}" method="post" style="margin-top: 20px;">
+             {% csrf_token %}
+            <button type="submit" 
+            style="padding: 15px 40px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;">
+            구매하기
+            </button>
+
             </form>
         </div>
         

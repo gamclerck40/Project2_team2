@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 40px auto; padding: 20px; font-family: 'Apple SD Gothic Neo', sans-serif; background-color: #f8f9fa; border-radius: 20px;">
+    <h2 style="text-align: center; margin-bottom: 30px; color: #333;">📦 주문서 확인</h2>
+
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px;">
+        
+        <div>
+            <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">주문 상품</h3>
+                
+                {% if product %} 
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0;">
+                        <img src="{{ product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
+                        <div style="flex: 1;">
+                            <strong style="display: block;">{{ product.name }}</strong>
+                            <span style="color: #666;">{{ quantity }}개 / {{ product.price|intcomma }}원</span>
+                        </div>
+                    </div>
+                {% else %}
+                    {% for item in cart_items %}
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f5f5f5;">
+                        <img src="{{ item.product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
+                        <div style="flex: 1;">
+                            <strong style="display: block;">{{ item.product.name }}</strong>
+                            
+                            <form method="post" action="{% url 'checkout' %}" style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_item_id" value="{{ item.id }}">
+                                <button type="submit" name="action" value="decrease" 
+                                        style="width: 24px; height: 24px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">-</button>
+                                <span style="font-weight: bold; font-size: 14px;">{{ item.quantity }}</span>
+                                <button type="submit" name="action" value="increase"
+                                        style="width: 24px; height: 24px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">+</button>
+                            </form>
+                        </div>
+                        <div style="text-align: right; font-weight: bold;">{{ item.total_price|intcomma }}원</div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <form method="post" id="checkout-form">
+                {% csrf_token %}
+                
+                {% if product %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="quantity" value="{{ quantity }}">
+                {% endif %}
+
+                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">배송지 정보</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">배송지 선택</label>
+                        <select name="address_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                            {% for addr in addresses %}
+                                <option value="{{ addr.id }}">[{{ addr.alias }}] {{ addr.address }}</option>
+                            {% empty %}
+                                <option value="">등록된 배송지가 없습니다. 마이페이지에서 등록해주세요.</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">배송 메모</label>
+                        <input type="text" name="memo" placeholder="예: 문 앞에 놓아주세요" 
+                               style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
+                    </div>
+                </div>
+        </div>
+
+        <div style="position: sticky; top: 20px; height: fit-content;">
+            <div style="background: #333; color: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #555; padding-bottom: 15px;">결제 요약</h3>
+                
+                <div style="display: flex; justify-content: space-between; margin: 20px 0;">
+                    <span>총 상품 금액</span>
+                    <span>{{ total_amount|intcomma }}원</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 10px 0; color: #aaa; font-size: 14px;">
+                    <span>배송비</span>
+                    <span>0원 (무료)</span>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #555; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <span style="font-size: 16px;">최종 결제 금액</span>
+                    <span style="font-size: 24px; font-weight: bold; color: #ffcc00;">{{ total_amount|intcomma }}원</span>
+                </div>
+
+                <div style="background: #444; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
+                    <p style="margin: 0 0 5px 0; color: #ccc;">결제 계좌: {{ account.bank }}</p>
+                    <p style="margin: 0; font-weight: bold;">현재 잔액: {{ account.balance|intcomma }}원</p>
+                </div>
+
+                {% if account.balance >= total_amount %}
+                    <button type="submit" formaction="{% if product %}{% url 'direct_purchase' product.id %}{% else %}{% url 'order_execute' %}{% endif %}" 
+                            style="width: 100%; padding: 15px; background: #ffcc00; color: #333; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                        결제하기
+                    </button>
+                {% else %}
+                    <div style="text-align: center; color: #ff6b6b; font-weight: bold; font-size: 14px;">
+                        ⚠️ 잔액이 부족합니다
+                    </div>
+                {% endif %}
+            </div>
+            </form> <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">
+                ← 장바구니로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
