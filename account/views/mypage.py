@@ -46,7 +46,7 @@ class MypageView(LoginRequiredMixin, View):
             return digits
 
         account = Account.objects.filter(user=request.user).first()
-        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
+        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "id")
 
         formatted_phone = ""
         if account:
@@ -113,7 +113,13 @@ class MypageUpdateView(LoginRequiredMixin, View):
             return redirect("/accounts/mypage/?tab=edit")
 
         account = Account.objects.filter(user=request.user).first()
-        address_obj = Address.objects.filter(user=request.user, is_default=True).first()
+
+        addr_ids = request.POST.getlist("address_id[]")
+        aliases = request.POST.getlist("address_alias[]")
+        zip_codes = request.POST.getlist("zip_code[]")
+        addresses = request.POST.getlist("address[]")
+        detail_addresses = request.POST.getlist("detail_address[]")
+
 
         if not account:
             messages.warning(request, "수정할 계좌 정보가 없습니다. 먼저 계좌를 등록하세요.")
@@ -123,9 +129,6 @@ class MypageUpdateView(LoginRequiredMixin, View):
         bank = form.cleaned_data["bank"]
         account_number = form.cleaned_data["account_number"]
 
-        zip_code = request.POST.get("zip_code")
-        address = request.POST.get("address")
-        detail_address = request.POST.get("detail_address")
 
         new_zip = request.POST.get("new_zip_code")
         new_addr = request.POST.get("new_address")
@@ -141,14 +144,14 @@ class MypageUpdateView(LoginRequiredMixin, View):
                     account.account_number = account_number
                 account.save()
 
-                if address_obj:
-                    if zip_code:
-                        address_obj.zip_code = zip_code
-                    if address:
-                        address_obj.address = address
-                    if detail_address:
-                        address_obj.detail_address = detail_address
-                    address_obj.save()
+                for a_id, alias, z_code, addr, d_addr in zip(addr_ids, aliases, zip_codes, addresses, detail_addresses):
+                    target_addr = Address.objects.filter(id=a_id, user=request.user).first()
+                    if target_addr:
+                        target_addr.alias = alias  # 별칭 저장 (이게 빠져있었습니다!)
+                        target_addr.zip_code = z_code
+                        target_addr.address = addr
+                        target_addr.detail_address = d_addr
+                        target_addr.save()
 
                 if new_zip and new_addr:
                     Address.objects.create(

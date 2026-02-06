@@ -94,7 +94,6 @@
     </h2>
     
     <div class="card">
-      <!-- ✅ 탭 헤더 -->
       <div class="tabbar" role="tablist" aria-label="마이페이지 탭">
         <button class="tabbtn" type="button" role="tab" data-tab="profile" aria-selected="true">
           프로필
@@ -107,14 +106,11 @@
         </button>
       </div>
 
-      <!-- ✅ TAB 1: 프로필 -->
       <div class="tabpanel active" id="tab-profile" role="tabpanel" aria-label="프로필 탭">
         <div class="section">
           <div class="grid2">
             <div class="label">아이디</div>
-            <div class="valueStrong">
-              {{ user_obj.username }}
-            </div>
+            <div class="valueStrong">{{ user_obj.username }}</div>
 
             <div class="label">전화번호</div>
             <div style="color:#333;">
@@ -124,105 +120,79 @@
                 <span style="color:#999;">등록된 전화번호 없음</span>
               {% endif %}
             </div>
-           <div class="label">배송지 관리</div>
-<div style="display:flex; flex-direction:column; gap:10px;">
-  <form action="{% url 'set_default_address' %}" method="post">
-    {% csrf_token %}
-    <div class="inputWrap">
-      <select name="default_addr_id" onchange="this.form.submit()" 
-              style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
-        {% for addr in addresses %}
-          <option value="{{ addr.id }}" {% if addr.is_default %}selected{% endif %}>
-            {% if addr.is_default %} {% endif %}{{ addr.alias }} : {{ addr.address }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-    <p class="help">※ 클릭하여 목록에서 주소를 선택하면 즉시 기본 배송지가 변경됩니다.</p>
-  </form>
 
+            <div class="label">배송지 관리</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              {% for addr in addresses %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; border:1px solid {% if addr.is_default %}#333{% else %}#eee{% endif %}; border-radius:14px; background:{% if addr.is_default %}#fcfcfc{% else %}#fff{% endif %};">
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:700; color:#333;">
+                      {{ addr.alias }}
+                      {% if addr.is_default %}
+                        <span style="background:#333; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">기본</span>
+                      {% endif %}
+                    </div>
+                    <div style="font-size:13px; color:#666; margin-top:4px;">{{ addr.address }}</div>
+                  </div>
+                  {% if not addr.is_default %}
+                    <form method="post" action="{% url 'address_delete' addr.id %}" style="margin:0;">
+                      {% csrf_token %}
+                      <button type="submit" 
+                              style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:12px; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:900;" 
+                              onclick="return confirm('[{{ addr.alias }}] 배송지를 삭제하시겠습니까?')">
+                        삭제
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <p class="help">※ 기본 배송지는 삭제 버튼이 나타나지 않으며, 수정은 '내 정보 수정' 탭에서 가능합니다.</p>
+            </div>
+          </div>
 
-  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-left:5px;">
-    {% for addr in addresses %}
-      {% if not addr.is_default %}
-        <form method="post" action="{% url 'address_delete' addr.id %}" style="margin:0;">
-          {% csrf_token %}
-          <button type="submit" 
-                  style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer;" 
-                  onclick="return confirm('이 배송지를 삭제하시겠습니까?')">
-            {{ addr.alias }} 삭제
-          </button>
-        </form>
-      {% endif %}
-    {% endfor %}
-  </div>
-</div>
+          <div class="divider" style="margin: 20px 0;"></div>
 
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="section">
-          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
-
-          {% if account %}
-            <div class="grid2">
-              <div class="label">예금주명</div>
-              <div style="color:#333; font-weight:600;">{{ account.name }}</div>
-
-              <div class="label">은행</div>
-              <div style="color:#333; font-weight:600;">{{ account.bank }}</div>
-
-              <div class="label">계좌번호</div>
-              <div style="color:#333; font-weight:600;">{{ account.masked_account_number  }}</div>
-
-              <div class="label">잔액</div>
-              <div style="color:#e44d26; font-weight: 800; font-size: 18px;">
-                {{ account.balance|intcomma }}원
+          <div class="section" style="padding:0;">
+            <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+            {% if account %}
+              <div class="grid2">
+                <div class="label">예금주명</div>
+                <div style="color:#333; font-weight:600;">{{ account.name }}</div>
+                <div class="label">은행</div>
+                <div style="color:#333; font-weight:600;">{{ account.bank }}</div>
+                <div class="label">계좌번호</div>
+                <div style="color:#333; font-weight:600;">{{ account.masked_account_number }}</div>
+                <div class="label">잔액</div>
+                <div style="color:#e44d26; font-weight: 800; font-size: 18px;">{{ account.balance|intcomma }}원</div>
               </div>
-            </div>
-          {% else %}
-            <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
-              계좌 정보가 없습니다.
-            </div>
-          {% endif %}
+            {% else %}
+              <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
+                계좌 정보가 없습니다.
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
-      </div>
-      <!-- ✅ TAB 2: 내정보 수정 (미구현 기반) -->
+
       <div class="tabpanel" id="tab-edit" role="tabpanel" aria-label="내정보 수정 탭">
         <div class="section">
           <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">✏️ 내정보 수정</h3>
-
-          <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 16px; line-height: 1.6;">
-            <b>내 정보 수정</b> 탭에서는<br> 등록된 <b>전화번호</b>, <b>은행 정보</b>, <b>계좌번호</b>, <b>배송지 주소</b>를 직접 수정할 수 있습니다.<br>
-            변경 사항은 저장 즉시 계정 정보에 반영됩니다.
-          </div>
-
           <form method="post" action="{% url 'mypage_update' %}" autocomplete="off">
             {% csrf_token %}
-
             <div style="display:flex; flex-direction:column; gap:14px;">
-
               <div>
                 <div style="margin-bottom: 8px; font-weight: 800; color:#333;">전화번호</div>
                 <div class="inputWrap">
-                  <input name="phone"
-                         value="{% if account %}{{ account.phone }}{% endif %}"
-                         placeholder="01012345678" />
+                  <input name="phone" value="{% if account %}{{ account.phone }}{% endif %}" placeholder="01012345678" />
                 </div>
-                <div class="help">예) 01012345678 (하이픈 없이)</div>
               </div>
-
               <div>
                 <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
                 <div class="inputWrap">
                   <select name="bank" style="width:100%; border:none; outline:none; background:transparent;">
                     <option value="">은행 선택</option>
                     {% for b in banks %}
-                     <option value="{{ b.id }}" {% if account and account.bank_id == b.id %}selected{% endif %}>
-                          {{ b.name }}
-                     </option>
+                      <option value="{{ b.id }}" {% if account and account.bank_id == b.id %}selected{% endif %}>{{ b.name }}</option>
                     {% endfor %}
                   </select>
                 </div>
@@ -234,50 +204,23 @@
                 </div>
               </div>
 
-               <div>
-             <div class="divider" style="margin: 20px 0;"></div>
+              <div class="divider" style="margin: 20px 0;"></div>
               <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏠 배송지 정보 수정</h3>
-
               {% for addr in addresses %}
-              <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                <div style="font-size: 12px; color: #888; margin-bottom: 8px; display: flex; justify-content: space-between;">
-                  <span>{% if addr.is_default %}<b>[기본 배송지]</b>{% else %}추가 배송지{% endif %}</span>
-                  <span style="font-size: 11px;">ID: {{ addr.id }}</span>
-                  
-                </div>
-              </div>
-
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                  <input type="hidden" name="address_id[]" value="{{ addr.id }}">
-                  
-                  <div>
-                    <div style="margin-bottom: 4px; font-size: 13px; font-weight: 700;">배송지 별칭 (예: 우리집, 회사)</div>
-                    <div class="inputWrap">
-                      <input name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭 입력">
-                    </div>
-                  </div>
-
-                  <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px;">
-                    <div>
-                      <div style="margin-bottom: 4px; font-size: 13px; font-weight: 700;">우편번호</div>
+                <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                   <input type="hidden" name="address_id[]" value="{{ addr.id }}">
+                   <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div class="inputWrap"><input name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭"></div>
+                    <div style="display: grid; grid-template-columns: 100px 1fr; gap: 8px;">
                       <div class="inputWrap"><input name="zip_code[]" value="{{ addr.zip_code }}"></div>
-                    </div>
-                    <div>
-                      <div style="margin-bottom: 4px; font-size: 13px; font-weight: 700;">기본 주소</div>
                       <div class="inputWrap"><input name="address[]" value="{{ addr.address }}"></div>
                     </div>
-                  </div>
-
-                  <div>
-                    <div style="margin-bottom: 4px; font-size: 13px; font-weight: 700;">상세 주소</div>
                     <div class="inputWrap"><input name="detail_address[]" value="{{ addr.detail_address }}"></div>
                   </div>
                 </div>
-              </div>
               {% endfor %}
-              <div class="divider" style="margin: 20px 0;"></div>
-              <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가 (선택)</h3>
-              <p style="font-size: 13px; color: #666; margin-bottom: 10px;">기본 주소 외에 추가할 주소가 있다면 입력하세요.</p>
+
+              <h3 style="margin: 10px 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가</h3>
               <div style="display:flex; flex-direction:column; gap:10px; background: #f9f9f9; padding: 15px; border-radius: 12px;">
                 <div class="inputWrap"><input name="new_zip_code" placeholder="새 우편번호"></div>
                 <div class="inputWrap"><input name="new_address" placeholder="새 기본 주소"></div>
@@ -291,207 +234,95 @@
             </div>
           </form>
 
-<div class="divider" style="margin: 28px 0;"></div>
-<h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
-<div style="
-  padding: 12px 16px;
-  background: #eef7ff;
-  border: 1px solid #cfe6ff;
-  border-radius: 12px;
-  color: #1b4a7a;
-  margin-bottom: 14px;
-  line-height: 1.6;
-">
-  안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.
-</div>
-
-{% if not pw_verified %}
-  <!-- ✅ Step 1: 본인인증(현재 비밀번호 확인) -->
-  <form method="post" action="{% url 'pw_verify' %}" autocomplete="off">
-    {% csrf_token %}
-
-    <div style="margin-bottom: 12px;">
-      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">현재 비밀번호</div>
-      <div class="inputWrap">
-        <input type="password" name="current_password" placeholder="현재 비밀번호를 입력하세요" autocomplete="current-password" />
-      </div>
-    </div>
-
-    <button type="submit" class="btnPrimary">본인 인증</button>
-  </form>
-
-{% else %}
-  <!-- ✅ Step 2: 새 비밀번호 입력 -->
-  <form method="post" action="{% url 'pw_change' %}" autocomplete="off">
-    {% csrf_token %}
-
-    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 12px;">
-      <div>
-        <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호</div>
-        <div class="inputWrap">
-          <input type="password" name="new_password1" placeholder="새 비밀번호" autocomplete="new-password" />
-        </div>
-      </div>
-
-      <div>
-        <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호 확인</div>
-        <div class="inputWrap">
-          <input type="password" name="new_password2" placeholder="새 비밀번호 확인" autocomplete="new-password" />
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex; gap:10px;">
-      <a href="/accounts/mypage/?tab=edit"
-         class="btnGhost"
-         style="display:inline-flex; align-items:center; justify-content:center; text-decoration:none;">
-        취소
-      </a>
-      <button type="submit" class="btnPrimary">비밀번호 변경</button>
-    </div>
-  </form>
-{% endif %}
-        </div>
-        
-      </div>
-
-
-<!-- ✅ TAB 3: 영수증 -->
-<div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
-  <div class="section">
-    <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
-
-    <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff;
-            border-radius: 12px; color: #1b4a7a; margin-bottom: 16px; line-height: 1.6;">
-      구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
-    </div>
-
-    <!-- ✅ 필터/정렬 폼 (GET) -->
-    <form method="get" action="" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
-      <!-- 현재 탭 유지 -->
-      <input type="hidden" name="tab" value="receipt"/>
-
-      <!-- 카테고리 필터 -->
-      <div class="inputWrap" style="min-width:200px;">
-        <select name="rc_category" style="width:100%; border:none; outline:none; background:transparent;">
-          <option value="">전체 카테고리</option>
-          {% for c in receipt_categories %}
-            <option value="{{ c.id }}" {% if rc_category|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
-              {{ c.name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- 정렬 옵션 -->
-      <div class="inputWrap" style="min-width:200px;">
-        <select name="rc_sort" style="width:100%; border:none; outline:none; background:transparent;">
-          <option value="newest" {% if rc_sort == "newest" %}selected{% endif %}>최신순</option>
-          <option value="price_high" {% if rc_sort == "price_high" %}selected{% endif %}>가격 높은순</option>
-          <option value="price_low" {% if rc_sort == "price_low" %}selected{% endif %}>가격 낮은순</option>
-        </select>
-      </div>
-
-      <button type="submit" class="btnPrimary">적용</button>
-
-      {% if rc_category or rc_sort != "newest" %}
-        <a href="?tab=receipt" class="btnGhost" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
-          초기화
-        </a>
-      {% endif %}
-    </form>
-
-    {% if receipts_page and receipts_page.object_list %}
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        {% for tx in receipts_page %}
-          <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-
-              <div style="min-width:0;">
-                <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                  {{ tx.product_name|default:"구매" }}
-                  {% if tx.quantity %}<span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>{% endif %}
-                </div>
-
-                <div style="margin-top:6px; color:#888; font-size:13px;">
-                  {{ tx.occurred_at|date:"Y-m-d H:i" }}
-                  {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
-                  {% if tx.category %} · {{ tx.category.name }}{% endif %}
-                </div>
-
-                <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
-                  -{{ tx.amount|intcomma }}원
-                </div>
-              </div>
-
-              <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
-                  PDF 보기
-                </a>
-                <a href="{% url 'receipt_pdf' tx.id %}" download
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
-                  다운로드
-                </a>
-              </div>
-
-            </div>
-
-            {% if tx.memo %}
-              <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
-                {{ tx.memo }}
-              </div>
-            {% endif %}
+          <div class="divider" style="margin: 28px 0;"></div>
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
+          <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 14px; line-height: 1.6;">
+            안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.
           </div>
-        {% endfor %}
+
+          {% if not pw_verified %}
+            <form method="post" action="{% url 'pw_verify' %}" autocomplete="off">
+              {% csrf_token %}
+              <div style="margin-bottom: 12px;">
+                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">현재 비밀번호</div>
+                <div class="inputWrap">
+                  <input type="password" name="current_password" placeholder="현재 비밀번호를 입력하세요" />
+                </div>
+              </div>
+              <button type="submit" class="btnPrimary">본인 인증</button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'pw_change' %}" autocomplete="off">
+              {% csrf_token %}
+              <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 12px;">
+                <div>
+                  <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호</div>
+                  <div class="inputWrap"><input type="password" name="new_password1" placeholder="새 비밀번호" /></div>
+                </div>
+                <div>
+                  <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호 확인</div>
+                  <div class="inputWrap"><input type="password" name="new_password2" placeholder="새 비밀번호 확인" /></div>
+                </div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <a href="/accounts/mypage/?tab=edit" class="btnGhost" style="text-decoration:none;">취소</a>
+                <button type="submit" class="btnPrimary">비밀번호 변경</button>
+              </div>
+            </form>
+          {% endif %}
+        </div>
       </div>
 
-      <!-- ✅ 페이지네이션 -->
-      <div style="display:flex; justify-content:center; gap:8px; margin-top:18px; flex-wrap:wrap;">
-        {% if receipts_page.has_previous %}
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="?tab=receipt&rc_page=1&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            처음
-          </a>
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="?tab=receipt&rc_page={{ receipts_page.previous_page_number }}&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            이전
-          </a>
-        {% endif %}
+      <div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
+        <div class="section">
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
+          <form method="get" action="" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px;">
+            <input type="hidden" name="tab" value="receipt"/>
+            <div class="inputWrap" style="min-width:200px;">
+              <select name="rc_category" style="width:100%; border:none; outline:none; background:transparent;">
+                <option value="">전체 카테고리</option>
+                {% for c in receipt_categories %}
+                  <option value="{{ c.id }}" {% if rc_category|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="inputWrap" style="min-width:200px;">
+              <select name="rc_sort" style="width:100%; border:none; outline:none; background:transparent;">
+                <option value="newest" {% if rc_sort == "newest" %}selected{% endif %}>최신순</option>
+                <option value="price_high" {% if rc_sort == "price_high" %}selected{% endif %}>가격 높은순</option>
+                <option value="price_low" {% if rc_sort == "price_low" %}selected{% endif %}>가격 낮은순</option>
+              </select>
+            </div>
+            <button type="submit" class="btnPrimary">적용</button>
+            {% if rc_category or rc_sort != "newest" %}
+              <a href="?tab=receipt" class="btnGhost" style="text-decoration:none;">초기화</a>
+            {% endif %}
+          </form>
 
-        <span style="padding:10px 12px; border:1px solid #eee; border-radius:12px; background:#fff; font-weight:900; color:#333;">
-          {{ receipts_page.number }} / {{ receipts_page.paginator.num_pages }}
-        </span>
-
-        {% if receipts_page.has_next %}
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="?tab=receipt&rc_page={{ receipts_page.next_page_number }}&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            다음
-          </a>
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="?tab=receipt&rc_page={{ receipts_page.paginator.num_pages }}&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            끝
-          </a>
-        {% endif %}
+          {% if receipts_page and receipts_page.object_list %}
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              {% for tx in receipts_page %}
+                <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                      <div style="font-weight:900;">{{ tx.product_name|default:"구매" }}</div>
+                      <div style="margin-top:6px; color:#888; font-size:13px;">{{ tx.occurred_at|date:"Y-m-d H:i" }}</div>
+                      <div style="margin-top:8px; color:#dc3545; font-weight:900;">-{{ tx.amount|intcomma }}원</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                      <a href="{% url 'receipt_pdf' tx.id %}" target="_blank" class="btnGhost" style="font-size:12px; text-decoration:none;">PDF 보기</a>
+                      <a href="{% url 'receipt_pdf' tx.id %}" download class="btnPrimary" style="font-size:12px; text-decoration:none;">다운로드</a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#777;">내역이 없습니다.</div>
+          {% endif %}
+        </div>
       </div>
-
-    {% else %}
-      <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#777;">
-        표시할 영수증(구매 내역)이 없습니다.
-      </div>
-    {% endif %}
-  </div>
-</div>
-
     </div>
-
-    <div style="height: 30px;"></div>
   </div>
 </div>
 
@@ -509,12 +340,9 @@
         const isOn = btn.dataset.tab === tabName;
         btn.setAttribute('aria-selected', isOn ? 'true' : 'false');
       });
-
       Object.keys(panels).forEach(k => {
-        panels[k].classList.toggle('active', k === tabName);
+        if(panels[k]) panels[k].classList.toggle('active', k === tabName);
       });
-
-      // ✅ ?tab=... 유지(이건 URL reverse가 아니라 querystring 변경이라 안전)
       if(pushState){
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tabName);
@@ -528,11 +356,7 @@
 
     const url = new URL(window.location.href);
     const initial = url.searchParams.get('tab');
-    if(initial && panels[initial]){
-      activate(initial, false);
-    } else {
-      activate('profile', false);
-    }
+    activate(initial && panels[initial] ? initial : 'profile', false);
   })();
 </script>
 
