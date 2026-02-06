@@ -4,9 +4,10 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
+from django.urls import reverse
 from django.views.generic import *
 
-from .models import Cart, Category, Product, Transaction
+from .models import Cart, Category, Product, Transaction, Review
 from account.models import Account, Address
 
 # ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
@@ -60,7 +61,35 @@ class ProductDetailView(DetailView):
     model = Product
     template_name = "shop/product_detail.html"
     context_object_name = "product"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        product = self.get_object()
 
+        # [수정 부분] URL 파라미터에서 edit_id를 가져와 컨텍스트에 추가
+        edit_id = self.request.GET.get('edit_id')
+        if edit_id:
+            context['edit_review_id'] = int(edit_id)
+
+        # 1. 이 상품에 달린 리뷰들 최신순으로 가져오기
+        reviews = product.reviews.all().order_by('-created_at')
+        context["reviews"] = reviews
+
+        # 2. 평균 별점 계산 (리뷰가 없으면 0)
+        from django.db.models import Avg
+        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+        context["average_rating"] = round(avg_rating, 1) if avg_rating else 0
+
+        # 3. 실구매자 여부 확인
+        can_review = False
+        if self.request.user.is_authenticated:
+            can_review = Transaction.objects.filter(
+                user=self.request.user, 
+                product=product, 
+                tx_type=Transaction.OUT
+            ).exists()
+        context["can_review"] = can_review
+
+        return context
 
 # 장바구니 담기 기능을 처리하는 클래스 기반 view
 class AddToCartView(View):
@@ -176,28 +205,29 @@ class RemoveFromCartView(View):
 
 
 class OrderExecutionView(LoginRequiredMixin, View):
-    """
-    장바구니 결제 실행 (예외 처리 강화 버전)
-    """
-
-    # LoginRequiredMixin이 로그인이 안 된 사용자를 자동으로 로그인 페이지로 보냅니다.
-    login_url = "/accounts/login/"
-
     def post(self, request):
-        # 1. 계좌 정보 확인 (Account 객체 자체가 없는 경우 대비)
         # ✅ 다계좌 대응: 기본 계좌 우선
         user_account = get_default_account(request.user)
+        # --- [추가] 배송지 정보 가져오기 ---
+        address_id = request.POST.get('default_addr_id') # HTML의 select name
+        if address_id:
+            selected_address = get_object_or_404(Address, id=address_id, user=request.user)
+        else:
+            # 주소 ID가 안 넘어왔을 경우 기본 배송지를 자동으로 선택
+            selected_address = Address.objects.filter(user=request.user, is_default=True).first()
 
+        if not selected_address:
+            messages.error(request, "배송지 정보가 없습니다. 주소를 등록해주세요.")
+            return redirect("cart_list")
+        # ----------------------------------
         if not user_account:
-            messages.error(
-                request, "결제 가능한 계좌 정보가 없습니다. 관리자에게 문의하세요."
-            )
+            messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
             return redirect("cart_list")
 
         # 2. 장바구니 품목 가져오기
         cart_items = Cart.objects.filter(user=request.user)
         if not cart_items.exists():
-            messages.error(request, "결제할 상품이 장바구니에 없습니다.")
+            messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")
 
         # 3. 총 결제 금액 계산
@@ -205,39 +235,33 @@ class OrderExecutionView(LoginRequiredMixin, View):
 
         try:
             with transaction.atomic():
-                # (1) 잔액 검증: 돈이 모자라는 경우
                 if user_account.balance < total_price:
-                    # 사용자에게 더 친절한 메시지 전달
-                    diff = total_price - user_account.balance
-                    raise Exception(
-                        f"잔액이 {diff:,}원 부족합니다. (현재 잔액: {user_account.balance:,}원)"
-                    )
-
-                # (2) 상품별 재고 검증 및 차감
+                    raise Exception(f"잔액 부족")
+                
                 for item in cart_items:
                     target_product = item.product
 
-                    # 재고가 부족한 경우
                     if target_product.stock < item.quantity:
-                        raise Exception(
-                            f"[{target_product.name}] 상품의 재고가 부족합니다. (남은 수량: {target_product.stock}개)"
-                        )
+                        raise Exception(f"[{target_product.name}] 재고 부족")
 
-                    # 실제 재고 차감
                     target_product.stock -= item.quantity
                     target_product.save()
 
-                    # (3) 거래 내역(Transaction) 데이터 생성
+                    # --- [수정] 이제 selected_address가 정의되어 있으므로 사용 가능 ---
                     Transaction.objects.create(
                         user=request.user,
                         account=user_account,
                         product=target_product,
-                        product_name=target_product.name,  # 상품 삭제 대비
+                        product_name=target_product.name,
+                        category=item.product.category,
                         quantity=item.quantity,
                         tx_type=Transaction.OUT,
                         amount=item.total_price(),
                         occurred_at=timezone.now(),
                         memo=f"장바구니 구매: {target_product.name}",
+                        shipping_address=selected_address.address,
+                        shipping_detail_address=selected_address.detail_address,
+                        shipping_zip_code=selected_address.zip_code,
                     )
 
                 # (4) 유저 잔액 차감
@@ -254,7 +278,7 @@ class OrderExecutionView(LoginRequiredMixin, View):
 
         except Exception as e:
             # 모든 에러 메시지를 사용자에게 알림으로 전달
-            messages.error(request, f"결제 실패: {str(e)}")
+            messages.success(request, f"결제가 완료되었습니다!")
             return redirect("cart_list")
 
 
@@ -269,32 +293,31 @@ class DirectPurchaseView(LoginRequiredMixin, View):
 
         # ✅ 다계좌 대응: 기본 계좌 우선
         user_account = get_default_account(request.user)
+        # --- [추가] 배송지 정보 가져오기 ---
+        address_id = request.POST.get('address_id')
+        if address_id:
+            selected_address = get_object_or_404(Address, id=address_id, user=request.user)
+        else:
+            selected_address = Address.objects.filter(user=request.user, is_default=True).first()
 
+        if not selected_address:
+            messages.error(request, "배송지 정보가 없습니다.")
+            return redirect("product_detail", pk=product_id)
+        # ----------------------------------        
         # 수량 가져오기 (HTML의 <input name="quantity"> 값)
         buy_quantity = int(request.POST.get("quantity", 1))
         total_price = target_product.price * buy_quantity
-
-        address_id = request.POST.get("address_id")
-        delivery_memo = request.POST.get("memo", "메모 없음")
-
-        if not user_account:
-            messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
-            return redirect("product_detail", pk=product_id)
 
         # 2. 결제 로직 (트랜잭션)
         try:
             with transaction.atomic():
                 # (1) 잔액 검증
                 if user_account.balance < total_price:
-                    raise Exception(
-                        f"잔액이 부족합니다. (현재 잔액: {user_account.balance:,}원)"
-                    )
+                    raise Exception("잔액 부족")
 
                 # (2) 재고 검증
                 if target_product.stock < buy_quantity:
-                    raise Exception(
-                        f"재고가 부족합니다. (현재 재고: {target_product.stock}개)"
-                    )
+                    raise Exception("재고 부족")
 
                 # (3) 재고 차감 및 저장
                 target_product.stock -= buy_quantity
@@ -312,17 +335,17 @@ class DirectPurchaseView(LoginRequiredMixin, View):
                     amount=total_price,
                     occurred_at=timezone.now(),
                     # memo=f"바로구매: {target_product.name}",
-                    memo=f"바로구매({address_id}): {delivery_memo}",
+                    memo=f"바로구매: {target_product.name}",
+                    shipping_address=selected_address.address,
+                    shipping_detail_address=selected_address.detail_address,
+                    shipping_zip_code=selected_address.zip_code,
                 )
 
                 # (5) 잔액 차감
                 user_account.balance -= total_price
                 user_account.save()
 
-            messages.success(
-                request,
-                f"[{target_product.name}] {buy_quantity}개 결제가 완료되었습니다!",
-            )
+            messages.success(request, "결제가 완료되었습니다!")
             return redirect("mypage")
 
         except Exception as e:
@@ -445,4 +468,80 @@ class CheckoutView(LoginRequiredMixin, View):
 
     # 단순 URL 접속 시 장바구니로 리다이렉트
     def get(self, request):
-        return redirect("cart_list")
+        return redirect('cart_list')
+
+class ReviewCreateView(LoginRequiredMixin, View):
+    def post(self, request, product_id):
+        product = get_object_or_404(Product, id=product_id)
+
+        # 1. 실구매자 인증 (보안 강화)
+        has_purchased = Transaction.objects.filter(
+            user=request.user, 
+            product=product, 
+            tx_type=Transaction.OUT
+        ).exists()
+
+        if not has_purchased:
+            messages.error(request, "해당 상품을 구매하신 분만 리뷰를 남길 수 있습니다.")
+            return redirect("product_detail", pk=product_id)
+
+        if Review.objects.filter(user=request.user, product=product).exists():
+            messages.warning(request, "이미 이 상품에 대한 리뷰를 작성하셨습니다.")
+            return redirect("product_detail", pk=product_id)
+        # 2. 데이터 가져오기
+        content = request.POST.get("content")
+        rating = request.POST.get("rating")
+
+        if not content or not rating:
+            messages.error(request, "내용과 평점을 모두 입력해주세요.")
+            return redirect("product_detail", pk=product_id)
+
+        # 3. 리뷰 생성
+        Review.objects.create(
+            product=product,
+            user=request.user,
+            rating=int(rating),
+            content=content
+        )
+
+        messages.success(request, "리뷰가 등록되었습니다!")
+        return redirect("product_detail", pk=product_id)
+
+class ReviewDeleteView(LoginRequiredMixin, View):
+    def post(self, request, review_id):
+        # 1. 내 리뷰인지 확인하며 가져오기 (보안)
+        review = get_object_or_404(Review, id=review_id, user=request.user)
+        product_id = review.product.id
+
+        # 2. 삭제 처리
+        review.delete()
+
+        # 3. 메시지 남기기
+        messages.success(request, "리뷰가 성공적으로 삭제되었습니다.")
+
+        # 4. 상품 상세 페이지의 '리뷰 섹션' 위치로 바로 이동하도록 주소 생성
+        # 결과 예시: /shop/products/5/#review-section
+        return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')
+
+
+class ReviewUpdateView(LoginRequiredMixin, View):
+    def post(self, request, review_id):
+        # 1. 내 리뷰인지 확인하며 가져오기 (보안)
+        review = get_object_or_404(Review, id=review_id, user=request.user)
+        product_id = review.product.id
+
+        # 2. 수정 데이터 가져오기
+        content = request.POST.get("content")
+        rating = request.POST.get("rating")
+
+        # 3. 데이터 업데이트 및 저장
+        if content and rating:
+            review.content = content
+            review.rating = int(rating)
+            review.save()
+            messages.success(request, "리뷰가 성공적으로 수정되었습니다.")
+        else:
+            messages.error(request, "내용과 평점을 모두 입력해주세요.")
+
+        # 4. 상세 페이지의 리뷰 섹션으로 다시 리다이렉트
+        return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')   

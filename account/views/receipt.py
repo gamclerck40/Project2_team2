@@ -8,7 +8,8 @@ from reportlab.lib.pagesizes import portrait
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
-from shop.models import Account, Transaction
+from shop.models import Transaction
+from account.models import Address
 from account.utils.receipt import _calc_vat, _money_int, _register_korean_font
 
 # ✅ 다계좌: 기본계좌 우선
@@ -21,9 +22,10 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     /accounts/receipts/<tx_id>.pdf
     Transaction 1건을 영수증 PDF로 생성
 
-    ✅ 변경점(요구사항 충족):
-    - 계좌 1개 가정(first()) 대신 기본계좌(get_default_account) 사용
-    - 나머지 기능(PDF 생성/표시)은 기존 그대로 유지
+    ✅ 변경점:
+    - 영수증에 "주소(기본 배송지)" 출력 추가
+    - 영수증에 "계좌번호(마스킹)" 출력 개선 (****1234 형태)
+    - 기존 PDF 생성 흐름/표시 로직은 그대로 유지
     """
     login_url = "login"
 
@@ -32,13 +34,19 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         if not tx:
             raise Http404("영수증을 찾을 수 없습니다.")
 
-        # ✅ 기존: Account.objects.filter(user=request.user).first()
+        # ✅ 기본계좌(다계좌 지원)
         account = get_default_account(request.user)
         if not account:
             raise Http404("계좌 정보가 없습니다.")
 
+        # ✅ 기본배송지(프로필에서 기본 배송지 선택 기능이 있으니 is_default가 있다고 가정)
+        #    - 기본 배송지가 없으면 첫 번째 주소라도 잡거나, 없으면 "-" 처리
+        default_addr = Address.objects.filter(user=request.user, is_default=True).first()
+        if not default_addr:
+            default_addr = Address.objects.filter(user=request.user).first()
+
         page_w = 80 * mm
-        page_h = 220 * mm
+        page_h = 110 * mm
         pagesize = portrait((page_w, page_h))
 
         font_name = _register_korean_font()
@@ -65,7 +73,27 @@ class ReceiptPDFView(LoginRequiredMixin, View):
             canv.drawRightString(page_w - x, y, str(value))
             y -= size + 5
 
-        merchant = tx.merchant or "우리 가게"
+        def kv_multiline(label, value, size=7, max_chars=24):
+            """
+            주소처럼 긴 텍스트를 여러 줄로 출력 (오른쪽 정렬 유지)
+            """
+            nonlocal y
+            canv.setFont(font_name, size)
+            canv.drawString(x, y, str(label))
+
+            text = str(value) if value is not None else "-"
+            if not text:
+                text = "-"
+
+            lines = [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+            canv.drawRightString(page_w - x, y, lines[0])
+            y -= size + 4
+
+            for t in lines[1:]:
+                canv.drawRightString(page_w - x, y, t)
+                y -= size + 4
+
+        merchant = tx.merchant or "ACCOUNT BOOK"
         amount = _money_int(tx.amount)
         occurred = tx.occurred_at.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -77,9 +105,11 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         canv.drawString(x, y, f"{amount:,}원")
         y -= 20
 
+        # ✅ 계좌 출력 (마스킹)
         last4 = str(account.account_number)[-4:] if account.account_number else "----"
+        masked = f"****{last4}" if last4 != "----" else "----"
         canv.setFont(font_name, 10)
-        canv.drawString(x, y, f"{account.bank} ({last4})")
+        canv.drawString(x, y, f"{account.bank} ({masked})")
         y -= 12
 
         line()
@@ -103,6 +133,17 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         qty = tx.quantity or 1
         kv("상품명", f"{product_name} ({qty}개)")
         kv("메모", tx.memo or "-")
+
+        line()
+
+        # ✅ 주소 출력 추가 (기본 배송지 기준)
+        #    - 기본배송지 없으면 "-" 출력
+        if default_addr:
+            addr_text = f"({default_addr.zip_code}) {default_addr.address} {default_addr.detail_address}"
+        else:
+            addr_text = "-"
+
+        kv_multiline("배송지", addr_text, size=7, max_chars=24)
 
         line()
 

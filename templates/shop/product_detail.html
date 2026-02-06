@@ -146,5 +146,106 @@
     {% endif %}
     <p style="line-height: 1.8;">{{ product.description_text2 }}</p>
   </div>
+ <hr style="margin: 60px 0 20px;">
 
+  <div id="review-section" style="padding-top: 20px;"> {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 15px; background-color: #d4edda; color: #155724; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <h3 style="display: flex; justify-content: space-between; align-items: center;">
+      사용자 리뷰 
+      <span style="font-size: 16px; color: #e44d26;">평균 ★ {{ average_rating }}</span>
+    </h3>
+
+    {% if can_review %}
+      <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+        <h4 style="margin-top: 0;">이 상품은 어떠셨나요?</h4>
+        <form action="{% url 'review_create' product.id %}" method="post">
+          {% csrf_token %}
+          <div style="margin-bottom: 10px;">
+            <label>평점: </label>
+            <select name="rating" style="padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
+              <option value="5">★★★★★ (5점)</option>
+              <option value="4">★★★★ (4점)</option>
+              <option value="3">★★★ (3점)</option>
+              <option value="2">★★ (2점)</option>
+              <option value="1">★ (1점)</option>
+            </select>
+          </div>
+          <textarea name="content" placeholder="솔직한 후기를 남겨주세요." 
+                    style="width: 100%; height: 100px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; resize: none; margin-bottom: 10px; box-sizing: border-box;"></textarea>
+          <button type="submit" style="background: #333; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            리뷰 등록하기
+          </button>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="review-list">
+  {% for review in reviews %}
+    <div style="padding: 20px 0; border-bottom: 1px solid #eee;">
+
+      {% if edit_review_id == review.id %}
+        {# --- [수정 모드] 수정 입력 창 표시 --- #}
+        <form action="{% url 'review_update' review.id %}" method="post" style="background: #f0f0f0; padding: 15px; border-radius: 10px;">
+          {% csrf_token %}
+          <div style="margin-bottom: 10px;">
+            <label>평점 수정: </label>
+            <select name="rating" style="padding: 5px; border-radius: 5px;">
+              <option value="5" {% if review.rating == 5 %}selected{% endif %}>★★★★★</option>
+              <option value="4" {% if review.rating == 4 %}selected{% endif %}>★★★★</option>
+              <option value="3" {% if review.rating == 3 %}selected{% endif %}>★★★</option>
+              <option value="2" {% if review.rating == 2 %}selected{% endif %}>★★</option>
+              <option value="1" {% if review.rating == 1 %}selected{% endif %}>★</option>
+            </select>
+          </div>
+          <textarea name="content" style="width: 100%; height: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; resize: none; margin-bottom: 10px; box-sizing: border-box;">{{ review.content }}</textarea>
+          <div style="text-align: right;">
+            <a href="{% url 'product_detail' product.id %}#review-section" style="text-decoration: none; color: #666; margin-right: 15px; font-size: 14px;">취소</a>
+            <button type="submit" style="background: #333; color: white; padding: 5px 15px; border: none; border-radius: 5px; cursor: pointer;">수정완료</button>
+          </div>
+        </form>
+
+      {% else %}
+        {# --- [일반 모드] 리뷰 내용 표시 --- #}
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+          <div>
+            <span style="font-weight: bold; color: #333;">{{ review.user.username }}</span>
+            <span style="color: #e44d26; margin-left: 10px;">
+              {% if review.rating == 5 %}★★★★★{% elif review.rating == 4 %}★★★★{% elif review.rating == 3 %}★★★{% elif review.rating == 2 %}★★{% else %}★{% endif %}
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+  <span style="color: #999; font-size: 14px;">{{ review.created_at|date:"Y.m.d" }}</span>
+
+  {% if review.user == request.user %}
+    <a href="?edit_id={{ review.id }}#review-section" 
+       style="color: #666; font-size: 12px; text-decoration: underline;">
+       수정
+    </a>
+
+    <form action="{% url 'review_delete' review.id %}" method="post" 
+          style="display: flex; align-items: center; margin: 0; padding: 0;">
+      {% csrf_token %}
+      <button type="submit" 
+              onclick="return confirm('정말 삭제하시겠습니까?')" 
+              style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; height: 14px; line-height: 14px;">
+        삭제
+      </button>
+    </form>
+  {% endif %}
+</div>
+        </div>
+        <p style="margin: 0; line-height: 1.6; color: #555;">{{ review.content|linebreaksbr }}</p>
+      {% endif %}
+
+    </div>
+  {% empty %}
+    <p style="text-align: center; color: #999; padding: 40px 0;">아직 작성된 리뷰가 없습니다.</p>
+  {% endfor %}
+</div>
 {% endblock %}

@@ -1,7 +1,7 @@
 from django.urls import include, path
 
 from . import views
-from .views import ProductDetailView, ProductListView
+from .views import ProductDetailView, ProductListView, ReviewCreateView, ReviewDeleteView
 
 urlpatterns = [
     path("", ProductListView.as_view(), name="product_list"),
@@ -13,5 +13,8 @@ urlpatterns = [
     path("order/execute/", views.OrderExecutionView.as_view(), name="order_execute"),
     path("order/direct/<int:product_id>/",views.DirectPurchaseView.as_view(),name="direct_purchase"),
     path("transactions/",views.TransactionHistoryView.as_view(),name="transaction_history"),
+        path('product/<int:product_id>/review/', ReviewCreateView.as_view(), name='review_create'),
+    path('review/delete/<int:review_id>/', ReviewDeleteView.as_view(), name='review_delete'),
+    path("review/update/<int:review_id>/", views.ReviewUpdateView.as_view(), name="review_update"),
     
 ]

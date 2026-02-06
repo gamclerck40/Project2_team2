@@ -3,96 +3,143 @@
 {% block content %}
 
 <style>
-  .tabbar {
+  /* =========================
+     Tabs
+  ========================= */
+  .tabbar{
     display:flex;
     gap:10px;
-    padding: 12px 14px;
+    padding:12px 14px;
     background:#333;
     color:#fff;
-    border-bottom: 1px solid rgba(255,255,255,.12);
+    border-bottom:1px solid rgba(255,255,255,.12);
   }
   .tabbtn{
     appearance:none;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06);
     color:#fff;
-    padding: 8px 12px;
-    border-radius: 999px;
+    padding:8px 12px;
+    border-radius:999px;
     cursor:pointer;
-    font-weight: 900;
-    font-size: 13px;
-    opacity: .9;
+    font-weight:900;
+    font-size:13px;
+    opacity:.9;
   }
   .tabbtn[aria-selected="true"]{
-    background: rgba(255,255,255,.18);
-    opacity: 1;
+    background:rgba(255,255,255,.18);
+    opacity:1;
   }
   .tabpanel{ display:none; }
   .tabpanel.active{ display:block; }
 
-  .card {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border-radius: 20px;
-    overflow: hidden;
-    background: white;
-    border: 1px solid #eee;
+  /* =========================
+     Card / Layout
+  ========================= */
+  .card{
+    box-shadow:0 4px 15px rgba(0,0,0,.1);
+    border-radius:20px;
+    overflow:hidden;
+    background:#fff;
+    border:1px solid #eee;
   }
-  .section { padding: 22px; }
-  .grid2 {
+  .section{ padding:22px; }
+  .divider{ height:1px; background:#eee; }
+
+  /* =========================
+     Grid
+  ========================= */
+  .grid2{
     display:grid;
-    grid-template-columns: 140px 1fr;
-    row-gap: 14px;
-    column-gap: 12px;
+    grid-template-columns:140px 1fr;
+    row-gap:14px;
+    column-gap:12px;
     align-items:center;
   }
-  .label { color:#666; font-weight:600; }
-  .valueStrong { color:#333; font-weight:700; }
-  .divider { height: 1px; background: #eee; }
+  .label{ color:#666; font-weight:600; }
+  .valueStrong{ color:#333; font-weight:700; }
 
+  /* =========================
+     Form / Inputs
+  ========================= */
   .inputWrap{
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: white;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:10px 12px;
+    background:#fff;
   }
   .inputWrap input{
     width:100%;
     border:none;
     outline:none;
     font-size:14px;
-    background: transparent;
+    background:transparent;
   }
-  .help { margin-top: 6px; color:#888; font-size: 13px; }
+  .help{
+    margin-top:6px;
+    color:#888;
+    font-size:13px;
+  }
 
-  .btnPrimary{
+  /* =========================
+     Buttons
+  ========================= */
+  .btnPrimary,
+  .btnGhost{
+    border:none;
+    border-radius:12px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-weight:900;
+  }
+  .btnPrimary{ background:#333; color:#fff; }
+  .btnGhost{ background:#f4f4f4; color:#555; }
+
+  /* =========================
+     ✅ UI 정돈용(추가)
+     - 잔액/충전 버튼 줄바꿈 방지 + 정렬
+  ========================= */
+  .balanceRow{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    width:100%;
+  }
+  .balanceText{
+    color:#e44d26;
+    font-weight:800;
+    font-size:18px;
+    white-space:nowrap;     /* ✅ 숫자 줄바꿈 방지 */
+  }
+  .btnRecharge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 14px;
     background:#333;
     color:#fff;
-    border:none;
-    border-radius: 12px;
-    padding: 10px 12px;
-    cursor:pointer;
-    font-weight:900;
-  }
-  .btnGhost{
-    background:#f4f4f4;
-    color:#555;
-    border:none;
-    border-radius: 12px;
-    padding: 10px 12px;
-    cursor:pointer;
-    font-weight:900;
+    text-decoration:none;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    white-space:nowrap;     /* ✅ “충전” 줄바꿈 방지 */
+    min-width:56px;         /* ✅ 버튼이 세로로 찌그러지는 것 방지 */
+    height:32px;            /* ✅ 높이 고정으로 깔끔 */
+    line-height:32px;
   }
 </style>
 
 <div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
   <div style="width:100%; max-width: 900px;">
 
-    <h2 style="margin: 0 0 18px 10px;">🙋 내 정보
-      <span style="font-size:14px; font-weight:400; color:#888; margin-left:8px;">
+    <h2 style="margin: 0 0 18px 10px; display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+      <span>🙋 내 정보</span>
+      <span style="font-size:14px; font-weight:400; color:#888;">
         <a>Created :{{account.created_at}} | Updated : {{account.updated_at}}</a>
       </span>
     </h2>
-    
+
     <div class="card">
       <!-- ✅ 탭 헤더 -->
       <div class="tabbar" role="tablist" aria-label="마이페이지 탭">
@@ -112,9 +159,7 @@
         <div class="section">
           <div class="grid2">
             <div class="label">아이디</div>
-            <div class="valueStrong">
-              {{ user_obj.username }}
-            </div>
+            <div class="valueStrong">{{ user_obj.username }}</div>
 
             <div class="label">전화번호</div>
             <div style="color:#333;">
@@ -125,302 +170,316 @@
               {% endif %}
             </div>
 
-            <div class="label">배송지 관리</div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-              <form action="{% url 'set_default_address' %}" method="post">
-                {% csrf_token %}
-                <div class="inputWrap">
-                  <select name="default_addr_id" onchange="this.form.submit()" 
-                          style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
-                    {% for addr in addresses %}
-                      <option value="{{ addr.id }}" {% if addr.is_default %}selected{% endif %}>
-                        {{ addr.alias }} : {{ addr.address }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <p class="help">※ 클릭하여 목록에서 주소를 선택하면 즉시 기본 배송지가 변경됩니다.</p>
-              </form>
-
-              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-left:5px;">
-                {% for addr in addresses %}
+<div class="label">배송지 관리</div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              {% for addr in addresses %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; border:1px solid {% if addr.is_default %}#333{% else %}#eee{% endif %}; border-radius:14px; background:{% if addr.is_default %}#fcfcfc{% else %}#fff{% endif %};">
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:700; color:#333;">
+                      {{ addr.alias }}
+                      {% if addr.is_default %}
+                        <span style="background:#333; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">기본</span>
+                      {% endif %}
+                    </div>
+                    <div style="font-size:13px; color:#666; margin-top:4px;">{{ addr.address }}</div>
+                  </div>
                   {% if not addr.is_default %}
                     <form method="post" action="{% url 'address_delete' addr.id %}" style="margin:0;">
                       {% csrf_token %}
                       <button type="submit" 
-                              style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer;" 
-                              onclick="return confirm('이 배송지를 삭제하시겠습니까?')">
-                        {{ addr.alias }} 삭제
+                              style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:12px; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:900;" 
+                              onclick="return confirm('[{{ addr.alias }}] 배송지를 삭제하시겠습니까?')">
+                        삭제
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+              <p class="help">※ 기본 배송지는 삭제 버튼이 나타나지 않으며, 수정은 '내 정보 수정' 탭에서 가능합니다.</p>
+            </div>
+          </div>
+
+          <div class="divider" style="margin:18px 0;"></div>
+
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+            <h3 style="margin: 0; font-size: 16px; color:#333;">🏦 현재 내 계좌</h3>
+            <div style="font-size:12px; color:#888;">
+              {% if accounts and accounts|length > 1 %}
+                계좌 선택 가능
+              {% else %}
+                기본 계좌 표시
+              {% endif %}
+            </div>
+          </div>
+
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px;">
+
+            {# ✅ 다계좌일 때: 프로필 탭에서 기본 계좌 선택(변경) 가능 #}
+            {% if accounts and accounts|length >= 1 %}
+              <form method="post" action="{% url 'account_set_default' 0 %}" autocomplete="off">
+                {% csrf_token %}
+                <div class="inputWrap">
+                  <select name="account_id"
+                          onchange="
+                            const base = '{% url 'account_set_default' 0 %}';
+                            this.form.action = base.replace('/0/', '/' + this.value + '/');
+                            this.form.submit();
+                          "
+                          style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
+                    {% for acc in accounts %}
+                      <option value="{{ acc.id }}" {% if acc.is_default %}selected{% endif %}>
+                        {{ acc.bank }} / {{ acc.masked_account_number }}{% if acc.is_default %} (기본){% endif %}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <p class="help" style="margin:4px 0 2px 0;">※ 계좌를 선택하면 기본 계좌가 변경됩니다.</p>
+              </form>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-left:5px; margin-top:0;">
+                {% for acc in accounts %}
+                  {% if not acc.is_default %}
+                    <form method="post" action="{% url 'account_delete' acc.id %}" style="margin:0;">
+                      {% csrf_token %}
+                      <button type="submit"
+                              style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer;"
+                              onclick="return confirm('이 계좌를 삭제하시겠습니까?')">
+                        {{ acc.bank }} {{ acc.masked_account_number }} 삭제
                       </button>
                     </form>
                   {% endif %}
                 {% endfor %}
               </div>
+            {% endif %}
             </div>
-          </div>
+          <div class="divider" style="margin: 20px 0;"></div>
 
-          <div class="divider"></div>
-        </div>
+          <div class="section" style="padding:0;">
+            <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+            {% if account %}
+              <div class="grid2">
+                <div class="label">예금주명</div>
+                <div style="color:#333; font-weight:600;">{{ account.name }}</div>
 
-        <div class="section">
-          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
-          {% if account %}
-            <div class="grid2">
-              <div class="label">예금주명</div>
-              <div style="color:#333; font-weight:600;">{{ account.name }}</div>
+                <div class="label">은행</div>
+                <div style="color:#333; font-weight:600;">{{ account.bank }}</div>
 
-              <div class="label">은행</div>
-              <div style="color:#333; font-weight:600;">
-                {{ account.bank }}
-                {% if account.is_default %}
-                  <span style="margin-left:8px; font-size:12px; background:#333; color:#fff; padding:3px 8px; border-radius:999px;">기본</span>
-                  <a href="{% url 'account_charge' %}"
-                    style="margin-left:6px; font-size:12px; background:#ff6b00; color:#fff;
-                    padding:4px 10px; border-radius:999px; text-decoration:none; font-weight:800;">
-                {% endif %}
-                  
-    충전
-  </a>
-              </div>
+                <div class="label">계좌번호</div>
+                <div style="color:#333; font-weight:600;">{{ account.masked_account_number }}</div>
 
-              <div class="label">계좌번호</div>
-              <div style="color:#333; font-weight:600;">{{ account.masked_account_number }}</div>
-
-              <div class="label">잔액</div>
-              <div style="color:#e44d26; font-weight: 800; font-size: 18px;">
-                {{ account.balance|intcomma }}원
-              </div>
-            </div>
-
-            {# ✅ 다계좌 목록(기존 기능에 '추가'되는 부분이지만, 계좌번호 다계좌 요구사항 충족에 필요) #}
-            {% if accounts and accounts|length > 1 %}
-              <div style="margin-top:18px; padding-top:16px; border-top:1px solid #eee;">
-                <div style="font-weight:900; margin-bottom:10px;">등록된 계좌 목록</div>
-
-                <div style="display:flex; flex-direction:column; gap:10px;">
-                  {% for a in accounts %}
-                    <div style="border:1px solid #eee; border-radius:14px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
-                      <div style="min-width:0;">
-                        <div style="font-weight:900; color:#333;">
-                          {{ a.bank.name }} · {{ a.masked_account_number }}
-                          {% if a.is_default %}
-                            <span style="margin-left:8px; font-size:12px; background:#333; color:#fff; padding:3px 8px; border-radius:999px;">기본</span>
-                          {% endif %}
-                        </div>
-                      </div>
-
-                      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        {% if not a.is_default %}
-                          <form method="post" action="{% url 'account_set_default' a.id %}">
-                            {% csrf_token %}
-                            <button class="btnGhost" type="submit">기본으로</button>
-                          </form>
-
-                          <form method="post" action="{% url 'account_delete' a.id %}"
-                                onsubmit="return confirm('이 계좌를 삭제하시겠습니까?');">
-                            {% csrf_token %}
-                            <button class="btnGhost" type="submit">삭제</button>
-                          </form>
-                        {% endif %}
-                      </div>
-                    </div>
-                  {% endfor %}
+                <!-- ✅ 정리 포인트: label/value 규칙 유지하면서 잔액+충전 버튼을 한 줄로 -->
+                <div class="label">잔액</div>
+                <div class="balanceRow">
+                  <div class="balanceText">{{ account.balance|intcomma }}원</div>
+                  <a href="#recharge-modal" class="btnRecharge">충전</a>
                 </div>
+              </div>
+            {% else %}
+              <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
+                등록된 계좌가 없습니다. "내정보 수정" 탭에서 계좌를 등록할 수 있습니다.
               </div>
             {% endif %}
 
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TAB 2: 내정보 수정 -->
+      <div class="tabpanel" id="tab-edit" role="tabpanel" aria-label="내정보 수정 탭">
+        <div class="section">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+            <h3 style="margin: 0; font-size: 16px; color:#333;">✏️ 내정보 수정</h3>
+            <div style="font-size:12px; color:#888;">전화번호 / 계좌 / 배송지</div>
+          </div>
+
+          {# ✅ 폼 중첩 방지: mypage_update는 "빈 폼 + form 속성 연결"로 처리 #}
+          <form id="mypageUpdateForm" method="post" action="{% url 'mypage_update' %}" autocomplete="off">
+            {% csrf_token %}
+          </form>
+
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:14px;">
+
+            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+              <div style="display:flex; flex-direction:column; gap:14px;">
+                <div>
+                  <div style="margin-bottom: 8px; font-weight: 800; color:#333;">전화번호</div>
+                  <div class="inputWrap">
+                    <input form="mypageUpdateForm" name="phone" value="{% if account %}{{ account.phone }}{% endif %}" placeholder="01012345678" />
+                  </div>
+                  <p class="help">※ 전화번호는 내정보 수정 저장 버튼으로 변경됩니다.</p>
+                </div>
+
+                <div style="padding-top:14px; border-top:1px dashed #eee;">
+                  <div style="font-weight:900; margin-bottom:10px; color:#333;">➕ 새 계좌 추가</div>
+
+                  <form method="post" action="{% url 'account_add' %}" autocomplete="off" style="display:flex; flex-direction:column; gap:10px;">
+                    {% csrf_token %}
+
+                    <div class="inputWrap" style="padding: 8px 10px;">
+                      <select name="bank"
+                              style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
+                        <option value="">은행 선택</option>
+                        {% for b in banks %}
+                          <option value="{{ b.id }}">{{ b.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <div class="inputWrap">
+                      <input name="account_number" placeholder="계좌번호 입력" />
+                    </div>
+
+                    <button class="btnPrimary" type="submit" style="width:100%;">계좌 추가</button>
+                  </form>
+
+                  <p class="help" style="margin-top:8px;">
+                    ※ 동일 계좌번호는 중복 등록할 수 없으며, 타인 계정에 등록된 계좌도 등록할 수 없습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+              <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏠 배송지 정보 수정</h3>
+
+              {% for addr in addresses %}
+                <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                   <input form="mypageUpdateForm" type="hidden" name="address_id[]" value="{{ addr.id }}">
+                   <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div class="inputWrap">
+                      <input form="mypageUpdateForm" name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
+                      <div class="inputWrap">
+                        <input form="mypageUpdateForm" name="zip_code[]" value="{{ addr.zip_code }}">
+                      </div>
+                      <div class="inputWrap">
+                        <input form="mypageUpdateForm" name="address[]" value="{{ addr.address }}">
+                      </div>
+                    </div>
+                    <div class="inputWrap">
+                      <input form="mypageUpdateForm" name="detail_address[]" value="{{ addr.detail_address }}">
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              <h3 style="margin: 10px 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가</h3>
+              <div style="display:flex; flex-direction:column; gap:10px; background: #f9f9f9; padding: 15px; border-radius: 12px;">
+                <div class="inputWrap"><input form="mypageUpdateForm" name="new_zip_code" placeholder="새 우편번호"></div>
+                <div class="inputWrap"><input form="mypageUpdateForm" name="new_address" placeholder="새 기본 주소"></div>
+                <div class="inputWrap"><input form="mypageUpdateForm" name="new_detail_address" placeholder="새 상세 주소"></div>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top: 16px;">
+                <button type="button" class="btnGhost" onclick="history.back()" style="flex:1;">취소</button>
+                <button type="submit" class="btnPrimary" form="mypageUpdateForm" style="flex:1;">저장</button>
+              </div>
+            </div>
+
+            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+              <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
+              <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 14px; line-height: 1.6;">
+                안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.
+              </div>
+
+              {% if not pw_verified %}
+                <form method="post" action="{% url 'pw_verify' %}" autocomplete="off">
+                  {% csrf_token %}
+                  <div style="margin-bottom: 12px;">
+                    <div style="margin-bottom: 8px; font-weight: 800; color:#333;">현재 비밀번호</div>
+                    <div class="inputWrap">
+                      <input type="password" name="current_password" placeholder="현재 비밀번호를 입력하세요" />
+                    </div>
+                  </div>
+                  <button type="submit" class="btnPrimary" style="width:100%;">본인 인증</button>
+                </form>
+              {% else %}
+                <form method="post" action="{% url 'pw_change' %}" autocomplete="off">
+                  {% csrf_token %}
+                  <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 12px;">
+                    <div>
+                      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호</div>
+                      <div class="inputWrap"><input type="password" name="new_password1" placeholder="새 비밀번호" /></div>
+                    </div>
+                    <div>
+                      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호 확인</div>
+                      <div class="inputWrap"><input type="password" name="new_password2" placeholder="새 비밀번호 확인" /></div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:10px;">
+                    <a href="/accounts/mypage/?tab=edit" class="btnGhost" style="text-decoration:none; flex:1; text-align:center; line-height: 36px;">취소</a>
+                    <button type="submit" class="btnPrimary" style="flex:1;">비밀번호 변경</button>
+                  </div>
+                </form>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ TAB 3: 영수증 -->
+      <div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
+        <div class="section">
+          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
+
+          <div style="margin:0 0 14px 0; color:#666; font-size:13px; line-height:1.6;">
+            구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
+          </div>
+
+          {% if receipts_page and receipts_page.object_list %}
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              {% for tx in receipts_page %}
+                <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+                  <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+
+                    <div style="min-width:0;">
+                      <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        {{ tx.product_name|default:"구매" }}
+                        {% if tx.quantity %}<span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>{% endif %}
+                      </div>
+
+                      <div style="margin-top:6px; color:#888; font-size:13px;">
+                        {{ tx.occurred_at|date:"Y-m-d H:i" }}
+                        {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
+                        {% if tx.category %} · {{ tx.category.name }}{% endif %}
+                      </div>
+
+                      <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
+                        -{{ tx.amount|intcomma }}원
+                      </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+                      <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
+                         style="text-decoration:none; font-weight:900; font-size:13px;
+                                padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
+                        PDF 보기
+                      </a>
+                      <a href="{% url 'receipt_pdf' tx.id %}" download
+                         style="text-decoration:none; font-weight:900; font-size:13px;
+                                padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
+                        다운로드
+                      </a>
+                    </div>
+
+                  </div>
+
+                  {% if tx.memo %}
+                    <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
+                      {{ tx.memo }}
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
           {% else %}
-            <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
-              계좌 정보가 없습니다.
+            <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
+              영수증 내역이 없습니다.
             </div>
           {% endif %}
         </div>
       </div>
-
-      <!-- ✅ TAB 2: 내정보 수정 (원본 그대로, 생략 없음) -->
-      <div class="tabpanel" id="tab-edit" role="tabpanel" aria-label="내정보 수정 탭">
-        <div class="section">
-          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">✏️ 내정보 수정</h3>
-
-          <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 16px; line-height: 1.6;">
-            <b>내 정보 수정</b> 탭에서는<br> 등록된 <b>전화번호</b>, <b>은행 정보</b>, <b>계좌번호</b>, <b>배송지 주소</b>를 직접 수정할 수 있습니다.<br>
-            변경 사항은 저장 즉시 계정 정보에 반영됩니다.
-          </div>
-
-          <form method="post" action="{% url 'mypage_update' %}" autocomplete="off">
-            {% csrf_token %}
-
-            <div style="display:flex; flex-direction:column; gap:14px;">
-
-              <div>
-                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">전화번호</div>
-                <div class="inputWrap">
-                  <input name="phone"
-                         value="{% if account %}{{ account.phone }}{% endif %}"
-                         placeholder="01012345678" />
-                </div>
-                <div class="help">예) 01012345678 (하이픈 없이)</div>
-              </div>
-
-              <div>
-                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
-                <div class="inputWrap">
-                  <select name="bank" style="width:100%; border:none; outline:none; background:transparent;">
-                    <option value="">은행 선택</option>
-                    {% for b in banks %}
-                      <option value="{{ b.id }}" {% if account and account.bank_id == b.id %}selected{% endif %}>
-                        {{ b.name }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <div style="margin-bottom: 8px; font-weight: 800; color:#333;">계좌번호</div>
-                <div class="inputWrap">
-                  <input name="account_number" value="{% if account %}{{ account.account_number }}{% endif %}" placeholder="예: 1101234567890" />
-                </div>
-              </div>
-
-              {# ... (이하 원본 주소 수정 영역 그대로) ... #}
-
-              <div style="margin-top: 16px;">
-                <button class="btnPrimary" type="submit" style="width:100%;">저장하기</button>
-              </div>
-
-            </div>
-          </form>
-        </div>
-      </div>
-
-<!-- ✅ TAB 3: 영수증 -->
-<div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
-  <div class="section">
-    <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
-
-    <div style="margin:0 0 14px 0; color:#666; font-size:13px; line-height:1.6;">
-      구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
-    </div>
-
-    <!-- ✅ 필터/정렬 UI (기존 rc_* 파라미터와 연결) -->
-    <form method="get" action="{% url 'mypage' %}" style="margin-bottom:14px;">
-      <!-- 탭 유지 -->
-      <input type="hidden" name="tab" value="receipt" />
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <div class="inputWrap" style="min-width:220px; padding: 8px 10px;">
-          <select name="rc_category"
-                  style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:800; cursor:pointer;">
-            <option value="">전체 카테고리</option>
-            {% for c in receipt_categories %}
-              <option value="{{ c.id }}" {% if rc_category == c.id|stringformat:"s" %}selected{% endif %}>
-                {{ c.name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="inputWrap" style="min-width:180px; padding: 8px 10px;">
-          <select name="rc_sort"
-                  style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:800; cursor:pointer;">
-            <option value="newest" {% if rc_sort == "newest" %}selected{% endif %}>최신순</option>
-            <option value="price_high" {% if rc_sort == "price_high" %}selected{% endif %}>금액 높은순</option>
-            <option value="price_low" {% if rc_sort == "price_low" %}selected{% endif %}>금액 낮은순</option>
-          </select>
-        </div>
-
-        <button class="btnPrimary" type="submit" style="padding:10px 14px;">적용</button>
-
-        <a class="btnGhost"
-           href="{% url 'mypage' %}?tab=receipt"
-           style="display:inline-block; text-decoration:none; padding:10px 14px;">
-          초기화
-        </a>
-      </div>
-    </form>
-
-    {# ✅ 영수증 목록: PDF 보기 + 다운로드 유지 #}
-    {% if receipts_page and receipts_page.object_list %}
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        {% for tx in receipts_page %}
-          <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-
-              <div style="min-width:0;">
-                <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                  {{ tx.product_name|default:"구매" }}
-                  {% if tx.quantity %}
-                    <span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>
-                  {% endif %}
-                </div>
-
-                <div style="margin-top:6px; color:#888; font-size:13px;">
-                  {{ tx.occurred_at|date:"Y-m-d H:i" }}
-                  {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
-                  {% if tx.category %} · {{ tx.category.name }}{% endif %}
-                </div>
-
-                <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
-                  -{{ tx.amount|intcomma }}원
-                </div>
-              </div>
-
-              <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
-                  PDF 보기
-                </a>
-                <a href="{% url 'receipt_pdf' tx.id %}" download
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
-                  다운로드
-                </a>
-              </div>
-
-            </div>
-
-            {% if tx.memo %}
-              <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
-                {{ tx.memo }}
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      </div>
-
-      <!-- ✅ 페이지네이션(영수증 탭/필터/정렬 유지) -->
-      <div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-top:16px; flex-wrap:wrap;">
-        {% if receipts_page.has_previous %}
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="{% url 'mypage' %}?tab=receipt&rc_page={{ receipts_page.previous_page_number }}&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            이전
-          </a>
-        {% endif %}
-
-        <div style="color:#666; font-weight:900;">
-          {{ receipts_page.number }} / {{ receipts_page.paginator.num_pages }}
-        </div>
-
-        {% if receipts_page.has_next %}
-          <a class="btnGhost"
-             style="text-decoration:none;"
-             href="{% url 'mypage' %}?tab=receipt&rc_page={{ receipts_page.next_page_number }}&rc_category={{ rc_category }}&rc_sort={{ rc_sort }}">
-            다음
-          </a>
-        {% endif %}
-      </div>
-
-    {% else %}
-      <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
-        영수증 내역이 없습니다.
-      </div>
-    {% endif %}
-  </div>
-</div>
-
 
     </div>
   </div>
@@ -440,7 +499,6 @@
       Object.keys(panels).forEach(k => panels[k].classList.toggle("active", k === name));
     }
 
-    // 초기 탭: URL ?tab=... 유지
     const params = new URLSearchParams(location.search);
     const init = params.get("tab") || "profile";
     setActive(init);

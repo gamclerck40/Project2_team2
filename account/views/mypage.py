@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Sum
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -59,7 +60,7 @@ class MypageView(LoginRequiredMixin, View):
             return digits
 
         accounts = Account.objects.filter(user=request.user).order_by("-is_default", "-id")
-        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
+        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "id")
         default_account = accounts.filter(is_default=True).first() or accounts.first()
 
         # ✅ 기존 템플릿이 account.* 를 많이 쓰므로 호환 유지
@@ -95,6 +96,23 @@ class MypageView(LoginRequiredMixin, View):
 
         receipt_categories = Category.objects.all().order_by("name")
 
+        # ==========================
+        # ✅ 요약 통계 탭: 누적 전체 지출/수익 합계
+        # ==========================
+        total_out = (
+            Transaction.objects.filter(user=request.user, tx_type=Transaction.OUT)
+            .aggregate(s=Sum("amount"))
+            .get("s")
+            or 0
+        )
+        total_in = (
+            Transaction.objects.filter(user=request.user, tx_type=Transaction.IN)
+            .aggregate(s=Sum("amount"))
+            .get("s")
+            or 0
+        )
+        net_total = total_in - total_out
+
         # ✅ 기존 기능을 해치지 않게: 폼은 그대로 두되, 템플릿에서 쓰는 경우만 사용
         account_add_form = AccountAddForm()
 
@@ -121,6 +139,11 @@ class MypageView(LoginRequiredMixin, View):
                 "rc_category": rc_category,
                 "rc_sort": rc_sort,
 
+                # ✅ 요약 통계 탭
+                "total_out": total_out,
+                "total_in": total_in,
+                "net_total": net_total,
+
                 "pw_verified": pw_verified,
                 "banks": Bank.objects.all().order_by("name"),
             },
@@ -140,8 +163,7 @@ class MypageUpdateView(LoginRequiredMixin, View):
             return redirect("/accounts/mypage/?tab=edit")
 
         # ✅ 기존 first() 대신: 기본계좌를 수정 대상으로 사용(정책 일관)
-        account = get_default_account(request.user)
-
+        account = Account.objects.filter(user=request.user).first()
         addr_ids = request.POST.getlist("address_id[]")
         aliases = request.POST.getlist("address_alias[]")
         zip_codes = request.POST.getlist("zip_code[]")

@@ -90,7 +90,13 @@
 
                 <div style="background: #444; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
                     <p style="margin: 0 0 5px 0; color: #ccc;">결제 계좌: {{ account.bank }}</p>
-                    <p style="margin: 0; font-weight: bold;">현재 잔액: {{ account.balance|intcomma }}원</p>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p style="margin: 0; font-weight: bold;">현재 잔액: {{ account.balance|intcomma }}원</p>
+                        
+                        <a href="#recharge-modal" style="background: #666; color: white; padding: 4px 10px; border-radius: 5px; text-decoration: none; font-size: 11px; font-weight: bold;">
+                            충전하기
+                        </a>
+                    </div>
                 </div>
 
                 {% if account.balance >= total_amount %}

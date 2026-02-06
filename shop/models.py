@@ -1,6 +1,6 @@
 import re
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator,MaxValueValidator
 from django.db import models
 from account.models import Account
 
@@ -128,6 +128,12 @@ class Transaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+        #주소 필드
+    shipping_address = models.CharField(max_length=255, null=True, blank=True, verbose_name="배송지 주소")
+    shipping_detail_address = models.CharField(max_length=255, null=True, blank=True, verbose_name="배송지 상세주소")
+    shipping_zip_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="우편번호")
+    receiver_name = models.CharField(max_length=50, null=True, blank=True, verbose_name="수령인")
+
     def clean(self):
         # **무결성 핵심: 거래 user와 계좌 user 일치 강제**
         if self.account_id and self.user_id and self.account.user_id != self.user_id:
@@ -140,5 +146,32 @@ class Transaction(models.Model):
         product_name = self.product.name if self.product else "삭제된 상품"
         return f"{self.user} | {product_name}({self.quantity}개) | {self.tx_type} {self.amount}원"
 
+class Review(models.Model):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="reviews"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews"
+    )
+    # 별점 1~5점 제한
+    rating = models.PositiveSmallIntegerField(
+        default=5, 
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        verbose_name="평점"
+    )
+    content = models.TextField(verbose_name="리뷰 내용")
 
+    # 리뷰에도 이미지를 넣고 싶다면 추가 (선택사항)
+    # image = models.ImageField(upload_to="reviews/%Y/%m/%d/", blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # 한 사용자가 한 상품에 대해 리뷰를 하나만 남기게 제한하려면 활성화
+        # unique_together = ('product', 'user')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}의 리뷰 - {self.product.name} ({self.rating}점)"
 # 현재 이 상태에서 product(Product FK), quantity(주문량)등의 정보가 더 필요할 것.

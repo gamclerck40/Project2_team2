@@ -55,4 +55,6 @@ urlpatterns = [
 
     # 계좌 충전 페이지 (현재는 더미 페이지 / 추후 잔액 충전 기능 구현 예정)
     path("accounts/charge/", AccountChargeView.as_view(), name="account_charge"),
+
+    path('charge/', charge_balance, name='charge_balance'),
 ]

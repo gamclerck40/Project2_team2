@@ -8,3 +8,4 @@ from .password import *
 from .address import *
 from .receipt import *
 from .charge import *
+from .wallet import *
