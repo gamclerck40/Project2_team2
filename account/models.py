@@ -7,9 +7,8 @@ class Bank(models.Model):
     name = models.CharField(max_length=50, unique=True)  # 예: 국민은행
     min_len = models.PositiveSmallIntegerField()
     max_len = models.PositiveSmallIntegerField()
-    prefixes_csv = models.CharField(
-        max_length=50, blank=True, default=""
-    )  # 예: "351,352,356"
+    prefixes_csv = models.CharField(max_length=200, blank=True, default="")  
+    # 예: "351,352,356"
 
     def prefixes(self):
         return [p.strip() for p in (self.prefixes_csv or "").split(",") if p.strip()]
@@ -40,11 +39,28 @@ class Account(models.Model):
     # 아직 잘 해석이 안됨.
     is_active = models.BooleanField(default=True)
 
+    # (추천) 결제에 사용할 기본 계좌 개념이 필요하면 추가
+    is_default = models.BooleanField(default=False)
+
     # 생성시 생성 당일 날짜에 맞게 DB에 저장.
     created_at = models.DateTimeField(auto_now_add=True)
 
     # "내 정보 수정" 따위의 기능을 넣을 때 수정 날짜가 저장 되도록.
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            # ✅ “같은 은행 + 같은 계좌번호”는 딱 1번만 존재 가능 (유저가 누구든)
+            models.UniqueConstraint(
+                fields=["bank", "account_number"],
+                name="uniq_bank_account_number",
+            ),
+        ]
+        
+    def save(self, *args, **kwargs):
+        # 계좌번호는 DB에 숫자만 저장 (중복판정 정확도 ↑)
+        self.account_number = re.sub(r"[^0-9]", "", self.account_number or "")
+        super().save(*args, **kwargs)
 
     def masked_account_number(self) -> str:
         s = re.sub(r"[^0-9]", "", self.account_number or "")

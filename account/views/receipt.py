@@ -11,12 +11,19 @@ from reportlab.pdfgen import canvas
 from shop.models import Account, Transaction
 from account.utils.receipt import _calc_vat, _money_int, _register_korean_font
 
+# ✅ 다계좌: 기본계좌 우선
+from account.utils.common import get_default_account
+
 
 @method_decorator(never_cache, name="dispatch")
 class ReceiptPDFView(LoginRequiredMixin, View):
     """
     /accounts/receipts/<tx_id>.pdf
     Transaction 1건을 영수증 PDF로 생성
+
+    ✅ 변경점(요구사항 충족):
+    - 계좌 1개 가정(first()) 대신 기본계좌(get_default_account) 사용
+    - 나머지 기능(PDF 생성/표시)은 기존 그대로 유지
     """
     login_url = "login"
 
@@ -25,7 +32,8 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         if not tx:
             raise Http404("영수증을 찾을 수 없습니다.")
 
-        account = Account.objects.filter(user=request.user).first()
+        # ✅ 기존: Account.objects.filter(user=request.user).first()
+        account = get_default_account(request.user)
         if not account:
             raise Http404("계좌 정보가 없습니다.")
 

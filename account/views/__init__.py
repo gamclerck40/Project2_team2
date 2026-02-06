@@ -7,3 +7,4 @@ from .mypage import *
 from .password import *
 from .address import *
 from .receipt import *
+from .charge import *

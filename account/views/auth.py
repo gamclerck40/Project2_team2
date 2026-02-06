@@ -38,7 +38,8 @@ class SignUpView(View):
                     account_number=form.cleaned_data["account_number"],
                     balance=form.cleaned_data["balance"],
                     is_active=True,
-                )
+                    is_default=True,  # ✅ 첫 계좌는 기본 계좌
+)
 
                 Address.objects.create(
                     user=user,

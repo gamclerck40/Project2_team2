@@ -16,12 +16,8 @@ class SignUpForm(UserCreationForm):
     phone = forms.CharField(
         max_length=11, label="전화번호", help_text="숫자만 입력 (예: 01012345678)"
     )
-    bank = forms.ModelChoiceField(
-        queryset=Bank.objects.all().order_by("name"),
-        empty_label="은행 선택",
-        label="은행",
-    )
-    account_number = forms.CharField(max_length=50, label="계좌번호")
+    bank = forms.ModelChoiceField(queryset=Bank.objects.all())
+    account_number = forms.CharField()
     balance = forms.DecimalField(max_digits=14, label="현재 잔액")
     zip_code = forms.CharField(
         max_length=10,
@@ -88,7 +84,66 @@ class SignUpForm(UserCreationForm):
         if not bank:
             raise ValidationError("은행을 선택해 주세요.")
         return bank
+    
+    def clean_account_num(self):
+        cleaned = super().clean()
+        bank = cleaned.get("bank")
+        acc_raw = cleaned.get("account_number") or ""
+        acc = re.sub(r"[^0-9]", "", acc_raw)
 
+        if not bank:
+            return cleaned
+
+        # ✅ 길이 검증
+        if bank.min_len and len(acc) < bank.min_len:
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호는 최소 {bank.min_len}자리입니다."})
+        if bank.max_len and len(acc) > bank.max_len:
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호는 최대 {bank.max_len}자리입니다."})
+
+        # ✅ 접두(prefix) 검증
+        prefixes = bank.prefixes()
+        if prefixes and not any(acc.startswith(p) for p in prefixes):
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호 형식(접두)이 올바르지 않습니다."})
+
+        # ✅ 전역 중복 검증(타인 포함)
+        if Account.objects.filter(bank=bank, account_number=acc).exists():
+            raise ValidationError({"account_number": "이미 등록된 계좌입니다. 다른 사용자가 사용 중입니다."})
+
+        cleaned["account_number"] = acc
+        return cleaned
+    
+class AccountAddForm(forms.Form):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.all().order_by("name"),
+        empty_label="은행 선택",
+        label="은행",
+    )
+    account_number = forms.CharField(max_length=50, label="계좌번호")
+
+    def clean(self):
+        cleaned = super().clean()
+        bank = cleaned.get("bank")
+        acc_raw = cleaned.get("account_number") or ""
+        acc = re.sub(r"[^0-9]", "", acc_raw)
+
+        if not bank:
+            return cleaned
+
+        if bank.min_len and len(acc) < bank.min_len:
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호는 최소 {bank.min_len}자리입니다."})
+        if bank.max_len and len(acc) > bank.max_len:
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호는 최대 {bank.max_len}자리입니다."})
+
+        prefixes = bank.prefixes()
+        if prefixes and not any(acc.startswith(p) for p in prefixes):
+            raise ValidationError({"account_number": f"{bank.name} 계좌번호 형식(접두)이 올바르지 않습니다."})
+
+        # 전역 중복
+        if Account.objects.filter(bank=bank, account_number=acc).exists():
+            raise ValidationError({"account_number": "이미 등록된 계좌입니다."})
+
+        cleaned["account_number"] = acc
+        return cleaned
 
 # ID 찾기 UI
 class FindIDForm(forms.Form):

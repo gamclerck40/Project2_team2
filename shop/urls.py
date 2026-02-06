@@ -13,4 +13,5 @@ urlpatterns = [
     path("order/execute/", views.OrderExecutionView.as_view(), name="order_execute"),
     path("order/direct/<int:product_id>/",views.DirectPurchaseView.as_view(),name="direct_purchase"),
     path("transactions/",views.TransactionHistoryView.as_view(),name="transaction_history"),
+    
 ]

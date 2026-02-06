@@ -5,8 +5,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
 from django.views.generic import *
+
 from .models import Cart, Category, Product, Transaction
 from account.models import Account, Address
+
+# ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
+from account.utils.common import get_default_account
 
 
 # 상품 목록 페이지(사진,이름,가격 등의 리스트)
@@ -181,7 +185,8 @@ class OrderExecutionView(LoginRequiredMixin, View):
 
     def post(self, request):
         # 1. 계좌 정보 확인 (Account 객체 자체가 없는 경우 대비)
-        user_account = Account.objects.filter(user=request.user).first()
+        # ✅ 다계좌 대응: 기본 계좌 우선
+        user_account = get_default_account(request.user)
 
         if not user_account:
             messages.error(
@@ -253,57 +258,6 @@ class OrderExecutionView(LoginRequiredMixin, View):
             return redirect("cart_list")
 
 
-class OrderExecutionView(View):
-    def post(self, request):
-        user_account = get_object_or_404(Account, user=request.user)
-        cart_items = Cart.objects.filter(user=request.user)
-
-        if not cart_items.exists():
-            messages.error(request, "결제할 상품이 없습니다.")
-            return redirect("cart_list")
-
-        total_price = sum(item.total_price() for item in cart_items)
-
-        try:
-            with transaction.atomic():  # 🛡️ 안전장치 시작
-                if user_account.balance < total_price:
-                    raise Exception(
-                        f"잔액 부족 (잔액: {user_account.balance}원 / 필요: {total_price}원)"
-                    )
-
-                for item in cart_items:
-                    if item.product.stock < item.quantity:
-                        raise Exception(f"{item.product.name} 재고 부족")
-
-                    # 재고 차감
-                    item.product.stock -= item.quantity
-                    item.product.save()
-
-                    # 거래 내역 생성
-                    Transaction.objects.create(
-                        user=request.user,
-                        account=user_account,
-                        product=item.product,
-                        quantity=item.quantity,
-                        tx_type=Transaction.OUT,
-                        amount=item.total_price(),
-                        occurred_at=timezone.now(),
-                        memo=f"장바구니 구매: {item.product.name}",
-                    )
-
-                # 최종 잔액 차감 및 장바구니 비우기
-                user_account.balance -= total_price
-                user_account.save()
-                cart_items.delete()
-
-            messages.success(request, "결제가 성공적으로 완료되었습니다!")
-            return redirect("mypage")
-
-        except Exception as e:
-            messages.error(request, str(e))
-            return redirect("cart_list")
-
-
 class DirectPurchaseView(LoginRequiredMixin, View):
     """
     상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
@@ -312,15 +266,17 @@ class DirectPurchaseView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         # 1. 대상 상품 및 계좌 확인
         target_product = get_object_or_404(Product, id=product_id)
-        user_account = Account.objects.filter(user=request.user).first()
+
+        # ✅ 다계좌 대응: 기본 계좌 우선
+        user_account = get_default_account(request.user)
 
         # 수량 가져오기 (HTML의 <input name="quantity"> 값)
         buy_quantity = int(request.POST.get("quantity", 1))
         total_price = target_product.price * buy_quantity
 
-        address_id = request.POST.get('address_id')
-        delivery_memo = request.POST.get('memo', '메모 없음')
-        
+        address_id = request.POST.get("address_id")
+        delivery_memo = request.POST.get("memo", "메모 없음")
+
         if not user_account:
             messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
             return redirect("product_detail", pk=product_id)
@@ -356,8 +312,8 @@ class DirectPurchaseView(LoginRequiredMixin, View):
                     amount=total_price,
                     occurred_at=timezone.now(),
                     # memo=f"바로구매: {target_product.name}",
-                    memo=f"바로구매({address_id}): {delivery_memo}",                
-                    )
+                    memo=f"바로구매({address_id}): {delivery_memo}",
+                )
 
                 # (5) 잔액 차감
                 user_account.balance -= total_price
@@ -376,89 +332,94 @@ class DirectPurchaseView(LoginRequiredMixin, View):
 
 class TransactionHistoryView(LoginRequiredMixin, ListView):
     model = Transaction
-    template_name = 'shop/transaction_list.html' 
-    context_object_name = 'transactions'
+    template_name = "shop/transaction_list.html"
+    context_object_name = "transactions"
 
     def get_queryset(self):
         # 로그인한 사용자의 내역만 최신순으로 가져오기
         # 기본적으로 로그인한 사용자의 내역만 가져옴
-        queryset = Transaction.objects.filter(user=self.request.user).order_by('-occurred_at')
-        
+        queryset = Transaction.objects.filter(user=self.request.user).order_by("-occurred_at")
+
         # 날짜 필터링 (start_date, end_date)
-        start_date = self.request.GET.get('start_date')
-        end_date = self.request.GET.get('end_date')
-        
+        start_date = self.request.GET.get("start_date")
+        end_date = self.request.GET.get("end_date")
+
         if start_date and end_date:
             # 날짜 범위 필터링 (__date__range 사용)
             queryset = queryset.filter(occurred_at__date__range=[start_date, end_date])
 
         # 계좌 필터링
-        account_id = self.request.GET.get('account')
+        account_id = self.request.GET.get("account")
         if account_id:
             queryset = queryset.filter(account_id=account_id)
 
         # 카테고리 필터링
-        category_id = self.request.GET.get('category')
+        category_id = self.request.GET.get("category")
         if category_id:
             queryset = queryset.filter(category_id=category_id)
-            
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # 필터링에 필요한 목록 데이터
-        context['accounts'] = Account.objects.filter(user=self.request.user)    #계좌 선택을 하기 위해 자신의 가진 계좌 목록을 챙김
-        context['categories'] = Category.objects.all()
+        # ✅ 기본 계좌가 위로 보이도록 정렬 (UX 개선)
+        context["accounts"] = Account.objects.filter(user=self.request.user).order_by("-is_default", "-id")
+        context["categories"] = Category.objects.all()
 
         # 탭 상태 결정 (필터가 하나라도 걸려있으면 'out' 탭 유지)
-        filter_params = ['start_date', 'end_date', 'account', 'category']   #검색 조건들
-        if any(self.request.GET.get(param) for param in filter_params) or self.request.GET.get('tab') == 'out': # 위 검색들 중 하나라고 값이 들어왔을 떄
-            context['active_tab'] = 'out'   # out = 출금 : 단순히 출금 내역을 눌렀을 때
+        filter_params = ["start_date", "end_date", "account", "category"]  # 검색 조건들
+        if any(self.request.GET.get(param) for param in filter_params) or self.request.GET.get("tab") == "out":
+            context["active_tab"] = "out"  # out = 출금
         else:
-            context['active_tab'] = 'in'    # in = 입금 : 단순히 입금 내역을 눌렀을 떄
+            context["active_tab"] = "in"  # in = 입금
 
         # 사용자가 입력한 값들을 다시 템플릿으로 전달 (Input창에 값 유지용)
-        context['start_date'] = self.request.GET.get('start_date', '')
-        context['end_date'] = self.request.GET.get('end_date', '')
-        context['selected_account'] = self.request.GET.get('account', '')
-        context['selected_category'] = self.request.GET.get('category', '')
-        
+        context["start_date"] = self.request.GET.get("start_date", "")
+        context["end_date"] = self.request.GET.get("end_date", "")
+        context["selected_account"] = self.request.GET.get("account", "")
+        context["selected_category"] = self.request.GET.get("category", "")
+
         return context
+
 
 class CheckoutView(LoginRequiredMixin, View):
     """
     최종 결제 전, 배송지와 주문 내역을 확인하고 수량을 조절하는 페이지
     """
+
     def post(self, request):
         # 계좌 및 주소지 정보 가져오기
-        user_account = Account.objects.filter(user=request.user).first()
-        addresses = Address.objects.filter(user=request.user).order_by('-is_default', '-id')
+        # ✅ 다계좌 대응: 기본 계좌 우선
+        user_account = get_default_account(request.user)
+
+        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
 
         if not user_account:
             messages.error(request, "결제 계좌가 없습니다. 마이페이지에서 먼저 등록해 주세요.")
-            return redirect('mypage')
+            return redirect("mypage")
 
         # --- 수량 변경 로직 (주문서 페이지 내에서 +/- 조절 시) ---
-        update_item_id = request.POST.get('update_item_id')
-        action = request.POST.get('action')
-        
+        update_item_id = request.POST.get("update_item_id")
+        action = request.POST.get("action")
+
         if update_item_id and action:
             # 장바구니 모델명이 'Cart'인 것을 확인했습니다.
             item = get_object_or_404(Cart, id=update_item_id, user=request.user)
-            if action == 'increase' and item.quantity < item.product.stock:
+            if action == "increase" and item.quantity < item.product.stock:
                 item.quantity += 1
-            elif action == 'decrease' and item.quantity > 1:
+            elif action == "decrease" and item.quantity > 1:
                 item.quantity -= 1
             item.save()
 
         # --- 데이터 구성 (상세페이지 발 vs 장바구니 발) ---
-        product_id = request.POST.get('product_id')
-        
+        product_id = request.POST.get("product_id")
+
         if product_id:
             # 바로 구매 경로
             product = get_object_or_404(Product, id=product_id)
-            quantity = int(request.POST.get('quantity', 1))
+            quantity = int(request.POST.get("quantity", 1))
             total_amount = product.price * quantity
             cart_items = None
         else:
@@ -466,21 +427,22 @@ class CheckoutView(LoginRequiredMixin, View):
             cart_items = Cart.objects.filter(user=request.user)
             if not cart_items.exists():
                 messages.error(request, "결제할 상품이 없습니다.")
-                return redirect('cart_list')
+                return redirect("cart_list")
             total_amount = sum(item.total_price() for item in cart_items)
             product = None
             quantity = None
 
         context = {
-            'account': user_account,
-            'addresses': addresses,
-            'product': product,
-            'quantity': quantity,
-            'cart_items': cart_items,
-            'total_amount': total_amount,
+            # ✅ 템플릿 호환: checkout.html에서 'account'를 쓰는 경우가 많음
+            "account": user_account,
+            "addresses": addresses,
+            "product": product,
+            "quantity": quantity,
+            "cart_items": cart_items,
+            "total_amount": total_amount,
         }
-        return render(request, 'shop/checkout.html', context)
+        return render(request, "shop/checkout.html", context)
 
     # 단순 URL 접속 시 장바구니로 리다이렉트
     def get(self, request):
-        return redirect('cart_list')
+        return redirect("cart_list")
