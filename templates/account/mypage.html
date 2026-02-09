@@ -110,7 +110,7 @@
     color:#e44d26;
     font-weight:800;
     font-size:18px;
-    white-space:nowrap;     /* ✅ 숫자 줄바꿈 방지 */
+    white-space:nowrap;
   }
   .btnRecharge{
     display:inline-flex;
@@ -123,10 +123,29 @@
     border-radius:8px;
     font-size:13px;
     font-weight:600;
-    white-space:nowrap;     /* ✅ “충전” 줄바꿈 방지 */
-    min-width:56px;         /* ✅ 버튼이 세로로 찌그러지는 것 방지 */
-    height:32px;            /* ✅ 높이 고정으로 깔끔 */
+    white-space:nowrap;
+    min-width:56px;
+    height:32px;
     line-height:32px;
+  }
+
+  /* =========================
+     ✅ [추가] 영수증 삭제(숨김) 버튼 스타일
+     - 기존 버튼 톤과 충돌 없이 카드 내부에서만 쓰는 전용 클래스
+  ========================= */
+  .btnReceiptDanger{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 10px;
+    border-radius:10px;
+    font-weight:900;
+    font-size:13px;
+    cursor:pointer;
+    border:1px solid #ffa39e;
+    background:#fff1f0;
+    color:#cf1322;
+    white-space:nowrap;
   }
 </style>
 
@@ -291,7 +310,6 @@
                 <div class="label">계좌번호</div>
                 <div style="color:#333; font-weight:600;">{{ account.masked_account_number }}</div>
 
-                <!-- ✅ 정리 포인트: label/value 규칙 유지하면서 잔액+충전 버튼을 한 줄로 -->
                 <div class="label">잔액</div>
                 <div class="balanceRow">
                   <div class="balanceText">{{ default_account.balance|intcomma }}원</div>
@@ -316,7 +334,6 @@
             <div style="font-size:12px; color:#888;">전화번호 / 계좌 / 배송지</div>
           </div>
 
-          {# ✅ 폼 중첩 방지: mypage_update는 "빈 폼 + form 속성 연결"로 처리 #}
           <form id="mypageUpdateForm" method="post" action="{% url 'mypage_update' %}" autocomplete="off">
             {% csrf_token %}
           </form>
@@ -364,42 +381,62 @@
             </div>
 
             <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+
               <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏠 배송지 정보 수정</h3>
 
-              {% for addr in addresses %}
-                <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                   <input form="mypageUpdateForm" type="hidden" name="address_id[]" value="{{ addr.id }}">
-                   <div style="display:flex; flex-direction:column; gap:10px;">
-                    <div class="inputWrap">
-                      <input form="mypageUpdateForm" name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
-                      <div class="inputWrap">
-                        <input form="mypageUpdateForm" name="zip_code[]" value="{{ addr.zip_code }}">
-                      </div>
-                      <div class="inputWrap">
-                        <input form="mypageUpdateForm" name="address[]" value="{{ addr.address }}">
-                      </div>
-                    </div>
-                    <div class="inputWrap">
-                      <input form="mypageUpdateForm" name="detail_address[]" value="{{ addr.detail_address }}">
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-
-              <h3 style="margin: 10px 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가</h3>
-              <div style="display:flex; flex-direction:column; gap:10px; background: #f9f9f9; padding: 15px; border-radius: 12px;">
-                <div class="inputWrap"><input form="mypageUpdateForm" name="new_zip_code" placeholder="새 우편번호"></div>
-                <div class="inputWrap"><input form="mypageUpdateForm" name="new_address" placeholder="새 기본 주소"></div>
-                <div class="inputWrap"><input form="mypageUpdateForm" name="new_detail_address" placeholder="새 상세 주소"></div>
-              </div>
-
-              <div style="display:flex; gap:10px; margin-top: 16px;">
-                <button type="button" class="btnGhost" onclick="history.back()" style="flex:1;">취소</button>
-                <button type="submit" class="btnPrimary" form="mypageUpdateForm" style="flex:1;">저장</button>
-              </div>
+    {% for addr in edit_addresses %}
+    <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+        <input form="mypageUpdateForm" type="hidden" name="address_id[]" value="{{ addr.id }}">
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <div class="inputWrap">
+                <input form="mypageUpdateForm" name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭 (예: 집, 회사)">
             </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
+                <div class="inputWrap">
+                    <input form="mypageUpdateForm" name="zip_code[]" value="{{ addr.zip_code }}">
+
+                </div>
+                <div class="inputWrap">
+                    <input form="mypageUpdateForm" name="address[]" value="{{ addr.address }}">
+                </div>
+            </div>
+            <div class="inputWrap">
+                <input form="mypageUpdateForm" name="detail_address[]" value="{{ addr.detail_address }}">
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px; font-size: 13px;">
+        {% if edit_addresses.has_previous %}
+            <a href="?tab=edit&edit_addr_page={{ edit_addresses.previous_page_number }}" 
+               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">이전</a>
+        {% endif %}
+        
+        <span style="font-weight: 700; color: #666;">{{ edit_addresses.number }} / {{ edit_addresses.paginator.num_pages }}</span>
+        
+        {% if edit_addresses.has_next %}
+            <a href="?tab=edit&edit_addr_page={{ edit_addresses.next_page_number }}" 
+               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">다음</a>
+        {% endif %}
+    </div>
+
+              <div class="divider" style="margin: 20px 0;"></div>
+
+    <h3 style="margin: 10px 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가</h3>
+    <div style="display:flex; flex-direction:column; gap:10px; background: #f9f9f9; padding: 15px; border-radius: 12px;">
+        <div class="inputWrap">
+            <input form="mypageUpdateForm" name="new_alias" placeholder="배송지 이름 (예: 우리집, 사무실)">
+        </div>
+        <div class="inputWrap"><input form="mypageUpdateForm" name="new_zip_code" placeholder="새 우편번호"></div>
+        <div class="inputWrap"><input form="mypageUpdateForm" name="new_address" placeholder="새 기본 주소"></div>
+        <div class="inputWrap"><input form="mypageUpdateForm" name="new_detail_address" placeholder="새 상세 주소"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top: 16px;">
+        <button type="button" class="btnGhost" onclick="location.href='?tab=profile'" style="flex:1;">취소</button>
+        <button type="submit" class="btnPrimary" form="mypageUpdateForm" style="flex:1;">저장</button>
+    </div>
+</div>
 
             <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
               <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
@@ -486,6 +523,16 @@
                                 padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
                         다운로드
                       </a>
+
+                      {# ✅ [추가] 영수증 "삭제"(숨김) 버튼 - Transaction은 유지 #}
+                      <form method="post" action="{% url 'receipt_hide' tx.id %}" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="btnReceiptDanger"
+                                onclick="return confirm('이 영수증을 삭제할까요?\\n(거래 내역은 유지되며, 영수증 탭/PDF에서만 숨김 처리됩니다)');">
+                          영수증 삭제
+                        </button>
+                      </form>
                     </div>
 
                   </div>

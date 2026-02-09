@@ -16,7 +16,7 @@
                         <img src="{{ product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
                         <div style="flex: 1;">
                             <strong>{{ product.name }}</strong>
-                            <span style="color: #666;">{{ quantity }}개 / {{ product.price|intcomma }}원</span>
+                            <div style="color: #666;">{{ quantity }}개 / {{ product.price|intcomma }}원</div>
                         </div>
                     </div>
                 {% else %}
@@ -33,21 +33,21 @@
                 {% endif %}
             </div>
 
-            <form method="post" id="checkout-form">
-                {% csrf_token %}
-                
-                {% if product %}
-                    <input type="hidden" name="product_id" value="{{ product.id }}">
-                    <input type="hidden" name="quantity" value="{{ quantity }}">
-                {% endif %}
 
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">계좌 선택</h3>
-                    <div style="margin-bottom: 5px;">
+            <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">계좌 선택</h3>
+                <form method="get" action="{% url 'checkout' %}">
+                    {% if product %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="quantity" value="{{ quantity }}">
+                    {% endif %}
+                    
+                    <div>
                         <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">결제 계좌</label>
-                        <select name="selected_account_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
+                        <select name="selected_account_id" onchange="this.form.submit()" required 
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; cursor: pointer; background-color: #fff;">
                             {% for acc in accounts %}
-                                <option value="{{ acc.id }}" {% if acc == account %}selected{% endif %}>
+                                <option value="{{ acc.id }}" {% if acc.id == account.id %}selected{% endif %}>
                                     {{ acc.bank.name }} | {{ acc.masked_account_number }} ({{ acc.balance|intcomma }}원)
                                 </option>
                             {% empty %}
@@ -55,7 +55,16 @@
                             {% endfor %}
                         </select>
                     </div>
-                </div>
+                </form>
+            </div>
+
+            <form method="post" id="checkout-form">
+                {% csrf_token %}
+                <input type="hidden" name="selected_account_id" value="{{ account.id }}">
+                {% if product %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="quantity" value="{{ quantity }}">
+                {% endif %}
 
                 <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                     <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">배송지 정보</h3>
@@ -76,12 +85,14 @@
                     <span>{{ total_amount|intcomma }}원</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px;">
-                    <span style="color: #aaa;">현재 잔액</span>
+                    <span style="color: #aaa;">선택계좌 잔액</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-weight: bold; color: {% if account.balance < total_amount %}#ff6b6b{% else %}#ffcc00{% endif %};">
                             {{ account.balance|intcomma }}원
                         </span>
-                        <a href="#recharge-modal" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">충전</a>
+                        <a href="#recharge-modal" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">
+                            충전
+                        </a>
                     </div>
                 </div>
                 <hr style="border: 0; border-top: 1px solid #555; margin: 20px 0;">
@@ -102,8 +113,7 @@
                     </button>
                 {% endif %}
             </div>
-            </form>
-            <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">← 장바구니로 돌아가기</a>
+            </form> <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">← 장바구니로 돌아가기</a>
         </div>
     </div>
 </div>

@@ -6,12 +6,16 @@ from django.utils import timezone
 from django.views import View
 from django.urls import reverse
 from django.views.generic import *
-
+from datetime import date
 from .models import Cart, Category, Product, Transaction, Review
 from account.models import Account, Address
+from decimal import Decimal  # ✅ Decimal*float 에러 방지용
+
 
 # ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
 from account.utils.common import get_default_account
+from django.db.models import Sum, Case, When, Value, DecimalField
+from django.db.models.functions import TruncMonth
 
 
 # 상품 목록 페이지(사진,이름,가격 등의 리스트)
@@ -207,27 +211,34 @@ class RemoveFromCartView(View):
 class OrderExecutionView(LoginRequiredMixin, View):
     def post(self, request):
         # ✅ 다계좌 대응: 기본 계좌 우선
-        user_account = get_default_account(request.user)
-        # --- [추가] 배송지 정보 가져오기 ---
-        address_id = request.POST.get('default_addr_id') # HTML의 select name
+        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        selected_account_id = request.POST.get('selected_account_id')
+        
+        if selected_account_id:
+            user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
+        else:
+            user_account = get_default_account(request.user)
+
+        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
+        address_id = request.POST.get('address_id') # HTML select name 확인 필요 (아래 팁 참고)
+
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
         else:
             # 주소 ID가 안 넘어왔을 경우 기본 배송지를 자동으로 선택
             selected_address = Address.objects.filter(user=request.user, is_default=True).first()
+        cart_items = Cart.objects.filter(user=request.user)
+        
+        if not cart_items.exists():
+            messages.error(request, "결제할 상품이 없습니다.")
+            return redirect("cart_list")            
 
         if not selected_address:
             messages.error(request, "배송지 정보가 없습니다. 주소를 등록해주세요.")
             return redirect("cart_list")
-        # ----------------------------------
+        
         if not user_account:
             messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
-            return redirect("cart_list")
-
-        # 2. 장바구니 품목 가져오기
-        cart_items = Cart.objects.filter(user=request.user)
-        if not cart_items.exists():
-            messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")
 
         # 3. 총 결제 금액 계산
@@ -286,14 +297,19 @@ class DirectPurchaseView(LoginRequiredMixin, View):
     """
     상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
     """
-
     def post(self, request, product_id):
         # 1. 대상 상품 및 계좌 확인
         target_product = get_object_or_404(Product, id=product_id)
 
-        # ✅ 다계좌 대응: 기본 계좌 우선
-        user_account = get_default_account(request.user)
-        # --- [추가] 배송지 정보 가져오기 ---
+        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        selected_account_id = request.POST.get('selected_account_id')
+        
+        if selected_account_id:
+            user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
+        else:
+            user_account = get_default_account(request.user)
+
+        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
         address_id = request.POST.get('address_id')
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
@@ -359,24 +375,17 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
     context_object_name = "transactions"
 
     def get_queryset(self):
-        # 로그인한 사용자의 내역만 최신순으로 가져오기
-        # 기본적으로 로그인한 사용자의 내역만 가져옴
         queryset = Transaction.objects.filter(user=self.request.user).order_by("-occurred_at")
 
-        # 날짜 필터링 (start_date, end_date)
         start_date = self.request.GET.get("start_date")
         end_date = self.request.GET.get("end_date")
-
         if start_date and end_date:
-            # 날짜 범위 필터링 (__date__range 사용)
             queryset = queryset.filter(occurred_at__date__range=[start_date, end_date])
 
-        # 계좌 필터링
         account_id = self.request.GET.get("account")
         if account_id:
             queryset = queryset.filter(account_id=account_id)
 
-        # 카테고리 필터링
         category_id = self.request.GET.get("category")
         if category_id:
             queryset = queryset.filter(category_id=category_id)
@@ -386,27 +395,125 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # 필터링에 필요한 목록 데이터
-        # ✅ 기본 계좌가 위로 보이도록 정렬 (UX 개선)
         context["accounts"] = Account.objects.filter(user=self.request.user).order_by("-is_default", "-id")
         context["categories"] = Category.objects.all()
 
-        # 탭 상태 결정 (필터가 하나라도 걸려있으면 'out' 탭 유지)
-        filter_params = ["start_date", "end_date", "account", "category"]  # 검색 조건들
-        if any(self.request.GET.get(param) for param in filter_params) or self.request.GET.get("tab") == "out":
-            context["active_tab"] = "out"  # out = 출금
-        else:
-            context["active_tab"] = "in"  # in = 입금
+        # ✅ 탭 상태
+        tab = (self.request.GET.get("tab") or "in").strip().lower()
+        filter_params = ["start_date", "end_date", "account", "category"]
 
-        # 사용자가 입력한 값들을 다시 템플릿으로 전달 (Input창에 값 유지용)
+        if tab in ("in", "out", "summary"):
+            context["active_tab"] = tab
+        elif any(self.request.GET.get(param) for param in filter_params):
+            context["active_tab"] = "out"
+        else:
+            context["active_tab"] = "in"
+
+        qs = context["transactions"]  # 기본 필터(기간/계좌/카테고리)가 이미 적용된 결과
+        context["tx_in"] = qs.filter(tx_type=Transaction.IN)
+        context["tx_out"] = qs.filter(tx_type=Transaction.OUT)
+        context["tx_all"] = qs
+
+        # ✅ totals (현재 qs 기준: 기본 필터까지 포함)
+        total_in = context["tx_in"].aggregate(s=Sum("amount"))["s"] or 0
+        total_out = context["tx_out"].aggregate(s=Sum("amount"))["s"] or 0
+        context["total_in"] = total_in
+        context["total_out"] = total_out
+        context["net_total"] = total_in - total_out
+
+        # ==============================
+        # ✅ [요약/통계 전용 필터] 월 범위 + 지출 카테고리
+        # ==============================
+        sum_start = (self.request.GET.get("sum_start") or "").strip()   # YYYY-MM
+        sum_end = (self.request.GET.get("sum_end") or "").strip()       # YYYY-MM
+        sum_category = (self.request.GET.get("sum_category") or "").strip()  # category id or ""
+
+        context["sum_start"] = sum_start
+        context["sum_end"] = sum_end
+        context["sum_category"] = sum_category
+
+        summary_qs = qs  # 기본필터 + summary필터를 반영할 queryset
+
+        # ✅ 월 범위 필터 (occurred_at 기준)
+        # - YYYY-MM -> 해당 월 1일~말일 범위로 변환해서 적용
+        def _parse_ym(s):
+            # "2026-02" -> (2026, 2)
+            y, m = s.split("-")
+            return int(y), int(m)
+
+        if sum_start:
+            y, m = _parse_ym(sum_start)
+            summary_qs = summary_qs.filter(occurred_at__date__gte=date(y, m, 1))
+
+        if sum_end:
+            y, m = _parse_ym(sum_end)
+            # 다음달 1일을 구해서 lt로 제한
+            if m == 12:
+                ny, nm = y + 1, 1
+            else:
+                ny, nm = y, m + 1
+            summary_qs = summary_qs.filter(occurred_at__date__lt=date(ny, nm, 1))
+
+        # ✅ 월별 수익/지출 (summary_qs 기준)
+        monthly = (
+            summary_qs.annotate(m=TruncMonth("occurred_at"))
+            .values("m")
+            .annotate(
+                in_sum=Sum(Case(
+                    When(tx_type=Transaction.IN, then="amount"),
+                    default=Value(0),
+                    output_field=DecimalField(max_digits=14, decimal_places=0),
+                )),
+                out_sum=Sum(Case(
+                    When(tx_type=Transaction.OUT, then="amount"),
+                    default=Value(0),
+                    output_field=DecimalField(max_digits=14, decimal_places=0),
+                )),
+            )
+            .order_by("m")
+        )
+
+        labels, in_values, out_values = [], [], []
+        for row in monthly:
+            if not row.get("m"):
+                continue
+            labels.append(row["m"].strftime("%Y-%m"))
+            in_values.append(int(row.get("in_sum") or 0))
+            out_values.append(int(row.get("out_sum") or 0))
+
+        context["chart_labels"] = "|".join(labels)
+        context["chart_in"] = "|".join(map(str, in_values))
+        context["chart_out"] = "|".join(map(str, out_values))
+
+        # ✅ 카테고리별 지출(OUT) - summary_qs 기준
+        out_qs = summary_qs.filter(tx_type=Transaction.OUT)
+
+        # sum_category가 있으면 해당 카테고리만 (원하면 “전체에서 선택한 카테고리 강조”로 바꿀 수도 있음)
+        if sum_category:
+            out_qs = out_qs.filter(category_id=sum_category)
+
+        by_cat = (
+            out_qs.values("category__name")
+            .annotate(total=Sum("amount"))
+            .order_by("-total")
+        )
+
+        cat_labels = []
+        cat_values = []
+        for row in by_cat:
+            cat_labels.append(row["category__name"] or "미분류")
+            cat_values.append(int(row["total"] or 0))
+
+        context["cat_chart_labels"] = "|".join(cat_labels)
+        context["cat_chart_values"] = "|".join(map(str, cat_values))
+
+        # 기본 필터 유지용
         context["start_date"] = self.request.GET.get("start_date", "")
         context["end_date"] = self.request.GET.get("end_date", "")
         context["selected_account"] = self.request.GET.get("account", "")
         context["selected_category"] = self.request.GET.get("category", "")
 
         return context
-
-
 class CheckoutView(LoginRequiredMixin, View):
     """
     최종 결제 전, 배송지와 주문 내역을 확인하고 수량을 조절하는 페이지
@@ -416,8 +523,13 @@ class CheckoutView(LoginRequiredMixin, View):
     # 1. 여기서 변수를 먼저 정의해야 합니다!
         all_accounts = Account.objects.filter(user=request.user, is_active=True).select_related('bank')
         
-        # 2. 기본 계좌 설정 (is_default가 True인 것 우선, 없으면 첫 번째 계좌)
-        user_account = all_accounts.filter(is_default=True).first() or all_accounts.first()
+        # ✅ 사용자가 selectbox에서 선택한 계좌 ID 확인
+        selected_account_id = request.GET.get('selected_account_id') or request.POST.get('selected_account_id')
+        
+        if selected_account_id:
+            user_account = all_accounts.filter(id=selected_account_id).first()
+        else:
+            user_account = all_accounts.filter(is_default=True).first() or all_accounts.first()
 
         addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
 
@@ -444,10 +556,14 @@ class CheckoutView(LoginRequiredMixin, View):
         }
     
     def get(self, request):
-        # ✅ 이제 GET 요청(충전 후 복귀 등) 시에도 쫓아내지 않고 페이지를 보여줍니다!
-        context = self._get_checkout_context(request)
+        # 🌟 [수정 포인트] GET 파라미터에서 정보를 가져와서 context 함수에 넣어줘야 합니다!
+        product_id = request.GET.get("product_id")
+        quantity = request.GET.get("quantity", 1)
         
-        # 장바구니가 진짜 비어있을 때만 보냅니다.
+        # 이제 단품 구매 정보(ID, 수량)를 포함해서 컨텍스트를 생성합니다.
+        context = self._get_checkout_context(request, product_id, quantity)
+        
+        # 장바구니도 비어있고, 단품 상품 정보도 없을 때만 장바구니로 보냅니다.
         if not context["cart_items"] and not context["product"]:
             messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")
@@ -558,4 +674,111 @@ class ReviewUpdateView(LoginRequiredMixin, View):
             messages.error(request, "내용과 평점을 모두 입력해주세요.")
 
         # 4. 상세 페이지의 리뷰 섹션으로 다시 리다이렉트
-        return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')   
+        return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')
+class ConsultingProductListView(LoginRequiredMixin, ListView):
+    model = Product
+    template_name = "shop/product_consulting_list.html"
+    context_object_name = "products"
+    paginate_by = 8
+
+    def _month_range(self):
+        today = timezone.localdate()
+        start = today.replace(day=1)
+        return start, today
+
+    def _calc_month_net(self):
+        start, end = self._month_range()
+
+        qs = Transaction.objects.filter(
+            user=self.request.user,
+            occurred_at__date__gte=start,
+            occurred_at__date__lte=end,
+        )
+
+        # ✅ Decimal 연산 안정성: 기본값도 Decimal("0")
+        total_in = qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or Decimal("0")
+        total_out = qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or Decimal("0")
+        return total_in, total_out, (total_in - total_out)
+
+    def _recommend_budget(self, balance, month_net):
+        """
+        ✅ 여기서 발생한 에러(Decimal * float) 근본 원인 제거:
+        - float 상수(0.30 등)를 전부 Decimal("0.30")로 변경
+        - balance/month_net이 int/None일 수 있는 경우도 방어
+        """
+        if balance is None:
+            balance = Decimal("0")
+        if month_net is None:
+            month_net = Decimal("0")
+
+        if not isinstance(balance, Decimal):
+            balance = Decimal(str(balance))
+        if not isinstance(month_net, Decimal):
+            month_net = Decimal(str(month_net))
+
+        if month_net > 0:
+            budget = (balance * Decimal("0.30")) + (month_net * Decimal("0.20"))
+        else:
+            budget = balance * Decimal("0.15")
+
+        budget = min(budget, balance)
+
+        # ✅ 원 단위로 정리 (템플릿 intcomma 출력과도 잘 맞음)
+        return budget.quantize(Decimal("1"))
+
+    def get_queryset(self):
+        qs = Product.objects.all()
+
+        q = (self.request.GET.get("search") or "").strip()
+        category_id = self.request.GET.get("category")
+        sort_option = self.request.GET.get("sort", "newest")
+
+        if q:
+            qs = qs.filter(name__icontains=q)
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+
+        # ✅ 기본 계좌 기준 자산/예산 산정
+        default_account = get_default_account(self.request.user)
+        balance = default_account.balance if default_account else Decimal("0")
+
+        _, _, month_net = self._calc_month_net()
+        budget = self._recommend_budget(balance, month_net)
+
+        # ✅ 예산 이하 상품만 노출
+        qs = qs.filter(price__lte=budget)
+
+        # ✅ 정렬 옵션은 product_list와 동일하게 유지(구조/사용감 일치)
+        if sort_option == "price_low":
+            qs = qs.order_by("price")
+        elif sort_option == "price_high":
+            qs = qs.order_by("-price")
+        else:
+            qs = qs.order_by("-id")
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.all()
+
+        default_account = get_default_account(self.request.user)
+        balance = default_account.balance if default_account else Decimal("0")
+
+        total_in, total_out, month_net = self._calc_month_net()
+        budget = self._recommend_budget(balance, month_net)
+
+        context["default_account"] = default_account
+        context["balance"] = balance
+        context["month_total_in"] = total_in
+        context["month_total_out"] = total_out
+        context["month_net"] = month_net
+        context["recommended_budget"] = budget
+
+        # ✅ 컨설팅 멘트(컨셉용)
+        if month_net > 0:
+            context["consult_msg"] = "이번 달은 흑자 흐름이에요. 추천 예산 안에서 부담 없는 소비를 제안할게요."
+        else:
+            context["consult_msg"] = "이번 달은 지출이 많은 편이에요. 당분간은 가성비/필수 위주로 추천할게요."
+
+        return context

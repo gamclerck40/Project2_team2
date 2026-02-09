@@ -44,6 +44,9 @@ urlpatterns = [
     # 거래 내역 영수증 PDF 보기/다운로드
     path("receipts/<int:tx_id>.pdf", ReceiptPDFView.as_view(), name="receipt_pdf"),
 
+    # ✅ 영수증 "삭제"(숨김) - Transaction은 유지
+    path("receipts/<int:tx_id>/hide/", ReceiptHideView.as_view(), name="receipt_hide"),
+
     # 계좌 추가 (다계좌 구조)
     path("accounts/add/", AccountAddView.as_view(), name="account_add"),
 

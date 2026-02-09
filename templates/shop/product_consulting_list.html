@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}자산 컨설팅{% endblock %}
+{% load humanize %}
+
+{% block content %}
+
+<!-- ✅ 컨설팅 요약(기존 product_list 톤과 동일: shadow + radius + 인라인 스타일) -->
+<div style="max-width: 1000px; margin: 10px auto 0 auto; padding: 0 10px;">
+    <div style="padding: 18px 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background: white; margin: 10px 0 25px 0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+                <div style="font-size: 18px; font-weight: 800; color:#333;">💬 자산 컨설팅</div>
+                <div style="margin-top: 6px; color: #555; font-size: 14px;">{{ consult_msg }}</div>
+            </div>
+            <a href="{% url 'product_list' %}"
+               style="padding: 10px 14px; background: #f4f4f4; color: #666; text-decoration: none; border-radius: 10px; font-size: 13px; font-weight: 600; white-space:nowrap;">
+                전체 상품 보기
+            </a>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px;">
+            <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
+                <div style="font-size: 12px; color:#777;">현재 잔액</div>
+                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">{{ balance|intcomma }}원</div>
+            </div>
+
+            <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
+                <div style="font-size: 12px; color:#777;">이번 달 순수익</div>
+                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">{{ month_net|intcomma }}원</div>
+                <div style="margin-top: 4px; font-size: 12px; color:#888;">
+                    입금 {{ month_total_in|intcomma }} / 출금 {{ month_total_out|intcomma }}
+                </div>
+            </div>
+
+            <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
+                <div style="font-size: 12px; color:#777;">추천 구매 상한</div>
+                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#e44d26;">{{ recommended_budget|intcomma }}원</div>
+                <div style="margin-top: 4px; font-size: 12px; color:#888;">
+                    이 금액 이하 상품만 보여줘요
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" action="." id="filter-form">
+    <!-- ✅ product_list.html과 동일한 검색바 구조/스타일 -->
+    <div style="display: flex; justify-content: center; margin: 30px 0 50px 0;">
+        <div style="display: flex; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden;">
+            <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="추천 예산 안에서 찾아볼까요?"
+                   style="flex: 1; padding: 15px 25px; border: none; outline: none; font-size: 16px;">
+            <button type="submit" style="padding: 0 30px; background: #333; color: white; border: none; cursor: pointer; font-weight: bold;">
+                검색
+            </button>
+        </div>
+    </div>
+
+    <!-- ✅ product_list.html과 동일한 필터/정렬 UI -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <select name="category" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
+                <option value="">전체 카테고리</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
+            <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>최신순</option>
+            <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>가격 낮은 순</option>
+            <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>가격 높은 순</option>
+        </select>
+    </div>
+</form>
+
+<h2>🧾 추천 가능한 상품들</h2>
+<hr>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px;">
+    {% for product in products %}
+        <div style="border: 1px solid #eee; padding: 15px; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; background: white; display: flex; flex-direction: column;">
+
+            <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px;">
+                {% if product.image1 %}
+                    <img src="{{ product.image1.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% else %}
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc; font-size: 14px;">No Image</div>
+                {% endif %}
+            </div>
+
+            <div style="flex-grow: 1;">
+                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333; font-weight: 600;">{{ product.name }}</h3>
+                <p style="margin: 0; color: #e44d26; font-weight: bold; font-size: 18px;">{{ product.price|intcomma }}원</p>
+            </div>
+
+            <a href="{% url 'product_detail' product.pk %}" style="display: block; margin-top: 15px; padding: 8px 0; background: #f4f4f4; color: #666; text-decoration: none; text-align: center; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                상세보기
+            </a>
+        </div>
+    {% empty %}
+        <div style="grid-column: span 4; text-align: center; padding: 50px 0; color: #999;">
+            추천 예산({{ recommended_budget|intcomma }}원) 안에 들어오는 상품이 없습니다.
+        </div>
+    {% endfor %}
+</div>
+
+<div style="display: flex; justify-content: center; margin: 40px 0; gap: 8px;">
+    {% if is_paginated %}
+        {% if page_obj.has_previous %}
+            <a href="?page=1&search={{ request.GET.search }}&category={{ request.GET.category }}&sort={{ request.GET.sort }}" style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px;">처음</a>
+        {% endif %}
+
+        <span style="padding: 10px 20px; background: #333; color: white; border-radius: 6px; font-weight: bold; font-size: 14px;">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ request.GET.search }}&category={{ request.GET.category }}&sort={{ request.GET.sort }}" style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px;">다음</a>
+        {% endif %}
+    {% endif %}
+</div>
+
+{% endblock %}

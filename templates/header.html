@@ -26,6 +26,40 @@
       <a href="{% url 'cart_list' %}" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
         🛒 장바구니
       </a>
+
+      <!-- ✅ [추가] 페이지 뷰 토글(일반/컨설팅) -->
+      <div style="
+        display:flex; align-items:center; gap:10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.25);
+        background: rgba(255,255,255,.06);
+      ">
+        <span style="font-size:12px; font-weight:800; color:#ddd; white-space:nowrap;">일반</span>
+
+        <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
+          <input id="shop-view-toggle" type="checkbox"
+            {% if '/shop/consulting' in request.path %}checked{% endif %}
+            style="opacity:0; width:0; height:0;">
+          <span style="
+            position:absolute; inset:0;
+            background: rgba(255,255,255,.18);
+            border-radius: 999px;
+            transition: .2s;
+          "></span>
+          <span id="shop-view-knob" style="
+            position:absolute; left:3px; top:3px;
+            width:18px; height:18px;
+            background: #fff;
+            border-radius: 999px;
+            transition: .2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,.35);
+          "></span>
+        </label>
+
+        <span style="font-size:12px; font-weight:900; color:#fff; white-space:nowrap;">컨설팅</span>
+      </div>
+      <!-- ✅ [추가 끝] -->
     {% endif %}
 
     <!-- 구분선 -->
@@ -108,4 +142,33 @@
     {% endif %}
 
   </nav>
+
+  <!-- ✅ 토글 동작용 스크립트(헤더 톤 유지, 기능만 추가) -->
+<script>
+  (function () {
+    const toggle = document.getElementById("shop-view-toggle");
+    const knob = document.getElementById("shop-view-knob");
+    if (!toggle || !knob) return;
+
+    function syncKnob() {
+      knob.style.transform = toggle.checked ? "translateX(20px)" : "translateX(0)";
+    }
+    syncKnob();
+
+    toggle.addEventListener("change", function () {
+      const normalUrl = "{% url 'product_list' %}";
+      const consultingUrl = "{% url 'product_consulting_list' %}";
+      const targetUrl = toggle.checked ? consultingUrl : normalUrl;
+
+      // ✅ 이동 전에 현재 페이지에서 "부드럽게" 테마 전환 느낌 보여주기
+      document.body.classList.toggle("consulting-mode", toggle.checked);
+
+      // 살짝 딜레이 후 이동 (전환 느낌)
+      setTimeout(function () {
+        window.location.href = targetUrl;
+      }, 220);
+    });
+  })();
+</script>
+
 </header>

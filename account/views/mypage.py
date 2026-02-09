@@ -61,10 +61,14 @@ class MypageView(LoginRequiredMixin, View):
 
         accounts = Account.objects.filter(user=request.user).order_by("-is_default", "-id")
         address_list = Address.objects.filter(user=request.user).order_by("-is_default", "id")
-    
+        active_tab = request.GET.get("tab") or "profile"
         addr_page_num = request.GET.get("addr_page") or "1" # 주소 전용 페이지 파라미터
-        addr_paginator = Paginator(address_list, 5)        # 5개씩 제한
+        addr_paginator = Paginator(address_list, 3)        # 3개씩 제한
         addresses_page = addr_paginator.get_page(addr_page_num)
+        edit_addr_page_num = request.GET.get("edit_addr_page") or "1"
+        edit_addr_paginator = Paginator(address_list, 3) # 3개씩 제한
+        edit_addresses_page = edit_addr_paginator.get_page(edit_addr_page_num) 
+
         # ✅ “현재 선택 계좌(=기본계좌)”를 프로젝트 전체 정책과 동일하게 통일
         account = get_default_account(request.user)
         default_account = account
@@ -80,7 +84,12 @@ class MypageView(LoginRequiredMixin, View):
         rc_sort = (request.GET.get("rc_sort") or "newest").strip()    # newest | price_high | price_low
         rc_page = request.GET.get("rc_page") or "1"
 
-        receipts_qs = Transaction.objects.filter(user=request.user, tx_type=Transaction.OUT)
+        # ✅ 영수증 "삭제"는 Transaction을 지우지 않고 receipt_hidden=True로 숨김 처리
+        receipts_qs = Transaction.objects.filter(
+            user=request.user,
+            tx_type=Transaction.OUT,
+            receipt_hidden=False,
+        )
 
         # 카테고리 필터
         if rc_category.isdigit():
@@ -132,8 +141,7 @@ class MypageView(LoginRequiredMixin, View):
                 "accounts": accounts,
                 "default_account": default_account,
                 "account_add_form": account_add_form,
-
-                "addresses": addresses_page,
+                "addresses": addresses_page,                
                 "formatted_phone": formatted_phone,
 
                 # ✅ 영수증 탭
@@ -149,6 +157,9 @@ class MypageView(LoginRequiredMixin, View):
 
                 "pw_verified": pw_verified,
                 "banks": Bank.objects.all().order_by("name"),
+                "addresses": addresses_page,           # 프로필 탭에서 사용
+                "edit_addresses": edit_addresses_page, # 수정 탭에서 사용
+                "active_tab": active_tab,              # 현재 활성화된 탭 정보
             },
         )
 
@@ -181,6 +192,7 @@ class MypageUpdateView(LoginRequiredMixin, View):
         bank = form.cleaned_data["bank"]
         account_number = form.cleaned_data["account_number"]
 
+        new_alias = request.POST.get("new_alias")
         new_zip = request.POST.get("new_zip_code")
         new_addr = request.POST.get("new_address")
         new_detail = request.POST.get("new_detail_address")
@@ -209,21 +221,21 @@ class MypageUpdateView(LoginRequiredMixin, View):
                 if new_zip and new_addr:
                     Address.objects.create(
                         user=request.user,
+                        alias=new_alias or "새 배송지", # 별칭 저장 (없으면 기본값)                        
                         zip_code=new_zip,
                         address=new_addr,
                         detail_address=new_detail,
                         is_default=False,
                     )
                     messages.success(request, "새 배송지가 추가되었습니다.")
-
         except IntegrityError:
             messages.warning(request, "이미 사용 중인 계좌번호이거나 저장할 수 없는 값입니다.")
             return redirect("/accounts/mypage/?tab=edit")
         except Exception as e:
             messages.error(request, f"오류가 발생했습니다: {str(e)}")
             return redirect("/accounts/mypage/?tab=edit")
-
-        messages.success(request, "내 정보와 주소가 성공적으로 수정되었습니다.")
+        # ✅ ✅ ✅ [핵심] 성공 시에도 반드시 HttpResponse 반환해야 함
+        messages.success(request, "내 정보가 수정되었습니다.")
         return redirect("/accounts/mypage/?tab=profile")
 
 

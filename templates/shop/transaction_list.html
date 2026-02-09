@@ -10,7 +10,7 @@
     margin: 30px auto 60px auto;
     padding: 0 12px;
   }
-
+  .divider{ height:1px; background:#eee; }
   .txTitleRow{
     display:flex;
     align-items:flex-end;
@@ -135,7 +135,66 @@
     border-radius:12px !important;
     padding:10px 12px !important;
     font-weight:900 !important;
-    font-size:13px !important;
+    font-size:15px !important;
+  }
+
+  /* ✅ [정리] 요약/통계 필터 전용: “입력+버튼”을 한 그룹처럼 보이게 */
+  .txSummaryForm{
+    row-gap: 12px;
+  }
+  .txSummaryForm .input-group{
+    flex-wrap: nowrap; /* PC에서 월~월 줄바꿈 방지 */
+  }
+
+  /* 카테고리 + 버튼을 한 라인에서 붙여 보이게 */
+  .txSummaryRight{
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+  }
+  .txSummaryRight .txSummarySelect{
+    flex: 1;
+    min-width: 220px;
+  }
+  .txSummaryActions{
+    display:flex;
+    gap:10px;
+    align-items:stretch;
+    flex-shrink:0;
+  }
+  /* 요약 필터에서만 버튼을 “적당한 크기”로 */
+  .txSummaryActions .txBtn{
+    width:auto;
+    min-width: 104px;
+    padding-left:16px !important;
+    padding-right:16px !important;
+    white-space:nowrap;
+  }
+  .txBtnSecondary{
+    background:#666 !important;
+  }
+
+  /* ✅ [추가] 요약 그래프 서브탭: 아래 여백만 살짝 */
+  .txChartTabbar{
+    margin: 0 0 12px 0;
+  }
+
+  /* 모바일: 입력은 세로, 버튼은 2개가 같은 줄 2열 */
+  @media (max-width: 576px){
+    .txSummaryForm .input-group{
+      flex-wrap: wrap;
+    }
+    .txSummaryRight{
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .txSummaryRight .txSummarySelect{
+      min-width: 0;
+    }
+    .txSummaryActions .txBtn{
+      flex:1;
+      min-width: 0;
+    }
   }
 
   /* 테이블 */
@@ -212,11 +271,23 @@
     white-space:nowrap;
   }
 
+  /* ✅ 차트 wrapper: canvas에 높이를 주지 않고 wrapper에만 높이를 고정 */
+  .txChartWrap{
+    height: 280px;
+    width: 100%;
+  }
+  .txChartWrap canvas{
+    width: 100% !important;
+    height: 100% !important;
+    display:block;
+  }
+
   /* 반응형: 좁으면 패딩만 줄이고 표는 스크롤 유지 */
   @media (max-width: 576px){
     .txSection{ padding: 16px; }
     .txFilterBox{ padding: 14px; }
     .txTitle{ font-size: 20px; }
+    .txChartWrap{ height: 240px; }
   }
 </style>
 
@@ -226,13 +297,23 @@
   </div>
 
   <div class="txTabbar" role="tablist" aria-label="거래내역 탭">
-    {% if active_tab == 'in' %}
-      <a href="?tab=in" class="txTabbtn" aria-current="page">💰 입금 내역</a>
-      <a href="?tab=out" class="txTabbtn" aria-current="false">🛍️ 출금/구매 내역</a>
-    {% else %}
-      <a href="?tab=in" class="txTabbtn" aria-current="false">💰 입금 내역</a>
-      <a href="?tab=out" class="txTabbtn" aria-current="page">🛍️ 출금/구매 내역</a>
-    {% endif %}
+    <a href="?tab=in"
+       class="txTabbtn"
+       aria-current="{% if active_tab == 'in' %}page{% else %}false{% endif %}">
+      💰 입금 내역
+    </a>
+
+    <a href="?tab=out"
+       class="txTabbtn"
+       aria-current="{% if active_tab == 'out' %}page{% else %}false{% endif %}">
+      🛍️ 출금/구매 내역
+    </a>
+
+    <a href="?tab=summary"
+       class="txTabbtn"
+       aria-current="{% if active_tab == 'summary' %}page{% else %}false{% endif %}">
+      📊 요약/통계
+    </a>
   </div>
 
   <div class="txCard">
@@ -332,14 +413,237 @@
           </table>
         </div>
 
+      {% elif active_tab == 'summary' %}
+        <div class="txHead">
+          <h3 class="txH3">요약/통계</h3>
+          <div class="txSub">내 계정의 전체 수익/지출을 요약합니다.</div>
+        </div>
+
+        <div class="txFilterBox">
+          <!-- ✅ 버튼이 멀리 떨어지지 않게 “카테고리+버튼”을 한 그룹으로 -->
+          <form method="GET" class="txSummaryForm row g-3">
+            <input type="hidden" name="tab" value="summary">
+
+            {% if start_date %}<input type="hidden" name="start_date" value="{{ start_date }}">{% endif %}
+            {% if end_date %}<input type="hidden" name="end_date" value="{{ end_date }}">{% endif %}
+            {% if selected_account %}<input type="hidden" name="account" value="{{ selected_account }}">{% endif %}
+            {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+
+            {# ✅ 차트 서브탭 유지용 파라미터 #}
+            <input type="hidden" name="chart_tab" value="{{ request.GET.chart_tab|default:'monthly' }}">
+
+            <div class="col-lg-6 col-md-12">
+              <label class="form-label">월 범위(월별 수익/지출)</label>
+              <div class="input-group input-group-sm">
+                <input type="month" name="sum_start" class="form-control" value="{{ sum_start }}">
+                <span class="input-group-text bg-white">~</span>
+                <input type="month" name="sum_end" class="form-control" value="{{ sum_end }}">
+              </div>
+            </div>
+
+            <div class="col-lg-6 col-md-12">
+              <div class="txSummaryRight">
+                <div class="txSummarySelect">
+                  <label class="form-label">지출 카테고리(카테고리별 지출)</label>
+                  <select name="sum_category" class="form-select form-select-sm">
+                    <option value="">전체 카테고리</option>
+                    {% for cat in categories %}
+                      <option value="{{ cat.id }}" {% if sum_category == cat.id|stringformat:"i" %}selected{% endif %}>
+                        {{ cat.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="txSummaryActions">
+                  <button type="submit" class="btn btn-sm txBtn">적용</button>
+                  <a href="?tab=summary" class="btn btn-sm txBtn txBtnSecondary">초기화</a>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="row g-3" style="margin-bottom: 18px;">
+          <div class="col-md-4">
+            <div class="txFilterBox" style="margin-bottom:0;">
+              <div class="txMuted" style="font-weight:900;">총 수익(입금)</div>
+              <div class="txAmountIn" style="font-size:20px;">+{{ total_in|intcomma }}원</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="txFilterBox" style="margin-bottom:0;">
+              <div class="txMuted" style="font-weight:900;">총 지출(출금)</div>
+              <div class="txAmountOut" style="font-size:20px;">-{{ total_out|intcomma }}원</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="txFilterBox" style="margin-bottom:0;">
+              <div class="txMuted" style="font-weight:900;">순이익</div>
+              <div style="font-weight:900; font-size:20px; color:#333;">{{ net_total|intcomma }}원</div>
+            </div>
+          </div>
+        </div>
+
+        {% with chart_tab=request.GET.chart_tab|default:"monthly" %}
+        <div class="divider" style="margin:18px 0;"></div>
+        <div class="txHead">
+          <h3 class="txH3">요약/통계(Graph)</h3>
+        <div class="txSub">요약 정보의 그래프입니다.</div>
+        </div>
+          <div class="txTabbar txChartTabbar" role="tablist" aria-label="요약 차트 탭">
+            <a href="?tab=summary&chart_tab=monthly{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}"
+               class="txTabbtn"
+               aria-current="{% if chart_tab == 'monthly' %}page{% else %}false{% endif %}">
+              📈 수익/지출 통계
+            </a>
+
+            <a href="?tab=summary&chart_tab=category{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}"
+               class="txTabbtn"
+               aria-current="{% if chart_tab == 'category' %}page{% else %}false{% endif %}">
+              🧾 카테고리별 지출 통계
+            </a>
+          </div>
+
+          {% if chart_tab == 'monthly' %}
+            <div class="txFilterBox">
+              <div class="txMuted" style="font-weight:900; margin-bottom: 8px;">수익/지출 통계</div>
+              <div class="txChartWrap">
+                <canvas id="txMonthlyChart"
+                        data-labels="{{ chart_labels|escape }}"
+                        data-in="{{ chart_in|escape }}"
+                        data-out="{{ chart_out|escape }}"></canvas>
+              </div>
+            </div>
+          {% else %}
+            <div class="txFilterBox">
+              <div class="txMuted" style="font-weight:900; margin-bottom: 8px;">카테고리별 통계</div>
+              <div class="txChartWrap">
+                <canvas id="txCategoryChart"
+                        data-labels="{{ cat_chart_labels|escape }}"
+                        data-values="{{ cat_chart_values|escape }}"></canvas>
+              </div>
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {# ✅ Chart.js: 현재 표시되는 canvas만 렌더 #}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+          (function(){
+            const mCanvas = document.getElementById('txMonthlyChart');
+            const cCanvas = document.getElementById('txCategoryChart');
+
+            // 이전 인스턴스 정리(뒤로가기/캐시 대비)
+            if (window.__txMonthlyChart) {
+              try { window.__txMonthlyChart.destroy(); } catch(e) {}
+              window.__txMonthlyChart = null;
+            }
+            if (window.__txCategoryChart) {
+              try { window.__txCategoryChart.destroy(); } catch(e) {}
+              window.__txCategoryChart = null;
+            }
+
+            // ===== 월별 수익/지출 =====
+            if (mCanvas) {
+              const labels = (mCanvas.dataset.labels || '').split('|').filter(Boolean).map(s => s.trim());
+              const inVals  = (mCanvas.dataset.in  || '').split('|').filter(Boolean).map(Number);
+              const outVals = (mCanvas.dataset.out || '').split('|').filter(Boolean).map(Number);
+
+              if (labels.length) {
+                window.__txMonthlyChart = new Chart(mCanvas, {
+                  type: 'bar',
+                  data: {
+                    labels: labels,
+                    datasets: [
+                      { label: '수익(입금)', data: inVals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 },
+                      { label: '지출(출금)', data: outVals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 },
+                    ]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { beginAtZero: true } }
+                  }
+                });
+              }
+            }
+
+            // ===== 카테고리별 지출 =====
+            if (cCanvas) {
+              const labels = (cCanvas.dataset.labels || '').split('|').filter(Boolean).map(s => s.trim());
+              const vals = (cCanvas.dataset.values || '').split('|').filter(Boolean).map(Number);
+
+              if (labels.length) {
+                window.__txCategoryChart = new Chart(cCanvas, {
+                  type: 'bar',
+                  data: {
+                    labels: labels,
+                    datasets: [
+                      { label: '지출(출금)', data: vals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 }
+                    ]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                      x: { ticks: { autoSkip: true, maxRotation: 0 } },
+                      y: { beginAtZero: true }
+                    }
+                  }
+                });
+              }
+            }
+          })();
+        </script>
+
       {% else %}
         <div class="txHead">
           <h3 class="txH3">입금 내역</h3>
-          <div class="txSub">입금 거래를 확인할 수 있습니다.</div>
+          <div class="txSub">계좌 충전 기록을 확인할 수 있습니다.</div>
         </div>
 
-        <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666; font-weight:800;">
-          입금 내역 UI는 동일한 톤으로 구성할 수 있어요. (현재 템플릿에는 OUT 테이블만 상세 구현되어 있음)
+
+        <div class="table-responsive txTableWrap">
+          <table class="table table-hover align-middle txTable">
+            <thead>
+              <tr>
+                <th style="width: 20%;">날짜</th>
+                <th style="width: 35%;">입금 계좌</th>
+                <th>내용</th>
+                <th class="text-end" style="width: 20%;">금액</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tx in transactions %}
+                {% if tx.tx_type == "IN" %}
+                  <tr style="cursor: default;">
+                    <td>
+                      <div class="txMuted">{{ tx.occurred_at|date:"Y-m-d" }}</div>
+                      <div class="txMuted">{{ tx.occurred_at|date:"H:i" }}</div>
+                    </td>
+                    <td>
+                      <div class="txBank">{{ tx.account.bank.name }}</div>
+                      <div class="txAcc">{{ tx.account.account_number }}</div>
+                    </td>
+                    <td class="txProduct">
+                      <span class="txBadge" style="margin-right: 8px;">입금</span>
+                      {{ tx.product_name|default:"계좌 충전" }}
+                    </td>
+                    <td class="text-end txAmountIn">+{{ tx.amount|intcomma }}원</td>
+                  </tr>
+                {% endif %}
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center py-5 txMuted">입금 내역이 없습니다.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       {% endif %}
 

@@ -1,5 +1,7 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse
+from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
@@ -16,8 +18,6 @@ from account.utils.receipt import _calc_vat, _money_int, _register_korean_font
 from account.utils.common import get_default_account
 
 
-# LoginRequiredMixin으로 비로그인 상태에서 접근시 -> 로그인 페이지로 넘어가게.
-# "영수증" 탭 메인 뷰.
 @method_decorator(never_cache, name="dispatch")
 class ReceiptPDFView(LoginRequiredMixin, View):
     """
@@ -34,7 +34,8 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     def get(self, request, tx_id):
         tx = (
             Transaction.objects
-            .filter(id=tx_id, user=request.user)
+            # ✅ 영수증 "삭제"(숨김)된 건은 PDF 접근도 막음
+            .filter(id=tx_id, user=request.user, receipt_hidden=False)
             .select_related("account", "account__bank")
             .first()
             )
@@ -120,11 +121,9 @@ class ReceiptPDFView(LoginRequiredMixin, View):
 
         line()
 
-        approval_no = str(tx.id).zfill(8)
-        kv("승인 일시", occurred)
-        kv("승인 번호", approval_no)
-        kv("거래유형", "승인" if tx.tx_type == Transaction.OUT else "입금")
-        kv("할부", "일시불")
+        kv("승인일시", occurred)
+        kv("거래구분", "출금" if tx.tx_type == Transaction.OUT else "입금")
+        kv("거래금액", f"{amount:,}원")
 
         line()
 
@@ -159,3 +158,31 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         canv.save()
 
         return resp
+
+
+@method_decorator(never_cache, name="dispatch")
+class ReceiptHideView(LoginRequiredMixin, View):
+    """
+    /accounts/receipts/<tx_id>/hide/
+
+    ✅ 요구사항: Transaction(거래내역)은 유지하고, 영수증만 "삭제"(숨김)
+    - DB delete() 하지 않음
+    - receipt_hidden=True로 처리
+    """
+    login_url = "login"
+
+    def post(self, request, tx_id):
+        tx = (
+            Transaction.objects
+            .filter(id=tx_id, user=request.user, tx_type=Transaction.OUT)
+            .first()
+        )
+        if not tx:
+            raise Http404("삭제할 영수증을 찾을 수 없습니다.")
+
+        tx.receipt_hidden = True
+        tx.save(update_fields=["receipt_hidden"])
+        messages.success(request, "영수증이 삭제되었습니다. (거래 내역은 유지됩니다)")
+
+        # ✅ 삭제 후 원래 보고 있던 화면으로 복귀(없으면 영수증 탭)
+        return redirect(request.META.get("HTTP_REFERER", "/accounts/mypage/?tab=receipt"))

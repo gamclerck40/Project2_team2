@@ -125,6 +125,12 @@ class Transaction(models.Model):
     # 가맹점/거래처(선택)
     merchant = models.CharField(max_length=50, null=True, blank=True)
     memo = models.CharField(max_length=600, null=True, blank=True)
+
+    # ✅ 영수증 탭에서만 "삭제"(숨김) 처리를 하기 위한 플래그
+    # - 거래(Transaction) 기록은 남기되, 마이페이지 영수증 탭/영수증 PDF 접근만 차단하려면 True
+    # - 실제 DB 삭제(delete())는 하지 않음
+    receipt_hidden = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
