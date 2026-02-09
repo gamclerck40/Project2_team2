@@ -15,7 +15,7 @@
                     <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0;">
                         <img src="{{ product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
                         <div style="flex: 1;">
-                            <strong style="display: block;">{{ product.name }}</strong>
+                            <strong>{{ product.name }}</strong>
                             <span style="color: #666;">{{ quantity }}개 / {{ product.price|intcomma }}원</span>
                         </div>
                     </div>
@@ -24,17 +24,8 @@
                     <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f5f5f5;">
                         <img src="{{ item.product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
                         <div style="flex: 1;">
-                            <strong style="display: block;">{{ item.product.name }}</strong>
-                            
-                            <form method="post" action="{% url 'checkout' %}" style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
-                                {% csrf_token %}
-                                <input type="hidden" name="update_item_id" value="{{ item.id }}">
-                                <button type="submit" name="action" value="decrease" 
-                                        style="width: 24px; height: 24px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">-</button>
-                                <span style="font-weight: bold; font-size: 14px;">{{ item.quantity }}</span>
-                                <button type="submit" name="action" value="increase"
-                                        style="width: 24px; height: 24px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer;">+</button>
-                            </form>
+                            <strong>{{ item.product.name }}</strong>
+                            <div style="color: #666; font-size: 14px;">{{ item.quantity }}개</div>
                         </div>
                         <div style="text-align: right; font-weight: bold;">{{ item.total_price|intcomma }}원</div>
                     </div>
@@ -50,23 +41,29 @@
                     <input type="hidden" name="quantity" value="{{ quantity }}">
                 {% endif %}
 
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">배송지 정보</h3>
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">배송지 선택</label>
-                        <select name="address_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
-                            {% for addr in addresses %}
-                                <option value="{{ addr.id }}">[{{ addr.alias }}] {{ addr.address }}</option>
+                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">계좌 선택</h3>
+                    <div style="margin-bottom: 5px;">
+                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">결제 계좌</label>
+                        <select name="selected_account_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
+                            {% for acc in accounts %}
+                                <option value="{{ acc.id }}" {% if acc == account %}selected{% endif %}>
+                                    {{ acc.bank.name }} | {{ acc.masked_account_number }} ({{ acc.balance|intcomma }}원)
+                                </option>
                             {% empty %}
-                                <option value="">등록된 배송지가 없습니다. 마이페이지에서 등록해주세요.</option>
+                                <option value="">등록된 계좌가 없습니다.</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div>
-                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 5px;">배송 메모</label>
-                        <input type="text" name="memo" placeholder="예: 문 앞에 놓아주세요" 
-                               style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;">
-                    </div>
+                </div>
+
+                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">배송지 정보</h3>
+                    <select name="address_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
+                        {% for addr in addresses %}
+                            <option value="{{ addr.id }}">[{{ addr.alias }}] {{ addr.address }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
         </div>
 
@@ -75,28 +72,22 @@
                 <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #555; padding-bottom: 15px;">결제 요약</h3>
                 
                 <div style="display: flex; justify-content: space-between; margin: 20px 0;">
-                    <span>총 상품 금액</span>
+                    <span style="color: #ccc;">총 상품 금액</span>
                     <span>{{ total_amount|intcomma }}원</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin: 10px 0; color: #aaa; font-size: 14px;">
-                    <span>배송비</span>
-                    <span>0원 (무료)</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px;">
+                    <span style="color: #aaa;">현재 잔액</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: bold; color: {% if account.balance < total_amount %}#ff6b6b{% else %}#ffcc00{% endif %};">
+                            {{ account.balance|intcomma }}원
+                        </span>
+                        <a href="#recharge-modal" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">충전</a>
+                    </div>
                 </div>
                 <hr style="border: 0; border-top: 1px solid #555; margin: 20px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <span style="font-size: 16px;">최종 결제 금액</span>
                     <span style="font-size: 24px; font-weight: bold; color: #ffcc00;">{{ total_amount|intcomma }}원</span>
-                </div>
-
-                <div style="background: #444; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
-                    <p style="margin: 0 0 5px 0; color: #ccc;">결제 계좌: {{ account.bank }}</p>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p style="margin: 0; font-weight: bold;">현재 잔액: {{ account.balance|intcomma }}원</p>
-                        
-                        <a href="#recharge-modal" style="background: #666; color: white; padding: 4px 10px; border-radius: 5px; text-decoration: none; font-size: 11px; font-weight: bold;">
-                            충전하기
-                        </a>
-                    </div>
                 </div>
 
                 {% if account.balance >= total_amount %}
@@ -105,14 +96,14 @@
                         결제하기
                     </button>
                 {% else %}
-                    <div style="text-align: center; color: #ff6b6b; font-weight: bold; font-size: 14px;">
-                        ⚠️ 잔액이 부족합니다
-                    </div>
+                    <div style="text-align: center; color: #ff6b6b; font-weight: bold; font-size: 13px; margin-bottom: 10px;">⚠️ 잔액이 부족합니다</div>
+                    <button type="button" disabled style="width: 100%; padding: 15px; background: #555; color: #888; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: not-allowed;">
+                        결제 불가
+                    </button>
                 {% endif %}
             </div>
-            </form> <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">
-                ← 장바구니로 돌아가기
-            </a>
+            </form>
+            <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">← 장바구니로 돌아가기</a>
         </div>
     </div>
 </div>

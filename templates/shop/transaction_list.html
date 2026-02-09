@@ -2,112 +2,349 @@
 {% load humanize %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4 fw-bold" style="letter-spacing: -1px;">나의 거래 내역</h2>
 
-    <div class="tab-menu" style="display: flex; gap: 5px; margin-bottom: 0px;">
-        {% if active_tab == 'in' %}
-            <a href="?tab=in" class="text-decoration-none" style="padding: 12px 25px; border: 1px solid #ccc; border-bottom: none; border-radius: 10px 10px 0 0; background: #fff; font-weight: bold; color: #000; z-index: 2; margin-bottom: -1px;">💰 입금 내역</a>
-            <a href="?tab=out" class="text-decoration-none" style="padding: 12px 25px; border: 1px solid #ccc; border-radius: 10px 10px 0 0; background: #f8f9fa; font-weight: bold; color: #6c757d;">🛍️ 출금/구매 내역</a>
-        {% else %}
-            <a href="?tab=in" class="text-decoration-none" style="padding: 12px 25px; border: 1px solid #ccc; border-radius: 10px 10px 0 0; background: #f8f9fa; font-weight: bold; color: #6c757d;">💰 입금 내역</a>
-            <a href="?tab=out" class="text-decoration-none" style="padding: 12px 25px; border: 1px solid #ccc; border-bottom: none; border-radius: 10px 10px 0 0; background: #fff; font-weight: bold; color: #000; z-index: 2; margin-bottom: -1px;">🛍️ 출금/구매 내역</a>
-        {% endif %}
+<style>
+  /* ✅ 프로젝트(내 정보 페이지) 톤과 맞춘 탭/카드 스타일 */
+  .txWrap{
+    max-width: 1000px;
+    margin: 30px auto 60px auto;
+    padding: 0 12px;
+  }
 
-    </div>
+  .txTitleRow{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+    margin: 0 0 16px 0;
+  }
+  .txTitle{
+    margin:0;
+    font-weight:900;
+    letter-spacing:-1px;
+    color:#111;
+    font-size: 24px;
+  }
 
-    <div class="tab-content" style="border: 1px solid #ccc; padding: 40px; border-radius: 0 10px 10px 10px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-        
-        {% if active_tab == 'out' %}
-            <h3 class="mb-4 fw-bold" style="color: #dc3545;">출금/구매 내역 <small class="text-muted fs-6" style="font-weight: normal;"></small></h3>
+  /* 탭바: 내 정보 페이지와 동일 톤 */
+  .txTabbar{
+    display:flex;
+    gap:10px;
+    padding:12px 14px;
+    background:#333;
+    color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    overflow:hidden;
+  }
+  .txTabbtn{
+    appearance:none;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.06);
+    color:#fff;
+    padding:8px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    font-weight:900;
+    font-size:13px;
+    opacity:.9;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+  }
+  .txTabbtn[aria-current="page"]{
+    background:rgba(255,255,255,.18);
+    opacity:1;
+  }
 
-            <div style="background: #fcfcfc; padding: 25px; border-radius: 15px; margin-bottom: 35px; border: 1px solid #eee;">
-                <form method="GET" class="row g-3 align-items-end">
-                    <input type="hidden" name="tab" value="out">
-                    
-                    <div class="col-lg-4 col-md-12">
-                        <label class="form-label small fw-bold text-secondary">조회 기간</label>
-                        <div class="input-group input-group-sm">
-                            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
-                            <span class="input-group-text bg-white">~</span>
-                            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
-                        </div>
-                    </div>
+  /* 카드 */
+  .txCard{
+    margin-top: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    border-radius: 20px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #eee;
+  }
+  .txSection{
+    padding: 22px;
+  }
 
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label small fw-bold text-secondary">결제 계좌</label>
-                        <select name="account" class="form-select form-select-sm">
-                            <option value="">모든 계좌</option>
-                            {% for acc in accounts %}
-                            <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
-                                {{ acc.bank.name }} ({{ acc.account_number }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+  .txHead{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin: 0 0 14px 0;
+  }
+  .txH3{
+    margin:0;
+    font-size:16px;
+    font-weight:900;
+    color:#333;
+  }
+  .txSub{
+    font-size:12px;
+    color:#888;
+    font-weight:700;
+  }
 
-                    <div class="col-lg-3 col-md-6">
-                        <label class="form-label small fw-bold text-secondary">카테고리</label>
-                        <select name="category" class="form-select form-select-sm">
-                            <option value="">모든 카테고리</option>
-                            {% for cat in categories %}
-                            <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+  /* 필터 박스 */
+  .txFilterBox{
+    background:#fcfcfc;
+    border:1px solid #eee;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
 
-                    <div class="col-lg-2 col-md-12">
-                        <button type="submit" class="btn btn-danger btn-sm w-100 fw-bold shadow-sm">조회하기</button>
-                    </div>
-                </form>
+  /* form control 톤 정리 */
+  .txFilterBox .form-label{
+    font-size:12px;
+    font-weight:900;
+    color:#666;
+    margin-bottom:6px;
+  }
+  .txFilterBox .form-control,
+  .txFilterBox .form-select,
+  .txFilterBox .input-group-text{
+    border:1px solid #ddd !important;
+    border-radius:12px !important;
+    font-size:13px;
+    background:#fff;
+  }
+  .txFilterBox .input-group > .form-control{
+    border-radius:12px !important;
+  }
+  .txFilterBox .input-group-text{
+    color:#666;
+    font-weight:800;
+  }
+
+  /* 조회 버튼: 프로젝트 톤 */
+  .txBtn{
+    width:100%;
+    background:#333 !important;
+    border:none !important;
+    color:#fff !important;
+    border-radius:12px !important;
+    padding:10px 12px !important;
+    font-weight:900 !important;
+    font-size:13px !important;
+  }
+
+  /* 테이블 */
+  .txTableWrap{
+    border:1px solid #eee;
+    border-radius:16px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .txTable{
+    margin:0;
+    min-width: 860px;
+  }
+  .txTable thead{
+    background:#f9f9f9;
+    border-bottom:1px solid #eee;
+  }
+  .txTable th{
+    color:#666;
+    font-weight:900;
+    font-size:12px;
+    padding: 14px 14px;
+    border-bottom:1px solid #eee !important;
+    white-space:nowrap;
+  }
+  .txTable td{
+    padding: 14px 14px;
+    border-top:1px solid #f2f2f2 !important;
+    vertical-align:middle;
+    font-size:13px;
+    color:#333;
+  }
+  .txMuted{
+    color:#888;
+    font-size:12px;
+    font-weight:700;
+  }
+  .txBank{
+    font-weight:900;
+    color:#333;
+    font-size:13px;
+  }
+  .txAcc{
+    color:#888;
+    font-size:12px;
+    font-weight:700;
+  }
+  .txProduct{
+    font-weight:900;
+    color:#222;
+  }
+  .txAmountOut{
+    font-weight:900;
+    color:#dc3545;
+    font-size:15px;
+    white-space:nowrap;
+  }
+  .txAmountIn{
+    font-weight:900;
+    color:#28a745;
+    font-size:15px;
+    white-space:nowrap;
+  }
+  .txBadge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#f0f2f5;
+    color:#333;
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+
+  /* 반응형: 좁으면 패딩만 줄이고 표는 스크롤 유지 */
+  @media (max-width: 576px){
+    .txSection{ padding: 16px; }
+    .txFilterBox{ padding: 14px; }
+    .txTitle{ font-size: 20px; }
+  }
+</style>
+
+<div class="txWrap">
+  <div class="txTitleRow">
+    <h2 class="txTitle">나의 거래 내역</h2>
+  </div>
+
+  <div class="txTabbar" role="tablist" aria-label="거래내역 탭">
+    {% if active_tab == 'in' %}
+      <a href="?tab=in" class="txTabbtn" aria-current="page">💰 입금 내역</a>
+      <a href="?tab=out" class="txTabbtn" aria-current="false">🛍️ 출금/구매 내역</a>
+    {% else %}
+      <a href="?tab=in" class="txTabbtn" aria-current="false">💰 입금 내역</a>
+      <a href="?tab=out" class="txTabbtn" aria-current="page">🛍️ 출금/구매 내역</a>
+    {% endif %}
+  </div>
+
+  <div class="txCard">
+    <div class="txSection">
+
+      {% if active_tab == 'out' %}
+        <div class="txHead">
+          <h3 class="txH3">출금/구매 내역</h3>
+          <div class="txSub">기간 / 계좌 / 카테고리로 조회</div>
+        </div>
+
+        <div class="txFilterBox">
+          <form method="GET" class="row g-3 align-items-end">
+            <input type="hidden" name="tab" value="out">
+
+            <div class="col-lg-4 col-md-12">
+              <label class="form-label">조회 기간</label>
+              <div class="input-group input-group-sm">
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                <span class="input-group-text bg-white">~</span>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+              </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="min-width: 800px;">
-                    <thead style="background-color: #f9f9f9; border-top: 1px solid #eee;">
-                        <tr>
-                            <th class="py-3 px-4 text-secondary" style="width: 15%;">날짜</th>
-                            <th class="py-3 px-3 text-secondary" style="width: 25%;">결제 계좌</th> <th class="py-3 px-3 text-secondary">상품명(수량)</th>
-                            <th class="py-3 px-3 text-secondary text-end">금액</th>
-                            <th class="py-3 px-4 text-secondary text-center">카테고리</th>
-                        </tr>
-                    </thead>
-                    <tbody style="border-top: none;">
-                        {% for tx in transactions %}
-                            {% if tx.tx_type == "OUT" %}
-                            <tr style="cursor: default;">
-                                <td class="px-4 py-3 text-muted small">{{ tx.occurred_at|date:"Y-m-d" }} <br> {{ tx.occurred_at|date:"H:i" }}</td>
-                                <td class="px-3 py-3">
-                                    <div class="fw-bold" style="font-size: 0.9rem; color: #444;">{{ tx.account.bank.name }}</div>
-                                    <div class="text-muted" style="font-size: 0.8rem;">{{ tx.account.account_number }}</div>
-                                </td>
-                                <td class="px-3 py-3 fw-bold text-dark">
-                                    {% if tx.product %}
-                                        {{ tx.product.name }} <span class="text-muted fw-normal">({{ tx.quantity }}개)</span>
-                                    {% else %}
-                                        {{ tx.product_name|default:"일반 지출" }}
-                                    {% endif %}
-                                </td>
-                                <td class="px-3 py-3 text-end fw-bold text-danger" style="font-size: 1.05rem;">
-                                    -{{ tx.amount|intcomma }}원
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="badge bg-light text-dark border-0 px-3 py-2" style="font-weight: 500; background-color: #f0f2f5 !important;">
-                                        {{ tx.category.name|default:"미분류" }}
-                                    </span>
-                                </td>
-                            </tr>
-
-                            {% endif %}
-                            {% empty %}
-                            <tr><td colspan="5" class="text-center py-5 text-muted">조건에 맞는 내역이 없습니다.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label">결제 계좌</label>
+              <select name="account" class="form-select form-select-sm">
+                <option value="">모든 계좌</option>
+                {% for acc in accounts %}
+                  <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
+                    {{ acc.bank.name }} ({{ acc.account_number }})
+                  </option>
+                {% endfor %}
+              </select>
             </div>
-        {% else %}
-            <h3 class="mb-4 fw-bold" style="color: #28a745;">입금 내역 <small class="text-muted fs-6" style="font-weight: normal;"></small></h3>
-            {% endif %}
+
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label">카테고리</label>
+              <select name="category" class="form-select form-select-sm">
+                <option value="">모든 카테고리</option>
+                {% for cat in categories %}
+                  <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>
+                    {{ cat.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-lg-2 col-md-12">
+              <button type="submit" class="btn btn-sm txBtn">조회하기</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="table-responsive txTableWrap">
+          <table class="table table-hover align-middle txTable">
+            <thead>
+              <tr>
+                <th style="width: 15%;">날짜</th>
+                <th style="width: 25%;">결제 계좌</th>
+                <th>상품명(수량)</th>
+                <th class="text-end">금액</th>
+                <th class="text-center">카테고리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tx in transactions %}
+                {% if tx.tx_type == "OUT" %}
+                  <tr style="cursor: default;">
+                    <td>
+                      <div class="txMuted">{{ tx.occurred_at|date:"Y-m-d" }}</div>
+                      <div class="txMuted">{{ tx.occurred_at|date:"H:i" }}</div>
+                    </td>
+                    <td>
+                      <div class="txBank">{{ tx.account.bank.name }}</div>
+                      <div class="txAcc">{{ tx.account.account_number }}</div>
+                    </td>
+                    <td class="txProduct">
+                      {% if tx.product %}
+                        {{ tx.product.name }} <span class="txMuted" style="font-weight:800;">({{ tx.quantity }}개)</span>
+                      {% else %}
+                        {{ tx.product_name|default:"일반 지출" }}
+                      {% endif %}
+                    </td>
+                    <td class="text-end txAmountOut">-{{ tx.amount|intcomma }}원</td>
+                    <td class="text-center">
+                      <span class="txBadge">{{ tx.category.name|default:"미분류" }}</span>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% empty %}
+                <tr>
+                  <td colspan="5" class="text-center py-5 txMuted">조건에 맞는 내역이 없습니다.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      {% else %}
+        <div class="txHead">
+          <h3 class="txH3">입금 내역</h3>
+          <div class="txSub">입금 거래를 확인할 수 있습니다.</div>
+        </div>
+
+        <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666; font-weight:800;">
+          입금 내역 UI는 동일한 톤으로 구성할 수 있어요. (현재 템플릿에는 OUT 테이블만 상세 구현되어 있음)
+        </div>
+      {% endif %}
+
     </div>
+  </div>
 </div>
+
 {% endblock %}

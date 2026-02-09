@@ -60,12 +60,15 @@ class MypageView(LoginRequiredMixin, View):
             return digits
 
         accounts = Account.objects.filter(user=request.user).order_by("-is_default", "-id")
-        addresses = Address.objects.filter(user=request.user).order_by("-is_default", "id")
-        default_account = accounts.filter(is_default=True).first() or accounts.first()
-
-        # ✅ 기존 템플릿이 account.* 를 많이 쓰므로 호환 유지
-        account = default_account
-
+        address_list = Address.objects.filter(user=request.user).order_by("-is_default", "id")
+    
+        addr_page_num = request.GET.get("addr_page") or "1" # 주소 전용 페이지 파라미터
+        addr_paginator = Paginator(address_list, 5)        # 5개씩 제한
+        addresses_page = addr_paginator.get_page(addr_page_num)
+        # ✅ “현재 선택 계좌(=기본계좌)”를 프로젝트 전체 정책과 동일하게 통일
+        account = get_default_account(request.user)
+        default_account = account
+        
         formatted_phone = ""
         if default_account:
             formatted_phone = format_korean_phone(default_account.phone)
@@ -130,7 +133,7 @@ class MypageView(LoginRequiredMixin, View):
                 "default_account": default_account,
                 "account_add_form": account_add_form,
 
-                "addresses": addresses,
+                "addresses": addresses_page,
                 "formatted_phone": formatted_phone,
 
                 # ✅ 영수증 탭
@@ -261,7 +264,6 @@ class AccountAddView(LoginRequiredMixin, View):
         base = get_default_account(request.user)
         base_name = (base.name if base else request.user.username)
         base_phone = (base.phone if base else "")
-        base_balance = (base.balance if base else 0)
 
         try:
             with transaction.atomic():
@@ -272,8 +274,8 @@ class AccountAddView(LoginRequiredMixin, View):
                     bank=bank,
                     account_number=acc,
 
-                    # ✅ 핵심: 잔액 유지 (기존 기능 보존)
-                    balance=base_balance,
+                    # ✅ 계좌별 잔액 분리: 신규 계좌는 0원 시작(또는 필요 시 입력받아 세팅)
+                    balance=0,
 
                     is_active=True,
                     is_default=(not has_default),

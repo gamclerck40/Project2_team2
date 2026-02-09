@@ -55,6 +55,7 @@
             
             <form method="post" action="{% url 'charge_balance' %}">
                 {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
                 <input type="number" name="amount" placeholder="금액 입력" required 
                        style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">
                 

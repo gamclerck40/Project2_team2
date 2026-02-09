@@ -16,6 +16,8 @@ from account.utils.receipt import _calc_vat, _money_int, _register_korean_font
 from account.utils.common import get_default_account
 
 
+# LoginRequiredMixin으로 비로그인 상태에서 접근시 -> 로그인 페이지로 넘어가게.
+# "영수증" 탭 메인 뷰.
 @method_decorator(never_cache, name="dispatch")
 class ReceiptPDFView(LoginRequiredMixin, View):
     """
@@ -30,14 +32,18 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     login_url = "login"
 
     def get(self, request, tx_id):
-        tx = Transaction.objects.filter(id=tx_id, user=request.user).first()
+        tx = (
+            Transaction.objects
+            .filter(id=tx_id, user=request.user)
+            .select_related("account", "account__bank")
+            .first()
+            )
         if not tx:
             raise Http404("영수증을 찾을 수 없습니다.")
 
-        # ✅ 기본계좌(다계좌 지원)
-        account = get_default_account(request.user)
+        account = tx.account
         if not account:
-            raise Http404("계좌 정보가 없습니다.")
+            raise Http404("결제 계좌 정보가 없습니다.")
 
         # ✅ 기본배송지(프로필에서 기본 배송지 선택 기능이 있으니 is_default가 있다고 가정)
         #    - 기본 배송지가 없으면 첫 번째 주소라도 잡거나, 없으면 "-" 처리

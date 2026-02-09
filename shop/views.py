@@ -412,64 +412,78 @@ class CheckoutView(LoginRequiredMixin, View):
     최종 결제 전, 배송지와 주문 내역을 확인하고 수량을 조절하는 페이지
     """
 
-    def post(self, request):
-        # 계좌 및 주소지 정보 가져오기
-        # ✅ 다계좌 대응: 기본 계좌 우선
-        user_account = get_default_account(request.user)
+    def _get_checkout_context(self, request, product_id=None, quantity=1):
+    # 1. 여기서 변수를 먼저 정의해야 합니다!
+        all_accounts = Account.objects.filter(user=request.user, is_active=True).select_related('bank')
+        
+        # 2. 기본 계좌 설정 (is_default가 True인 것 우선, 없으면 첫 번째 계좌)
+        user_account = all_accounts.filter(is_default=True).first() or all_accounts.first()
 
         addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
 
-        if not user_account:
-            messages.error(request, "결제 계좌가 없습니다. 마이페이지에서 먼저 등록해 주세요.")
-            return redirect("mypage")
-
-        # --- 수량 변경 로직 (주문서 페이지 내에서 +/- 조절 시) ---
-        update_item_id = request.POST.get("update_item_id")
-        action = request.POST.get("action")
-
-        if update_item_id and action:
-            # 장바구니 모델명이 'Cart'인 것을 확인했습니다.
-            item = get_object_or_404(Cart, id=update_item_id, user=request.user)
-            if action == "increase" and item.quantity < item.product.stock:
-                item.quantity += 1
-            elif action == "decrease" and item.quantity > 1:
-                item.quantity -= 1
-            item.save()
-
-        # --- 데이터 구성 (상세페이지 발 vs 장바구니 발) ---
-        product_id = request.POST.get("product_id")
-
+        # 상품 및 금액 로직
         if product_id:
             # 바로 구매 경로
             product = get_object_or_404(Product, id=product_id)
-            quantity = int(request.POST.get("quantity", 1))
-            total_amount = product.price * quantity
+            total_amount = product.price * int(quantity)
             cart_items = None
         else:
-            # 장바구니 결제 경로
             cart_items = Cart.objects.filter(user=request.user)
-            if not cart_items.exists():
-                messages.error(request, "결제할 상품이 없습니다.")
-                return redirect("cart_list")
-            total_amount = sum(item.total_price() for item in cart_items)
+            total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else 0
             product = None
             quantity = None
 
-        context = {
-            # ✅ 템플릿 호환: checkout.html에서 'account'를 쓰는 경우가 많음
-            "account": user_account,
+        return {
+            "account": user_account,    # 결제 요약용 (단일)
+            "accounts": all_accounts,
             "addresses": addresses,
             "product": product,
             "quantity": quantity,
             "cart_items": cart_items,
             "total_amount": total_amount,
         }
+    
+    def get(self, request):
+        # ✅ 이제 GET 요청(충전 후 복귀 등) 시에도 쫓아내지 않고 페이지를 보여줍니다!
+        context = self._get_checkout_context(request)
+        
+        # 장바구니가 진짜 비어있을 때만 보냅니다.
+        if not context["cart_items"] and not context["product"]:
+            messages.error(request, "결제할 상품이 없습니다.")
+            return redirect("cart_list")
+            
         return render(request, "shop/checkout.html", context)
 
-    # 단순 URL 접속 시 장바구니로 리다이렉트
-    def get(self, request):
-        return redirect('cart_list')
+    def post(self, request):
+        # 수량 변경 로직 (주문서 페이지 내에서 +/- 조절 시)
+        update_item_id = request.POST.get("update_item_id")
+        action = request.POST.get("action")
 
+        if update_item_id and action:
+            item = get_object_or_404(Cart, id=update_item_id, user=request.user)
+            if action == "increase" and item.quantity < item.product.stock:
+                item.quantity += 1
+            elif action == "decrease" and item.quantity > 1:
+                item.quantity -= 1
+            item.save()
+            # 수량 변경 후에는 데이터 갱신을 위해 리다이렉트(GET으로 전환)
+            return redirect("checkout")
+
+        # 일반적인 결제 페이지 진입 로직
+        product_id = request.POST.get("product_id")
+        quantity = request.POST.get("quantity", 1)
+        
+        context = self._get_checkout_context(request, product_id, quantity)
+
+        if not context["account"]:
+            messages.error(request, "결제 계좌가 없습니다. 마이페이지에서 먼저 등록해 주세요.")
+            return redirect("mypage")
+
+        if not context["cart_items"] and not context["product"]:
+            messages.error(request, "결제할 상품이 없습니다.")
+            return redirect("cart_list")
+
+        return render(request, "shop/checkout.html", context)
 class ReviewCreateView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
