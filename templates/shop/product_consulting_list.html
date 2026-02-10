@@ -9,7 +9,7 @@
     <div style="padding: 18px 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background: white; margin: 10px 0 25px 0;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div>
-                <div style="font-size: 18px; font-weight: 800; color:#333;">💬 자산 컨설팅</div>
+                <div style="font-size: 18px; font-weight: 800; color:#333;">💬 자산 컨설팅(Runway+SWR 통합 모델) | {{ month_label }}</div>
                 <div style="margin-top: 6px; color: #555; font-size: 14px;">{{ consult_msg }}</div>
             </div>
             <a href="{% url 'product_list' %}"
@@ -20,16 +20,24 @@
 
         <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px;">
             <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
-                <div style="font-size: 12px; color:#777;">현재 잔액</div>
-                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">{{ balance|intcomma }}원</div>
+                <div style="font-size: 12px; color:#777;">{{ month_label }} 총 수익</div>
+                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">{{  month_total_in|intcomma }}원</div>
+                <div style="margin-top:6px; font-size: 12px; color:#777;"> 누적 수익 {{ total_in_all|intcomma }}원 </div>
             </div>
 
             <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
-                <div style="font-size: 12px; color:#777;">이번 달 순수익</div>
-                <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">{{ month_net|intcomma }}원</div>
-                <div style="margin-top: 4px; font-size: 12px; color:#888;">
-                    입금 {{ month_total_in|intcomma }} / 출금 {{ month_total_out|intcomma }}
-                </div>
+            <!-- 제목(그대로 작은 글씨) -->
+            <div style="font-size: 12px; color:#777;">{{ month_label }} 지출 현황</div>
+
+            <!-- 큰 숫자(스샷 모양 유지): 현재 자산을 크게 표시 -->
+            <div style="margin-top: 4px; font-size: 16px; font-weight: 800; color:#333;">
+                {{ month_total_out|intcomma }}원
+            </div>
+
+            <!-- 보조라인(스샷 모양 유지): 현재 자산 / 출금 -->
+            <div style="margin-top:6px; font-size: 12px; color:#777;">
+                누적 지출 {{ total_out_all|intcomma }}원
+            </div>
             </div>
 
             <div style="background:#f9f9f9; padding: 12px 14px; border-radius: 12px; border: 1px solid #eee;">
@@ -58,7 +66,7 @@
     <!-- ✅ product_list.html과 동일한 필터/정렬 UI -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <select name="category" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
+            <select name="category" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: rgb(36, 35, 35); cursor: pointer;">
                 <option value="">전체 카테고리</option>
                 {% for category in categories %}
                     <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>
@@ -68,7 +76,7 @@
             </select>
         </div>
 
-        <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: white; cursor: pointer;">
+        <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background-color: rgb(36, 35, 35); cursor: pointer;">
             <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>최신순</option>
             <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>가격 낮은 순</option>
             <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>가격 높은 순</option>

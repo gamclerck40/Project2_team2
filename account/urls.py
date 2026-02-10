@@ -60,4 +60,5 @@ urlpatterns = [
     path("accounts/charge/", AccountChargeView.as_view(), name="account_charge"),
 
     path('charge/', charge_balance, name='charge_balance'),
+    
 ]

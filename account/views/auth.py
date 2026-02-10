@@ -8,6 +8,7 @@ from django.views import View
 from django.views.decorators.cache import never_cache
 
 from account.models import Account, Address
+from shop.models import Transaction
 from account.utils.forms import SignUpForm, FindIDForm, PasswordVerifyForm
 
 User = get_user_model()
@@ -30,7 +31,7 @@ class SignUpView(View):
             with transaction.atomic():
                 user = form.save()
 
-                Account.objects.create(
+                account = Account.objects.create(
                     user=user,
                     name=form.cleaned_data["name"],
                     phone=form.cleaned_data["phone"],
@@ -39,8 +40,25 @@ class SignUpView(View):
                     balance=form.cleaned_data["balance"],
                     is_active=True,
                     is_default=True,  # ✅ 첫 계좌는 기본 계좌
-)
+                )
 
+                # ✅ [핵심] 회원가입 초기 충전도 입금(Transaction)으로 기록
+                init_amount = int(form.cleaned_data.get("balance") or 0)
+                if init_amount > 0:
+                    Transaction.objects.create(
+                        user=user,
+                        account=account,
+                        category=None,
+                        product=None,
+                        quantity=1,
+                        tx_type=Transaction.IN,
+                        amount=init_amount,
+                        occurred_at=timezone.now(),
+                        product_name="회원가입 충전",
+                        merchant="내 지갑",
+                        memo="회원가입 시 초기 충전",
+                    )
+                    
                 Address.objects.create(
                     user=user,
                     zip_code=form.cleaned_data["zip_code"],

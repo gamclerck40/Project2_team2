@@ -17,6 +17,6 @@ urlpatterns = [
     path('review/delete/<int:review_id>/', ReviewDeleteView.as_view(), name='review_delete'),
     path("review/update/<int:review_id>/", views.ReviewUpdateView.as_view(), name="review_update"),
     path("consulting/", ConsultingProductListView.as_view(), name="product_consulting_list"),  # ✅ 추가
-
+    path('coupons/', views.CouponRegisterView.as_view(), name='register_coupon'),
     
 ]

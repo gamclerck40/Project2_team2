@@ -7,15 +7,14 @@ from django.views import View
 from django.urls import reverse
 from django.views.generic import *
 from datetime import date
-from .models import Cart, Category, Product, Transaction, Review
+from .models import *
 from account.models import Account, Address
 from decimal import Decimal  # ✅ Decimal*float 에러 방지용
-
-
 # ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
 from account.utils.common import get_default_account
 from django.db.models import Sum, Case, When, Value, DecimalField
 from django.db.models.functions import TruncMonth
+from django.core.paginator import Paginator
 
 
 # 상품 목록 페이지(사진,이름,가격 등의 리스트)
@@ -210,23 +209,20 @@ class RemoveFromCartView(View):
 
 class OrderExecutionView(LoginRequiredMixin, View):
     def post(self, request):
-        # ✅ 다계좌 대응: 기본 계좌 우선
-        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        # 1. 계좌 선택 로직
         selected_account_id = request.POST.get('selected_account_id')
-        
         if selected_account_id:
             user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
         else:
             user_account = get_default_account(request.user)
 
-        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
-        address_id = request.POST.get('address_id') # HTML select name 확인 필요 (아래 팁 참고)
-
+        # 2. 배송지 정보 가져오기
+        address_id = request.POST.get('address_id')
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
         else:
-            # 주소 ID가 안 넘어왔을 경우 기본 배송지를 자동으로 선택
             selected_address = Address.objects.filter(user=request.user, is_default=True).first()
+        
         cart_items = Cart.objects.filter(user=request.user)
         
         if not cart_items.exists():
@@ -241,75 +237,111 @@ class OrderExecutionView(LoginRequiredMixin, View):
             messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
             return redirect("cart_list")
 
-        # 3. 총 결제 금액 계산
+        # 3. 총 결제 금액 및 쿠폰 할인 계산
         total_price = sum(item.total_price() for item in cart_items)
+        
+        # --- [수정 구간: 쿠폰 ID 안전하게 가져오기] ---
+        selected_coupon_id = request.POST.get('coupon_id')
+        discount_amount = Decimal("0")
+        user_coupon = None
+
+        if selected_coupon_id and selected_coupon_id.strip() and selected_coupon_id != 'None':
+            try:
+                user_coupon = UserCoupon.objects.filter(
+                    id=selected_coupon_id, 
+                    user=request.user, 
+                    is_used=False
+                ).select_related('coupon').first()
+                
+                if user_coupon:
+                    coupon = user_coupon.coupon
+                    if total_price >= coupon.min_purchase_amount:
+                        if coupon.discount_type == 'amount':
+                            discount_amount = Decimal(str(coupon.discount_value))
+                        else: # percentage
+                            discount_amount = total_price * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                            if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                                discount_amount = Decimal(str(coupon.max_discount_amount))
+            except (ValueError, TypeError):
+                user_coupon = None
+        # ----------------------------------------------
+
+        final_price = max(total_price - discount_amount, Decimal("0"))
 
         try:
             with transaction.atomic():
-                if user_account.balance < total_price:
-                    raise Exception(f"잔액 부족")
+                # (1) 잔액 검증
+                if user_account.balance < final_price:
+                    raise Exception("잔액이 부족합니다.")
                 
-                for item in cart_items:
+                now = timezone.now()
+                # (2) 상품별 재고 차감 및 거래 내역 생성
+                for index, item in enumerate(cart_items):
                     target_product = item.product
-
                     if target_product.stock < item.quantity:
                         raise Exception(f"[{target_product.name}] 재고 부족")
 
                     target_product.stock -= item.quantity
                     target_product.save()
 
-                    # --- [수정] 이제 selected_address가 정의되어 있으므로 사용 가능 ---
+                    # 각 상품별 거래 내역 생성 (첫 번째 상품에만 할인 정보를 기록하여 중복 계산 방지)
+                    # 혹은 각 상품 가격 비율에 맞춰 할인을 나눌 수 있으나, 단순화를 위해 
+                    # 전체 결제 금액(final_price)은 한 번만 잔액에서 깎으므로 로그도 이에 맞춰야 합니다.
                     Transaction.objects.create(
                         user=request.user,
                         account=user_account,
                         product=target_product,
                         product_name=target_product.name,
-                        category=item.product.category,
+                        category=target_product.category,
                         quantity=item.quantity,
                         tx_type=Transaction.OUT,
-                        amount=item.total_price(),
-                        occurred_at=timezone.now(),
-                        memo=f"장바구니 구매: {target_product.name}",
+                        # 각 행마다 final_price를 넣으면 총 지출이 (아이템수 * final_price)처럼 보일 수 있음
+                        # 여기서는 개별 상품 가격을 적되, 첫 번째 상품 메모에 총 결제 정보를 기록하는 방식 추천
+                        amount=item.total_price() if index > 0 else final_price, 
+                        total_price_at_pay=total_price if index == 0 else Decimal("0"),
+                        discount_amount=discount_amount if index == 0 else Decimal("0"),
+                        used_coupon=user_coupon if index == 0 else None,
+                        occurred_at=now,
                         shipping_address=selected_address.address,
                         shipping_detail_address=selected_address.detail_address,
                         shipping_zip_code=selected_address.zip_code,
+                        receiver_name=selected_address.receiver_name or request.user.username,
+                        memo=f"장바구니 결제({index+1}/{cart_items.count()})"
                     )
 
-                # (4) 유저 잔액 차감
-                user_account.balance -= total_price
+                # (3) 유저 잔액 차감 (실제 금액 한 번만 차감)
+                user_account.balance -= final_price
                 user_account.save()
+
+                # (4) 쿠폰 사용 완료 처리
+                if user_coupon:
+                    user_coupon.is_used = True
+                    user_coupon.used_at = now
+                    user_coupon.save()
 
                 # (5) 장바구니 비우기
                 cart_items.delete()
 
-            messages.success(
-                request, f"성공적으로 결제되었습니다! ({total_price:,}원 차감)"
-            )
+            messages.success(request, f"결제 완료! 할인금액: {discount_amount:,}원 / 실 결제금액: {final_price:,}원")
             return redirect("mypage")
 
         except Exception as e:
-            # 모든 에러 메시지를 사용자에게 알림으로 전달
-            messages.success(request, f"결제가 완료되었습니다!")
+            messages.error(request, f"결제 실패: {str(e)}")
             return redirect("cart_list")
 
 
 class DirectPurchaseView(LoginRequiredMixin, View):
-    """
-    상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
-    """
     def post(self, request, product_id):
-        # 1. 대상 상품 및 계좌 확인
         target_product = get_object_or_404(Product, id=product_id)
 
-        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        # 1. 계좌 선택
         selected_account_id = request.POST.get('selected_account_id')
-        
         if selected_account_id:
             user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
         else:
             user_account = get_default_account(request.user)
 
-        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
+        # 2. 배송지 정보
         address_id = request.POST.get('address_id')
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
@@ -319,27 +351,49 @@ class DirectPurchaseView(LoginRequiredMixin, View):
         if not selected_address:
             messages.error(request, "배송지 정보가 없습니다.")
             return redirect("product_detail", pk=product_id)
-        # ----------------------------------        
-        # 수량 가져오기 (HTML의 <input name="quantity"> 값)
+        
+        # 3. 금액 및 쿠폰 계산
         buy_quantity = int(request.POST.get("quantity", 1))
         total_price = target_product.price * buy_quantity
+        selected_coupon_id = request.POST.get('coupon_id')
+        discount_amount = Decimal("0")
+        user_coupon = None
 
-        # 2. 결제 로직 (트랜잭션)
+        # 'None' 문자열이거나 빈 값인 경우를 제외하고 실행
+        if selected_coupon_id and selected_coupon_id != 'None':
+            user_coupon = UserCoupon.objects.filter(
+                id=selected_coupon_id, 
+                user=request.user, 
+                is_used=False
+            ).select_related('coupon').first()
+
+            # ✅ 이 부분이 if selected_coupon_id 안에 있어야 안전합니다.
+            if user_coupon:
+                coupon = user_coupon.coupon
+                if total_price >= coupon.min_purchase_amount:
+                    if coupon.discount_type == 'amount':
+                        discount_amount = Decimal(str(coupon.discount_value))
+                    else: # percentage
+                        discount_amount = total_price * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                        if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                            discount_amount = Decimal(str(coupon.max_discount_amount))
+
+        # 최종 가격 계산 (할인액 반영)
+        final_price = max(total_price - discount_amount, Decimal("0"))
+
         try:
             with transaction.atomic():
-                # (1) 잔액 검증
-                if user_account.balance < total_price:
+                # (1) 검증
+                if user_account.balance < final_price:
                     raise Exception("잔액 부족")
-
-                # (2) 재고 검증
                 if target_product.stock < buy_quantity:
                     raise Exception("재고 부족")
 
-                # (3) 재고 차감 및 저장
+                # (2) 재고 차감
                 target_product.stock -= buy_quantity
                 target_product.save()
 
-                # (4) 거래 내역 생성 (상품 삭제 대비 product_name 포함)
+                # (3) 거래 내역 생성 (중복 필드 정리 완료 ✨)
                 Transaction.objects.create(
                     user=request.user,
                     account=user_account,
@@ -348,20 +402,31 @@ class DirectPurchaseView(LoginRequiredMixin, View):
                     product_name=target_product.name,
                     quantity=buy_quantity,
                     tx_type=Transaction.OUT,
-                    amount=total_price,
+                    
+                    amount=final_price,               # 실제 차감액
+                    total_price_at_pay=total_price,    # 할인 전 원가
+                    discount_amount=discount_amount,   # 할인액
+                    used_coupon=user_coupon,           # 사용 쿠폰
+                    
                     occurred_at=timezone.now(),
-                    # memo=f"바로구매: {target_product.name}",
-                    memo=f"바로구매: {target_product.name}",
+                    memo=f"바로구매(할인 {discount_amount:,}원): {target_product.name}",
                     shipping_address=selected_address.address,
                     shipping_detail_address=selected_address.detail_address,
                     shipping_zip_code=selected_address.zip_code,
+                    receiver_name=selected_address.receiver_name or request.user.username
                 )
 
-                # (5) 잔액 차감
-                user_account.balance -= total_price
+                # (4) 잔액 차감
+                user_account.balance -= final_price
                 user_account.save()
 
-            messages.success(request, "결제가 완료되었습니다!")
+                # (5) 쿠폰 사용 완료 처리
+                if user_coupon:
+                    user_coupon.is_used = True
+                    user_coupon.used_at = timezone.now()
+                    user_coupon.save()
+
+            messages.success(request, f"결제가 완료되었습니다! (할인금액: {discount_amount:,}원)")
             return redirect("mypage")
 
         except Exception as e:
@@ -373,133 +438,103 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = "shop/transaction_list.html"
     context_object_name = "transactions"
+    paginate_by = 10  # ✅ 10개씩 페이징 적용
 
     def get_queryset(self):
+        # 1. 기본 쿼리셋
         queryset = Transaction.objects.filter(user=self.request.user).order_by("-occurred_at")
+        tab = self.request.GET.get("tab", "in").strip().lower()
 
+        # 2. 공통 필터링 (입금/출금 공통으로 날짜와 계좌 필터 적용) ✨
         start_date = self.request.GET.get("start_date")
         end_date = self.request.GET.get("end_date")
         if start_date and end_date:
             queryset = queryset.filter(occurred_at__date__range=[start_date, end_date])
-
+        
         account_id = self.request.GET.get("account")
         if account_id:
             queryset = queryset.filter(account_id=account_id)
 
-        category_id = self.request.GET.get("category")
-        if category_id:
-            queryset = queryset.filter(category_id=category_id)
+        # 3. 탭별 특화 필터링
+        if tab == "in":
+            queryset = queryset.filter(tx_type=Transaction.IN)
+            # 입금 탭은 여기서 추가 로직 필요 없음 (날짜/계좌는 위에서 처리됨)
+
+        elif tab == "out":
+            queryset = queryset.filter(tx_type=Transaction.OUT)
+            # 출금 탭 전용 카테고리 필터
+            category_id = self.request.GET.get("category")
+            if category_id:
+                queryset = queryset.filter(category_id=category_id)
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
+        
+        # 기본 필터 데이터
         context["accounts"] = Account.objects.filter(user=self.request.user).order_by("-is_default", "-id")
         context["categories"] = Category.objects.all()
 
-        # ✅ 탭 상태
-        tab = (self.request.GET.get("tab") or "in").strip().lower()
-        filter_params = ["start_date", "end_date", "account", "category"]
+        # 탭 상태
+        tab = self.request.GET.get("tab", "in").strip().lower()
+        context["active_tab"] = tab
 
-        if tab in ("in", "out", "summary"):
-            context["active_tab"] = tab
-        elif any(self.request.GET.get(param) for param in filter_params):
-            context["active_tab"] = "out"
-        else:
-            context["active_tab"] = "in"
-
-        qs = context["transactions"]  # 기본 필터(기간/계좌/카테고리)가 이미 적용된 결과
-        context["tx_in"] = qs.filter(tx_type=Transaction.IN)
-        context["tx_out"] = qs.filter(tx_type=Transaction.OUT)
-        context["tx_all"] = qs
-
-        # ✅ totals (현재 qs 기준: 기본 필터까지 포함)
-        total_in = context["tx_in"].aggregate(s=Sum("amount"))["s"] or 0
-        total_out = context["tx_out"].aggregate(s=Sum("amount"))["s"] or 0
+        # ✅ 기존 요약/통계 로직 (그대로 유지)
+        qs = Transaction.objects.filter(user=self.request.user) 
+        total_in = qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or 0
+        total_out = qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or 0
         context["total_in"] = total_in
         context["total_out"] = total_out
         context["net_total"] = total_in - total_out
 
-        # ==============================
-        # ✅ [요약/통계 전용 필터] 월 범위 + 지출 카테고리
-        # ==============================
-        sum_start = (self.request.GET.get("sum_start") or "").strip()   # YYYY-MM
-        sum_end = (self.request.GET.get("sum_end") or "").strip()       # YYYY-MM
-        sum_category = (self.request.GET.get("sum_category") or "").strip()  # category id or ""
-
+        # [요약/통계 차트 전용 로직] - 건드리지 않음
+        sum_start = (self.request.GET.get("sum_start") or "").strip()
+        sum_end = (self.request.GET.get("sum_end") or "").strip()
+        sum_category = (self.request.GET.get("sum_category") or "").strip()
         context["sum_start"] = sum_start
         context["sum_end"] = sum_end
         context["sum_category"] = sum_category
 
-        summary_qs = qs  # 기본필터 + summary필터를 반영할 queryset
-
-        # ✅ 월 범위 필터 (occurred_at 기준)
-        # - YYYY-MM -> 해당 월 1일~말일 범위로 변환해서 적용
+        summary_qs = qs
         def _parse_ym(s):
-            # "2026-02" -> (2026, 2)
             y, m = s.split("-")
             return int(y), int(m)
 
         if sum_start:
             y, m = _parse_ym(sum_start)
             summary_qs = summary_qs.filter(occurred_at__date__gte=date(y, m, 1))
-
         if sum_end:
             y, m = _parse_ym(sum_end)
-            # 다음달 1일을 구해서 lt로 제한
-            if m == 12:
-                ny, nm = y + 1, 1
-            else:
-                ny, nm = y, m + 1
+            ny, nm = (y + 1, 1) if m == 12 else (y, m + 1)
             summary_qs = summary_qs.filter(occurred_at__date__lt=date(ny, nm, 1))
 
-        # ✅ 월별 수익/지출 (summary_qs 기준)
         monthly = (
             summary_qs.annotate(m=TruncMonth("occurred_at"))
             .values("m")
             .annotate(
-                in_sum=Sum(Case(
-                    When(tx_type=Transaction.IN, then="amount"),
-                    default=Value(0),
-                    output_field=DecimalField(max_digits=14, decimal_places=0),
-                )),
-                out_sum=Sum(Case(
-                    When(tx_type=Transaction.OUT, then="amount"),
-                    default=Value(0),
-                    output_field=DecimalField(max_digits=14, decimal_places=0),
-                )),
-            )
-            .order_by("m")
+                in_sum=Sum(Case(When(tx_type=Transaction.IN, then="amount"), default=Value(0), output_field=DecimalField(max_digits=14, decimal_places=0))),
+                out_sum=Sum(Case(When(tx_type=Transaction.OUT, then="amount"), default=Value(0), output_field=DecimalField(max_digits=14, decimal_places=0))),
+            ).order_by("m")
         )
 
-        labels, in_values, out_values = [], [], []
+        labels, in_vals, out_vals = [], [], []
         for row in monthly:
-            if not row.get("m"):
-                continue
-            labels.append(row["m"].strftime("%Y-%m"))
-            in_values.append(int(row.get("in_sum") or 0))
-            out_values.append(int(row.get("out_sum") or 0))
+            if row.get("m"):
+                labels.append(row["m"].strftime("%Y-%m"))
+                in_vals.append(int(row["in_sum"] or 0))
+                out_vals.append(int(row["out_sum"] or 0))
 
         context["chart_labels"] = "|".join(labels)
-        context["chart_in"] = "|".join(map(str, in_values))
-        context["chart_out"] = "|".join(map(str, out_values))
+        context["chart_in"] = "|".join(map(str, in_vals))
+        context["chart_out"] = "|".join(map(str, out_vals))
 
-        # ✅ 카테고리별 지출(OUT) - summary_qs 기준
         out_qs = summary_qs.filter(tx_type=Transaction.OUT)
-
-        # sum_category가 있으면 해당 카테고리만 (원하면 “전체에서 선택한 카테고리 강조”로 바꿀 수도 있음)
         if sum_category:
             out_qs = out_qs.filter(category_id=sum_category)
 
-        by_cat = (
-            out_qs.values("category__name")
-            .annotate(total=Sum("amount"))
-            .order_by("-total")
-        )
-
-        cat_labels = []
-        cat_values = []
+        by_cat = out_qs.values("category__name").annotate(total=Sum("amount")).order_by("-total")
+        cat_labels, cat_values = [], []
         for row in by_cat:
             cat_labels.append(row["category__name"] or "미분류")
             cat_values.append(int(row["total"] or 0))
@@ -507,7 +542,7 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["cat_chart_labels"] = "|".join(cat_labels)
         context["cat_chart_values"] = "|".join(map(str, cat_values))
 
-        # 기본 필터 유지용
+        # 필터 유지용
         context["start_date"] = self.request.GET.get("start_date", "")
         context["end_date"] = self.request.GET.get("end_date", "")
         context["selected_account"] = self.request.GET.get("account", "")
@@ -523,7 +558,7 @@ class CheckoutView(LoginRequiredMixin, View):
     # 1. 여기서 변수를 먼저 정의해야 합니다!
         all_accounts = Account.objects.filter(user=request.user, is_active=True).select_related('bank')
         
-        # ✅ 사용자가 selectbox에서 선택한 계좌 ID 확인
+        # 계좌 선택 로직
         selected_account_id = request.GET.get('selected_account_id') or request.POST.get('selected_account_id')
         
         if selected_account_id:
@@ -532,19 +567,37 @@ class CheckoutView(LoginRequiredMixin, View):
             user_account = all_accounts.filter(is_default=True).first() or all_accounts.first()
 
         addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
+        user_coupons = UserCoupon.objects.filter(user=request.user, is_used=False).select_related('coupon')
+        # ✅ 쿠폰 ID 가져오기 (이게 있어야 아래 if selected_coupon_id 가 작동함)
+        selected_coupon_id = request.GET.get('coupon_id')
 
-        # 상품 및 금액 로직
+        # 상품 및 기본 금액 계산
         if product_id:
-            # 바로 구매 경로
             product = get_object_or_404(Product, id=product_id)
             total_amount = product.price * int(quantity)
             cart_items = None
         else:
-            cart_items = Cart.objects.filter(user=request.user)
-            total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else 0
+
             product = None
             quantity = None
+            cart_items = Cart.objects.filter(user=request.user)
+            total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else Decimal("0")
 
+        # ✅ 쿠폰 할인 로직 (변수명 total_amount로 통일)
+        discount_amount = Decimal("0")
+        if selected_coupon_id:
+            user_coupon = user_coupons.filter(id=selected_coupon_id).first()
+            if user_coupon:
+                coupon = user_coupon.coupon
+                if total_amount >= coupon.min_purchase_amount:
+                    if coupon.discount_type == 'amount':
+                        discount_amount = Decimal(str(coupon.discount_value))
+                    else:
+                        discount_amount = total_amount * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                        if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                            discount_amount = Decimal(str(coupon.max_discount_amount))
+
+        final_price = total_amount - discount_amount
         return {
             "account": user_account,    # 결제 요약용 (단일)
             "accounts": all_accounts,
@@ -553,6 +606,10 @@ class CheckoutView(LoginRequiredMixin, View):
             "quantity": quantity,
             "cart_items": cart_items,
             "total_amount": total_amount,
+            "discount_amount": discount_amount,
+            "final_price": final_price,
+            "user_coupons": user_coupons,
+            "selected_coupon_id": selected_coupon_id,            
         }
     
     def get(self, request):
@@ -604,7 +661,7 @@ class ReviewCreateView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
 
-        # 1. 실구매자 인증 (보안 강화)
+        # 1. 구매 여부 확인
         has_purchased = Transaction.objects.filter(
             user=request.user, 
             product=product, 
@@ -613,30 +670,29 @@ class ReviewCreateView(LoginRequiredMixin, View):
 
         if not has_purchased:
             messages.error(request, "해당 상품을 구매하신 분만 리뷰를 남길 수 있습니다.")
-            return redirect("product_detail", pk=product_id)
+            return redirect("product_detail", pk=product.id)
+        # 2. 리뷰 데이터 가져오기        
+        rating = request.POST.get('rating')
+        content = request.POST.get('content')
 
-        if Review.objects.filter(user=request.user, product=product).exists():
-            messages.warning(request, "이미 이 상품에 대한 리뷰를 작성하셨습니다.")
-            return redirect("product_detail", pk=product_id)
-        # 2. 데이터 가져오기
-        content = request.POST.get("content")
-        rating = request.POST.get("rating")
-
-        if not content or not rating:
-            messages.error(request, "내용과 평점을 모두 입력해주세요.")
-            return redirect("product_detail", pk=product_id)
-
-        # 3. 리뷰 생성
-        Review.objects.create(
+        # 3. 리뷰 본문 생성 (먼저 생성해야 review 객체의 ID가 생김)
+        review = Review.objects.create(
             product=product,
             user=request.user,
-            rating=int(rating),
+            rating=rating,
             content=content
         )
 
-        messages.success(request, "리뷰가 등록되었습니다!")
-        return redirect("product_detail", pk=product_id)
+        # 4. 🔥 여러 장의 이미지 처리 (핵심 부분)
+        # request.FILES.getlist를 사용하여 선택된 모든 파일을 리스트로 가져옵니다.
+        images = request.FILES.getlist('review_images') 
 
+        for img in images:
+        # 파일이 실제로 존재할 때만(빈 칸이 아닐 때만) 저장
+            if img:
+                ReviewImage.objects.create(review=review, image=img)
+        messages.success(request, "리뷰가 성공적으로 등록되었습니다.")
+        return redirect("product_detail", pk=product.id)
 class ReviewDeleteView(LoginRequiredMixin, View):
     def post(self, request, review_id):
         # 1. 내 리뷰인지 확인하며 가져오기 (보안)
@@ -664,17 +720,34 @@ class ReviewUpdateView(LoginRequiredMixin, View):
         content = request.POST.get("content")
         rating = request.POST.get("rating")
 
+        # ✅ 추가된 데이터: 삭제할 이미지 ID 리스트와 새로 등록할 파일들
+        delete_image_ids = request.POST.getlist("delete_images")
+        new_images = request.FILES.getlist("review_images")
+
         # 3. 데이터 업데이트 및 저장
         if content and rating:
             review.content = content
             review.rating = int(rating)
             review.save()
+
+            # ✅ [추가] 이미지 삭제 로직
+            if delete_image_ids:
+                # 선택된 이미지들을 찾아서 한꺼번에 삭제
+                # (이때 review.images는 ReviewImage 모델과의 관계 이름입니다)
+                review.images.filter(id__in=delete_image_ids).delete()
+
+            # ✅ [추가] 새 이미지 저장 로직
+            for img in new_images:
+                # ReviewImage 모델을 사용하여 새 객체 생성
+                # (모델명이 다를 경우 본인의 모델명에 맞게 수정하세요)
+                ReviewImage.objects.create(review=review, image=img)            
             messages.success(request, "리뷰가 성공적으로 수정되었습니다.")
         else:
             messages.error(request, "내용과 평점을 모두 입력해주세요.")
 
         # 4. 상세 페이지의 리뷰 섹션으로 다시 리다이렉트
         return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')
+    
 class ConsultingProductListView(LoginRequiredMixin, ListView):
     model = Product
     template_name = "shop/product_consulting_list.html"
@@ -686,44 +759,107 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         start = today.replace(day=1)
         return start, today
 
-    def _calc_month_net(self):
-        start, end = self._month_range()
+    def _to_decimal(self, v):
+        if v is None:
+            return Decimal("0")
+        if isinstance(v, Decimal):
+            return v
+        return Decimal(str(v))
 
+    def _calc_month_in(self, account=None):
+        """이번 달 입금(IN) 합계
+        - account가 주어지면 해당 계좌 기준
+        - account가 None이면 ✅ 계좌 상관없이(전체) 기준
+        """
+        start, end = self._month_range()
         qs = Transaction.objects.filter(
             user=self.request.user,
             occurred_at__date__gte=start,
             occurred_at__date__lte=end,
         )
+        if account is not None:
+            qs = qs.filter(account=account)
 
-        # ✅ Decimal 연산 안정성: 기본값도 Decimal("0")
         total_in = qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or Decimal("0")
+        return self._to_decimal(total_in).quantize(Decimal("1"))
+
+    def _calc_month_out(self, account=None):
+        """이번 달 출금(OUT) 합계
+        - account가 주어지면 해당 계좌 기준
+        - account가 None이면 ✅ 계좌 상관없이(전체) 기준
+        """
+        start, end = self._month_range()
+        qs = Transaction.objects.filter(
+            user=self.request.user,
+            occurred_at__date__gte=start,
+            occurred_at__date__lte=end,
+        )
+        if account is not None:
+            qs = qs.filter(account=account)
+
         total_out = qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or Decimal("0")
-        return total_in, total_out, (total_in - total_out)
+        return self._to_decimal(total_out).quantize(Decimal("1"))
 
-    def _recommend_budget(self, balance, month_net):
+    def _calc_total_in(self, account=None):
+        """누적 입금(IN) 합계(가입 이후 전체)
+        - account=None이면 ✅ 계좌 상관없이(전체)
         """
-        ✅ 여기서 발생한 에러(Decimal * float) 근본 원인 제거:
-        - float 상수(0.30 등)를 전부 Decimal("0.30")로 변경
-        - balance/month_net이 int/None일 수 있는 경우도 방어
+        qs = Transaction.objects.filter(user=self.request.user, tx_type=Transaction.IN)
+        if account is not None:
+            qs = qs.filter(account=account)
+
+        total_in = qs.aggregate(s=Sum("amount"))["s"] or Decimal("0")
+        return self._to_decimal(total_in).quantize(Decimal("1"))
+
+    def _calc_total_out(self, account=None):
+        """누적 출금(OUT) 합계: 가입 이후 전체
+        - account=None이면 ✅ 계좌 상관없이(전체)
         """
-        if balance is None:
-            balance = Decimal("0")
-        if month_net is None:
-            month_net = Decimal("0")
+        qs = Transaction.objects.filter(user=self.request.user, tx_type=Transaction.OUT)
+        if account is not None:
+            qs = qs.filter(account=account)
 
-        if not isinstance(balance, Decimal):
-            balance = Decimal(str(balance))
-        if not isinstance(month_net, Decimal):
-            month_net = Decimal(str(month_net))
+        total_out = qs.aggregate(s=Sum("amount"))["s"] or Decimal("0")
+        return self._to_decimal(total_out).quantize(Decimal("1"))
 
-        if month_net > 0:
-            budget = (balance * Decimal("0.30")) + (month_net * Decimal("0.20"))
+    def _calc_asset_base(self, total_in, total_out):
+        """✅ Runway+SWR 모델 계산용 자산(순자산)
+        = 누적입금 - 누적출금 (0 미만은 0 처리)
+        """
+        total_in = self._to_decimal(total_in)
+        total_out = self._to_decimal(total_out)
+        net = total_in - total_out
+        if net < 0:
+            net = Decimal("0")
+        return net.quantize(Decimal("1"))
+
+    def _recommend_budget(self, asset_base, month_out):
+        asset_base = self._to_decimal(asset_base)
+        month_out = self._to_decimal(month_out)
+
+        if asset_base <= 0:
+            return Decimal("0")
+
+        # 1) runway (months)
+        denom = month_out if month_out > 0 else Decimal("1")
+        runway = asset_base / denom
+
+        # 2) base monthly safe spending rate (월 1%)
+        base_rate = Decimal("0.01")
+
+        # 3) risk multiplier by runway
+        if runway >= Decimal("24"):
+            mult = Decimal("1.6")
+        elif runway >= Decimal("12"):
+            mult = Decimal("1.2")
+        elif runway >= Decimal("6"):
+            mult = Decimal("0.9")
         else:
-            budget = balance * Decimal("0.15")
+            mult = Decimal("0.6")
 
-        budget = min(budget, balance)
+        budget = asset_base * base_rate * mult
+        budget = min(budget, asset_base)
 
-        # ✅ 원 단위로 정리 (템플릿 intcomma 출력과도 잘 맞음)
         return budget.quantize(Decimal("1"))
 
     def get_queryset(self):
@@ -738,17 +874,16 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         if category_id:
             qs = qs.filter(category_id=category_id)
 
-        # ✅ 기본 계좌 기준 자산/예산 산정
-        default_account = get_default_account(self.request.user)
-        balance = default_account.balance if default_account else Decimal("0")
+        # ✅ 예산 산정(모델 계산)은 "누적 순자산"을 기반으로,
+        # ✅ 분모(소비속도)는 "이번 달 지출"로 유지하는 구성이 가장 자연스러움
+        month_out = self._calc_month_out(account=None)
+        total_in = self._calc_total_in(account=None)
+        total_out = self._calc_total_out(account=None)
+        asset_base = self._calc_asset_base(total_in, total_out)
+        budget = self._recommend_budget(asset_base, month_out)
 
-        _, _, month_net = self._calc_month_net()
-        budget = self._recommend_budget(balance, month_net)
-
-        # ✅ 예산 이하 상품만 노출
         qs = qs.filter(price__lte=budget)
 
-        # ✅ 정렬 옵션은 product_list와 동일하게 유지(구조/사용감 일치)
         if sort_option == "price_low":
             qs = qs.order_by("price")
         elif sort_option == "price_high":
@@ -762,23 +897,94 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["categories"] = Category.objects.all()
 
+        # 월 라벨 ("N월")
+        today = timezone.localdate()
+        context["month_label"] = f"{today.month}월"
+
+        # 기본계좌(표시용 유지)
         default_account = get_default_account(self.request.user)
-        balance = default_account.balance if default_account else Decimal("0")
-
-        total_in, total_out, month_net = self._calc_month_net()
-        budget = self._recommend_budget(balance, month_net)
-
+        balance = self._to_decimal(default_account.balance if default_account else 0).quantize(Decimal("1"))
         context["default_account"] = default_account
         context["balance"] = balance
-        context["month_total_in"] = total_in
-        context["month_total_out"] = total_out
-        context["month_net"] = month_net
+
+        # ✅ 이번 달 기준
+        month_in = self._calc_month_in(account=None)
+        month_out = self._calc_month_out(account=None)
+
+        # ✅ 누적(전체) 기준
+        total_in = self._calc_total_in(account=None)
+        total_out = self._calc_total_out(account=None)
+
+        # ✅ 모델 계산(예산/런웨이)용 자산: 누적 순자산
+        asset_base = self._calc_asset_base(total_in, total_out)
+        budget = self._recommend_budget(asset_base, month_out)
+
+        # -----------------------------------------
+        # ✅ 컨텍스트 키 구성 (기존 키 + 신규 키 공존)
+        # -----------------------------------------
+
+        # 1) 이번 달 표기용(신규)
+        context["month_total_in"] = month_in
+        context["month_total_out"] = month_out  # (이번 달 지출)
+
+        # 2) 누적(전체) 표기용(신규)
+        context["total_in_all"] = total_in
+        context["total_out_all"] = total_out
+
+        # 3) 기존 템플릿 호환용(유지)
+        # - 기존에 current_asset을 "총 누적 수익"으로 쓰던 흐름을 깨지 않기 위해 유지
+        context["current_asset"] = total_in
+
+        # 추천 예산
         context["recommended_budget"] = budget
 
-        # ✅ 컨설팅 멘트(컨셉용)
-        if month_net > 0:
-            context["consult_msg"] = "이번 달은 흑자 흐름이에요. 추천 예산 안에서 부담 없는 소비를 제안할게요."
+        # 런웨이 메시지 (누적 순자산 / 이번 달 지출)
+        denom = month_out if month_out > 0 else Decimal("1")
+        runway = asset_base / denom
+
+        if runway >= Decimal("24"):
+            context["consult_msg"] = "지출 속도 대비 자산 런웨이가 충분합니다. 기준 예산보다 한 단계 적극적으로 제안할게요."
+        elif runway >= Decimal("12"):
+            context["consult_msg"] = "런웨이가 안정 구간입니다. 무리 없는 범위에서 예산을 제안할게요."
+        elif runway >= Decimal("6"):
+            context["consult_msg"] = "지출 속도가 자산 대비 빠른 편입니다. 예산을 보수적으로 조정했어요."
+        elif month_out == 0:
+            context["consult_msg"] = "이번 달 지출이 없어 런웨이가 매우 깁니다. 예산은 자산 대비 보수적으로 제안했어요."
         else:
-            context["consult_msg"] = "이번 달은 지출이 많은 편이에요. 당분간은 가성비/필수 위주로 추천할게요."
+            context["consult_msg"] = "런웨이가 짧습니다. 당분간은 필수 소비 중심으로 예산을 강하게 제한하는 걸 권합니다."
 
         return context
+    
+class CouponRegisterView(LoginRequiredMixin, View):
+    """
+    CBV 방식의 쿠폰 등록 및 목록 조회 뷰
+    """
+    def get(self, request):
+        # 유저가 보유한 쿠폰 목록을 최신순으로 가져옴
+        from .models import UserCoupon
+        user_coupons = UserCoupon.objects.filter(user=request.user).order_by('-issued_at')
+        return render(request, 'shop/register_coupon.html', {
+            'user_coupons': user_coupons
+        })
+
+    def post(self, request):
+        from .models import Coupon, UserCoupon
+        code = request.POST.get('coupon_code', '').strip().upper()
+
+        # 1. 존재 여부 확인
+        coupon = Coupon.objects.filter(code=code, active=True).first()
+
+        if not coupon:
+            messages.error(request, "유효하지 않거나 사용 중지된 쿠폰 코드입니다.")
+        # 2. 유효 기간 확인
+        elif coupon.valid_to < timezone.now():
+            messages.error(request, "사용 기간이 만료된 쿠폰입니다.")
+        # 3. 중복 발급 확인
+        elif UserCoupon.objects.filter(user=request.user, coupon=coupon).exists():
+            messages.warning(request, "이미 등록된 쿠폰입니다.")
+        else:
+            # 4. 발급 처리
+            UserCoupon.objects.create(user=request.user, coupon=coupon)
+            messages.success(request, f"🎉 [{coupon.name}] 쿠폰이 성공적으로 등록되었습니다!")
+
+        return redirect('register_coupon')

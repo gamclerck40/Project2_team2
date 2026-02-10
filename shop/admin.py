@@ -61,6 +61,11 @@ class ProductAdmin(admin.ModelAdmin):
         ),
     )
 
+# 1. 사진을 리뷰 아래에 나열하기 위한 Inline 클래스 추가
+class ReviewImageInline(admin.TabularInline):
+    model = ReviewImage
+    extra = 1  # 기본적으로 추가할 수 있는 빈 칸 개수
+
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     # 'rating'(숫자) 대신 'star_rating'(별모양 함수)을 목록에 표시합니다.
@@ -68,6 +73,23 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ['rating', 'created_at']
     search_fields = ['content', 'user__username', 'product__name']
 
+    # 2. ✅ 여기에 인라인 추가 (리뷰 상세페이지에서 사진이 바로 보임)
+    inlines = [ReviewImageInline]
+
     def star_rating(self, obj):
         return "★" * obj.rating
     star_rating.short_description = "평점"
+
+# 3. (선택사항) 사진만 따로 모아보고 싶다면 별도로 등록
+admin.site.register(ReviewImage)
+
+
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'discount_type', 'discount_value', 'valid_to', 'active']
+    search_fields = ['name', 'code']
+
+@admin.register(UserCoupon)
+class UserCouponAdmin(admin.ModelAdmin):
+    list_display = ['user', 'coupon', 'is_used', 'used_at']
+    list_filter = ['is_used']

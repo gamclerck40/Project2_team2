@@ -282,7 +282,21 @@
     display:block;
   }
 
-  /* 반응형: 좁으면 패딩만 줄이고 표는 스크롤 유지 */
+  /* ✅ 페이지네이션 전용 스타일 추가 */
+  .pagination .page-link {
+    color: #333;
+    border: 1px solid #eee;
+    border-radius: 8px !important;
+    margin: 0 2px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .pagination .page-item.active .page-link {
+    background-color: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+  }
+
   @media (max-width: 576px){
     .txSection{ padding: 16px; }
     .txFilterBox{ padding: 14px; }
@@ -297,23 +311,9 @@
   </div>
 
   <div class="txTabbar" role="tablist" aria-label="거래내역 탭">
-    <a href="?tab=in"
-       class="txTabbtn"
-       aria-current="{% if active_tab == 'in' %}page{% else %}false{% endif %}">
-      💰 입금 내역
-    </a>
-
-    <a href="?tab=out"
-       class="txTabbtn"
-       aria-current="{% if active_tab == 'out' %}page{% else %}false{% endif %}">
-      🛍️ 출금/구매 내역
-    </a>
-
-    <a href="?tab=summary"
-       class="txTabbtn"
-       aria-current="{% if active_tab == 'summary' %}page{% else %}false{% endif %}">
-      📊 요약/통계
-    </a>
+    <a href="?tab=in" class="txTabbtn" aria-current="{% if active_tab == 'in' %}page{% else %}false{% endif %}">💰 입금 내역</a>
+    <a href="?tab=out" class="txTabbtn" aria-current="{% if active_tab == 'out' %}page{% else %}false{% endif %}">🛍️ 출금/구매 내역</a>
+    <a href="?tab=summary" class="txTabbtn" aria-current="{% if active_tab == 'summary' %}page{% else %}false{% endif %}">📊 요약/통계</a>
   </div>
 
   <div class="txCard">
@@ -344,7 +344,7 @@
                 <option value="">모든 계좌</option>
                 {% for acc in accounts %}
                   <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
-                    {{ acc.bank.name }} ({{ acc.account_number }})
+                    {{ acc.bank.name }} ({{ acc.masked_account_number }})
                   </option>
                 {% endfor %}
               </select>
@@ -389,25 +389,15 @@
                     </td>
                     <td>
                       <div class="txBank">{{ tx.account.bank.name }}</div>
-                      <div class="txAcc">{{ tx.account.account_number }}</div>
+                      <div class="txAcc">{{ tx.account.masked_account_number }}</div>
                     </td>
-                    <td class="txProduct">
-                      {% if tx.product %}
-                        {{ tx.product.name }} <span class="txMuted" style="font-weight:800;">({{ tx.quantity }}개)</span>
-                      {% else %}
-                        {{ tx.product_name|default:"일반 지출" }}
-                      {% endif %}
-                    </td>
+                    <td class="txProduct">{% if tx.product %}{{ tx.product.name }} <span class="txMuted" style="font-weight:800;">({{ tx.quantity }}개)</span>{% else %}{{ tx.product_name|default:"일반 지출" }}{% endif %}</td>
                     <td class="text-end txAmountOut">-{{ tx.amount|intcomma }}원</td>
-                    <td class="text-center">
-                      <span class="txBadge">{{ tx.category.name|default:"미분류" }}</span>
-                    </td>
+                    <td class="text-center"><span class="txBadge">{{ tx.category.name|default:"미분류" }}</span></td>
                   </tr>
                 {% endif %}
               {% empty %}
-                <tr>
-                  <td colspan="5" class="text-center py-5 txMuted">조건에 맞는 내역이 없습니다.</td>
-                </tr>
+                <tr><td colspan="5" class="text-center py-5 txMuted">조건에 맞는 내역이 없습니다.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -448,7 +438,7 @@
                   <select name="sum_category" class="form-select form-select-sm">
                     <option value="">전체 카테고리</option>
                     {% for cat in categories %}
-                      <option value="{{ cat.id }}" {% if sum_category == cat.id|stringformat:"i" %}selected{% endif %}>
+                      <option value="{{ cat.id }}" {% if sum_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
                         {{ cat.name }}
                       </option>
                     {% endfor %}
@@ -465,66 +455,23 @@
         </div>
 
         <div class="row g-3" style="margin-bottom: 18px;">
-          <div class="col-md-4">
-            <div class="txFilterBox" style="margin-bottom:0;">
-              <div class="txMuted" style="font-weight:900;">총 수익(입금)</div>
-              <div class="txAmountIn" style="font-size:20px;">+{{ total_in|intcomma }}원</div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="txFilterBox" style="margin-bottom:0;">
-              <div class="txMuted" style="font-weight:900;">총 지출(출금)</div>
-              <div class="txAmountOut" style="font-size:20px;">-{{ total_out|intcomma }}원</div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="txFilterBox" style="margin-bottom:0;">
-              <div class="txMuted" style="font-weight:900;">순이익</div>
-              <div style="font-weight:900; font-size:20px; color:#333;">{{ net_total|intcomma }}원</div>
-            </div>
-          </div>
+          <div class="col-md-4"><div class="txFilterBox" style="margin-bottom:0;"><div class="txMuted" style="font-weight:900;">총 수익(입금)</div><div class="txAmountIn" style="font-size:20px;">+{{ total_in|intcomma }}원</div></div></div>
+          <div class="col-md-4"><div class="txFilterBox" style="margin-bottom:0;"><div class="txMuted" style="font-weight:900;">총 지출(출금)</div><div class="txAmountOut" style="font-size:20px;">-{{ total_out|intcomma }}원</div></div></div>
+          <div class="col-md-4"><div class="txFilterBox" style="margin-bottom:0;"><div class="txMuted" style="font-weight:900;">순이익</div><div style="font-weight:900; font-size:20px; color:#333;">{{ net_total|intcomma }}원</div></div></div>
         </div>
 
         {% with chart_tab=request.GET.chart_tab|default:"monthly" %}
         <div class="divider" style="margin:18px 0;"></div>
-        <div class="txHead">
-          <h3 class="txH3">요약/통계(Graph)</h3>
-        <div class="txSub">요약 정보의 그래프입니다.</div>
+        <div class="txHead"><h3 class="txH3">요약/통계(Graph)</h3><div class="txSub">요약 정보의 그래프입니다.</div></div>
+        <div class="txTabbar txChartTabbar" role="tablist">
+          <a href="?tab=summary&chart_tab=monthly{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}" class="txTabbtn" aria-current="{% if chart_tab == 'monthly' %}page{% else %}false{% endif %}">📈 수익/지출 통계</a>
+          <a href="?tab=summary&chart_tab=category{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}" class="txTabbtn" aria-current="{% if chart_tab == 'category' %}page{% else %}false{% endif %}">🧾 카테고리별 지출 통계</a>
         </div>
-          <div class="txTabbar txChartTabbar" role="tablist" aria-label="요약 차트 탭">
-            <a href="?tab=summary&chart_tab=monthly{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}"
-               class="txTabbtn"
-               aria-current="{% if chart_tab == 'monthly' %}page{% else %}false{% endif %}">
-              📈 수익/지출 통계
-            </a>
-
-            <a href="?tab=summary&chart_tab=category{% if sum_start %}&sum_start={{ sum_start }}{% endif %}{% if sum_end %}&sum_end={{ sum_end }}{% endif %}{% if sum_category %}&sum_category={{ sum_category }}{% endif %}"
-               class="txTabbtn"
-               aria-current="{% if chart_tab == 'category' %}page{% else %}false{% endif %}">
-              🧾 카테고리별 지출 통계
-            </a>
-          </div>
-
-          {% if chart_tab == 'monthly' %}
-            <div class="txFilterBox">
-              <div class="txMuted" style="font-weight:900; margin-bottom: 8px;">수익/지출 통계</div>
-              <div class="txChartWrap">
-                <canvas id="txMonthlyChart"
-                        data-labels="{{ chart_labels|escape }}"
-                        data-in="{{ chart_in|escape }}"
-                        data-out="{{ chart_out|escape }}"></canvas>
-              </div>
-            </div>
-          {% else %}
-            <div class="txFilterBox">
-              <div class="txMuted" style="font-weight:900; margin-bottom: 8px;">카테고리별 통계</div>
-              <div class="txChartWrap">
-                <canvas id="txCategoryChart"
-                        data-labels="{{ cat_chart_labels|escape }}"
-                        data-values="{{ cat_chart_values|escape }}"></canvas>
-              </div>
-            </div>
-          {% endif %}
+        {% if chart_tab == 'monthly' %}
+          <div class="txFilterBox"><div class="txMuted" style="font-weight:900; margin-bottom: 8px;">수익/지출 통계</div><div class="txChartWrap"><canvas id="txMonthlyChart" data-labels="{{ chart_labels|escape }}" data-in="{{ chart_in|escape }}" data-out="{{ chart_out|escape }}"></canvas></div></div>
+        {% else %}
+          <div class="txFilterBox"><div class="txMuted" style="font-weight:900; margin-bottom: 8px;">카테고리별 통계</div><div class="txChartWrap"><canvas id="txCategoryChart" data-labels="{{ cat_chart_labels|escape }}" data-values="{{ cat_chart_values|escape }}"></canvas></div></div>
+        {% endif %}
         {% endwith %}
 
         {# ✅ Chart.js: 현재 표시되는 canvas만 렌더 #}
@@ -534,41 +481,12 @@
             const mCanvas = document.getElementById('txMonthlyChart');
             const cCanvas = document.getElementById('txCategoryChart');
 
-            // 이전 인스턴스 정리(뒤로가기/캐시 대비)
-            if (window.__txMonthlyChart) {
-              try { window.__txMonthlyChart.destroy(); } catch(e) {}
-              window.__txMonthlyChart = null;
-            }
-            if (window.__txCategoryChart) {
-              try { window.__txCategoryChart.destroy(); } catch(e) {}
-              window.__txCategoryChart = null;
-            }
-
             // ===== 월별 수익/지출 =====
             if (mCanvas) {
               const labels = (mCanvas.dataset.labels || '').split('|').filter(Boolean).map(s => s.trim());
-              const inVals  = (mCanvas.dataset.in  || '').split('|').filter(Boolean).map(Number);
+              const inVals = (mCanvas.dataset.in || '').split('|').filter(Boolean).map(Number);
               const outVals = (mCanvas.dataset.out || '').split('|').filter(Boolean).map(Number);
-
-              if (labels.length) {
-                window.__txMonthlyChart = new Chart(mCanvas, {
-                  type: 'bar',
-                  data: {
-                    labels: labels,
-                    datasets: [
-                      { label: '수익(입금)', data: inVals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 },
-                      { label: '지출(출금)', data: outVals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 },
-                    ]
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: { y: { beginAtZero: true } }
-                  }
-                });
-              }
+              if (labels.length) { new Chart(mCanvas, { type: 'bar', data: { labels: labels, datasets: [{ label: '수익(입금)', data: inVals, borderWidth: 1 }, { label: '지출(출금)', data: outVals, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); }
             }
 
             // ===== 카테고리별 지출 =====
@@ -576,27 +494,7 @@
               const labels = (cCanvas.dataset.labels || '').split('|').filter(Boolean).map(s => s.trim());
               const vals = (cCanvas.dataset.values || '').split('|').filter(Boolean).map(Number);
 
-              if (labels.length) {
-                window.__txCategoryChart = new Chart(cCanvas, {
-                  type: 'bar',
-                  data: {
-                    labels: labels,
-                    datasets: [
-                      { label: '지출(출금)', data: vals, borderWidth: 1, barPercentage: 0.9, categoryPercentage: 0.6 }
-                    ]
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                      x: { ticks: { autoSkip: true, maxRotation: 0 } },
-                      y: { beginAtZero: true }
-                    }
-                  }
-                });
-              }
+              if (labels.length) { new Chart(cCanvas, { type: 'bar', data: { labels: labels, datasets: [{ label: '지출(출금)', data: vals, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); }
             }
           })();
         </script>
@@ -606,7 +504,31 @@
           <h3 class="txH3">입금 내역</h3>
           <div class="txSub">계좌 충전 기록을 확인할 수 있습니다.</div>
         </div>
-
+        <div class="txFilterBox">
+          <form method="GET" class="row g-3 align-items-end">
+            <input type="hidden" name="tab" value="in">
+            <div class="col-lg-5 col-md-12">
+              <label class="form-label">조회 기간</label>
+              <div class="input-group input-group-sm">
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                <span class="input-group-text bg-white">~</span>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+              </div>
+            </div>
+            <div class="col-lg-5 col-md-12">
+              <label class="form-label">입금 계좌</label>
+              <select name="account" class="form-select form-select-sm">
+                <option value="">모든 계좌</option>
+                {% for acc in accounts %}
+                  <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>{{ acc.bank.name }} ({{ acc.account_number }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-lg-2 col-md-12">
+              <button type="submit" class="btn btn-sm txBtn">조회하기</button>
+            </div>
+          </form>
+        </div>
 
         <div class="table-responsive txTableWrap">
           <table class="table table-hover align-middle txTable">
@@ -622,31 +544,45 @@
               {% for tx in transactions %}
                 {% if tx.tx_type == "IN" %}
                   <tr style="cursor: default;">
-                    <td>
-                      <div class="txMuted">{{ tx.occurred_at|date:"Y-m-d" }}</div>
-                      <div class="txMuted">{{ tx.occurred_at|date:"H:i" }}</div>
-                    </td>
-                    <td>
-                      <div class="txBank">{{ tx.account.bank.name }}</div>
-                      <div class="txAcc">{{ tx.account.account_number }}</div>
-                    </td>
-                    <td class="txProduct">
-                      <span class="txBadge" style="margin-right: 8px;">입금</span>
-                      {{ tx.product_name|default:"계좌 충전" }}
-                    </td>
+                    <td><div class="txMuted">{{ tx.occurred_at|date:"Y-m-d" }}</div><div class="txMuted">{{ tx.occurred_at|date:"H:i" }}</div></td>
+                    <td><div class="txBank">{{ tx.account.bank.name }}</div><div class="txAcc">{{ tx.account.account_number }}</div></td>
+                    <td class="txProduct"><span class="txBadge" style="margin-right: 8px;">입금</span>{{ tx.product_name|default:"계좌 충전" }}</td>
                     <td class="text-end txAmountIn">+{{ tx.amount|intcomma }}원</td>
                   </tr>
                 {% endif %}
               {% empty %}
-                <tr>
-                  <td colspan="4" class="text-center py-5 txMuted">입금 내역이 없습니다.</td>
-                </tr>
+                <tr><td colspan="4" class="text-center py-5 txMuted">입금 내역이 없습니다.</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       {% endif %}
+      {% if active_tab != 'summary' and is_paginated %}
+        <div style="display: flex; justify-content: center; margin: 40px 0; gap: 8px;">
 
+          {# [이전] 버튼 #}
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}" 
+               style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px; background: white; font-weight: 700;">
+               이전
+            </a>
+          {% endif %}
+
+          {# [현재 페이지 / 총 페이지] 표시 #}
+          <span style="padding: 10px 20px; background: #333; color: white; border-radius: 6px; font-weight: bold; font-size: 14px; display: flex; align-items: center;">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+
+          {# [다음] 버튼 #}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}" 
+               style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px; background: white; font-weight: 700;">
+               다음
+            </a>
+          {% endif %}
+
+        </div>
+      {% endif %}
     </div>
   </div>
 </div>
