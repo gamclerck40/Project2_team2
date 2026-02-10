@@ -3,6 +3,9 @@ from django.conf import settings
 from django.core.validators import MinValueValidator,MaxValueValidator
 from django.db import models
 from account.models import Account
+import uuid
+import os
+from django.utils import timezone
 
 # 회원가입 간 입력할 대부분의 정보
 class Category(models.Model):
@@ -140,6 +143,17 @@ class Transaction(models.Model):
     shipping_zip_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="우편번호")
     receiver_name = models.CharField(max_length=50, null=True, blank=True, verbose_name="수령인")
 
+    total_price_at_pay = models.DecimalField(
+        max_digits=14, decimal_places=0, default=0, verbose_name="할인 전 원가"
+    )
+    discount_amount = models.DecimalField(
+        max_digits=14, decimal_places=0, default=0, verbose_name="할인 금액"
+    )
+    # 어떤 쿠폰을 썼는지 기록 (쿠폰이 삭제되어도 내역은 남도록 SET_NULL)
+    used_coupon = models.ForeignKey(
+        'UserCoupon', null=True, blank=True, on_delete=models.SET_NULL, verbose_name="사용된 쿠폰"
+    )
+
     def clean(self):
         # **무결성 핵심: 거래 user와 계좌 user 일치 강제**
         if self.account_id and self.user_id and self.account.user_id != self.user_id:
@@ -181,3 +195,75 @@ class Review(models.Model):
     def __str__(self):
         return f"{self.user.username}의 리뷰 - {self.product.name} ({self.rating}점)"
 # 현재 이 상태에서 product(Product FK), quantity(주문량)등의 정보가 더 필요할 것.
+
+def review_image_upload_to(instance, filename):
+    # 1. 확장자 추출 (.jpg, .png 등)
+    ext = filename.split('.')[-1]
+    
+    # 2. UUID를 사용해 무작위 파일명 생성
+    # 이렇게 하면 파일명이 겹치지 않아 여러 장 업로드 시 덮어쓰기를 방지합니다.
+    new_filename = f"{uuid.uuid4()}.{ext}"
+    
+    # 3. 리뷰 ID가 아직 없을 경우를 대비 (새로 생성 중일 때)
+    review_id = instance.review.id if instance.review.id else "new_post"
+
+    # ✅ 이 줄이 반드시 있어야 합니다! 실제 저장 경로를 반환합니다.
+    return f"reviews/{review_id}/{new_filename}"
+
+class ReviewImage(models.Model):
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(
+        upload_to=review_image_upload_to,  # 수정된 함수 사용
+        verbose_name="리뷰 이미지"
+    )
+
+    def __str__(self):
+        # ID가 없을 때 에러 방지
+        review_display = self.review.id if self.review.id else "생성 중"
+        return f"{review_display}번 리뷰의 사진"
+
+class Coupon(models.Model):
+    # 쿠폰 종류: 정액 할인(원), 정률 할인(%)
+    DISCOUNT_CHOICES = (
+        ('amount', '정액 할인 (원)'),
+        ('percentage', '정률 할인 (%)'),
+    )
+
+    name = models.CharField(max_length=50)  # 쿠폰 이름 (예: 신규가입 축하 쿠폰)
+    code = models.CharField(max_length=20, unique=True) # 쿠폰 코드 (예: WELCOME2026)
+    discount_type = models.CharField(max_length=10, choices=DISCOUNT_CHOICES, default='amount')
+    discount_value = models.PositiveIntegerField() # 할인 금액 또는 할인율
+    
+    min_purchase_amount = models.PositiveIntegerField(default=0) # 최소 주문 금액 제한
+    max_discount_amount = models.PositiveIntegerField(null=True, blank=True) # 정률 할인 시 최대 할인 금액 제한
+    
+    valid_from = models.DateTimeField(default=timezone.now)
+    valid_to = models.DateTimeField()
+    
+    active = models.BooleanField(default=True) # 관리자가 쿠폰을 중단할 수 있게 함
+
+    def save(self, *args, **kwargs):
+        if self.code:
+            self.code = self.code.upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"[{self.code}] {self.name}"
+
+class UserCoupon(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_coupons')
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    is_used = models.BooleanField(default=False)
+    used_at = models.DateTimeField(null=True, blank=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.coupon.name}"
+
+    # 쿠폰이 유효한지 확인하는 프로퍼티
+    @property
+    def is_valid(self):
+        now = timezone.now()
+        return not self.is_used and self.coupon.active and self.coupon.valid_from <= now <= self.coupon.valid_to

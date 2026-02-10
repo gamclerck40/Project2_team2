@@ -85,6 +85,8 @@ class Address(models.Model):
     detail_address = models.CharField(max_length=255)  # 상세 주소
     is_default = models.BooleanField(default=False)     # 기본 배송지 여부
     created_at = models.DateTimeField(auto_now_add=True)
+    receiver_name = models.CharField(max_length=20, blank=True, null=True, verbose_name="수령인")
 
+    
     def __str__(self):
         return f"[{self.zip_code}] {self.address}"

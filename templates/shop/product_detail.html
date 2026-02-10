@@ -1,172 +1,116 @@
 {% extends 'base.html' %}
-
-{# base.html을 가져옴 #}
-
 {% load humanize %}
 
 {% block content %}
-  {# 콘텐츠 시작 점 #}
+<style>
+  .image-upload-wrapper {
+    display: flex !important;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
 
-  <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-    <a href="{% url 'product_list' %}" style="text-decoration: none; color: #666;">
-      ← 목록으로 돌아가기
-    </a>
+  .image-upload-box {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    transition: all 0.2s;
+  }
 
-    {% comment %}
-      최대 넓이 800px로 제한 margin: 0 auto를 써서 중앙 배치, padding : 20px = 박스 안쪽의 여백.
-      a태그 = 다시 상품으로 돌아감 url 'product_list'
+  .image-upload-box input[type="file"] {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 5;
+  }
 
-      추가 설명 "text-decoration" = a태그의 밑줄을 제거함 ex커서를 가져갔을 시 생기는 파란 밑 줄
-    {% endcomment %}
+  /* ✅ 파일이 선택(valid)되었을 때 박스 스타일 변경 */
+  .image-upload-box.has-file {
+  border: 2px solid #e44d26;
+  background-color: #fff5f2;
+}
 
-    <div style="display: flex; gap: 40px; margin-top: 20px;">
-      <div style="flex: 1;">
-        {% comment %}
-          사진과 설명을 좌 우(flex) 배치 사이 간격 (gap)은 40px, margit-top = 박스 위쪽 바깥의 여백. > 목록으로 돌아가기 링크와 사진 사이 20px의 거리를 줌
+  /* ✅ 파일이 선택되면 "No Image" 대신 "Selected!" 표시 */
+  .upload-status-text {
+    font-size: 11px;
+    color: #999;
+    pointer-events: none;
+    text-align: center;
+  }
 
-          사진 영역과 설명 영역의 비율을 1:1로 나누기
-        {% endcomment %}
+  .image-upload-box.has-file .upload-status-text span {
+  display: none;
+}
 
-        {% if product.image1 %}
-          <img
-            src="{{ product.image1.url }}"
-            style="width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"
-          >
-        {% else %}
-          <div style="background: #f0f0f0; height: 300px; display: flex; align-items: center; justify-content: center;">
-            이미지가 없습니다
-          </div>
-        {% endif %}
+ .image-upload-box.has-file .upload-status-text::before {
+  content: "Selected!";
+  color: #e44d26;
+  font-weight: bold;
+}
+</style>
 
-        <div style="display: flex; gap: 5px; margin-top: 10px;">
-          {% if product.image2 %}
-            <img src="{{ product.image2.url }}" style="width: 19%; border-radius: 5px;">
-          {% endif %}
-          {% if product.image3 %}
-            <img src="{{ product.image3.url }}" style="width: 19%; border-radius: 5px;">
-          {% endif %}
-          {% if product.image4 %}
-            <img src="{{ product.image4.url }}" style="width: 19%; border-radius: 5px;">
-          {% endif %}
-          {% if product.image5 %}
-            <img src="{{ product.image5.url }}" style="width: 19%; border-radius: 5px;">
-          {% endif %}
-        </div>
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+  <a href="{% url 'product_list' %}" style="text-decoration: none; color: #666;">
+    ← 목록으로 돌아가기
+  </a>
 
-        {% comment %}
-          이 상품에 등록된 사진이 있는가? Trun >> 너비를 100% 채우고, 테두리는 둥글게 깍음 추가로 box-shadow를 줘서 은은한 그림자를 추가함
-          추가 box-shadow에서 0은 가로 4는 세로 10은 번짐을 의미
-
-          사진이 없는 상품이라면 >> 회색 박스를 만든 뒤 이미지가 없습니다 문구 생성 ,
-          align-items:center = 위 아래 수직 중앙 정렬 '이미지가 없습니다'의 문구를 박스 높이 정중앙에 오게 함
-          justify-content = 좌우 수평 중앙 정렬 글자가 박스 가로 정중앙에 배치
-        {% endcomment %}
-      </div>
-
-      <div style="flex: 1;">
-        <h1 style="margin-bottom: 10px;">{{ product.name }}</h1>
-        <p style="font-size: 24px; color: #e44d26; font-weight: bold;">
-          {{ product.price|intcomma }}원
-        </p>
-
-        {% comment %}
-          상품명을 크고 굵은 제목으로 표시 margin-bottom으로 상품 제목 바로 밑 가격이 너무 붙지 않게하기 위해 10px 띄워줌
-
-          가격을 강조하기 위해 글자 크기 up 주황빛 빨간색으로 눈에 띄게
-          font-weight:bold = 글자를 두껍게
-        {% endcomment %}
-
-        <hr> {# 중앙선 생성 #}
-
-        <p style="line-height: 1.6; color: #333;">{{ product.description }}</p>
-        <p style="color: #888;">남은 수량: {{ product.stock }}개</p>
-
-        {% comment %}
-          상품의 설명을 보여줌, line-height 줄 간격을 넉넉히 줌 가독성 증가
-          재고의 남은 수량을 회색 작은 글씨로 표시함
-        {% endcomment %}
-
-        <form method="post" style="margin-top: 20px;">
-          {% csrf_token %}
-
-          <input type="hidden" name="product_id" value="{{ product.id }}">
-
-          <div style="margin-bottom: 20px;">
-            <label for="quantity">수량: </label>
-            <input
-              type="number"
-              id="quantity"
-              name="quantity"
-              value="1"
-              min="1"
-              max="{{ product.stock }}"
-              style="width: 60px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;"
-            >
-            <span style="color: #888; font-size: 14px; margin-left: 10px;">
-              (재고: {{ product.stock }}개)
-            </span>
-          </div>
-
-          <button
-            type="submit"
-            formaction="{% url 'add_to_cart' product.id %}"
-            style="width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-bottom: 10px;"
-          >
-            장바구니 담기
-          </button>
-
-          <button
-            type="submit"
-            formaction="{% url 'checkout' %}"
-            style="width: 100%; padding: 15px; background: #e44d26; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;"
-          >
-            바로 구매하기
-          </button>
-        </form>
-
-        {# 큰 버튼을 생성함 색상은 파란색, cursor:point >> 버튼에 커서를 가져가면 손가락 모양으로 바뀜 #}
-
-        <hr style="margin: 40px 0;">
+  <div style="display: flex; gap: 40px; margin-top: 20px;">
+    <div style="flex: 1;">
+      {% if product.image1 %}
+        <img src="{{ product.image1.url }}" style="width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+      {% else %}
+        <div style="background: #f0f0f0; height: 300px; display: flex; align-items: center; justify-content: center;">이미지가 없습니다</div>
+      {% endif %}
+      <div style="display: flex; gap: 5px; margin-top: 10px;">
+        {% if product.image2 %}<img src="{{ product.image2.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
+        {% if product.image3 %}<img src="{{ product.image3.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
+        {% if product.image4 %}<img src="{{ product.image4.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
+        {% if product.image5 %}<img src="{{ product.image5.url }}" style="width: 19%; border-radius: 5px;">{% endif %}
       </div>
     </div>
 
-    <div style="margin-top: 20px;"></div>
-
-    <hr>
-    <h3 style="text-align: center; margin-bottom: 30px;">상품 상세 설명</h3>
-    <hr>
-
-    {% if product.description_image1 %}
-      <img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">
-    {% endif %}
-    <p style="line-height: 1.8; margin-bottom: 30px;">{{ product.description_text1 }}</p>
-
-    {% if product.description_image2 %}
-      <img src="{{ product.description_image2.url }}" style="width: 100%; margin-bottom: 15px;">
-    {% endif %}
-    <p style="line-height: 1.8;">{{ product.description_text2 }}</p>
+    <div style="flex: 1;">
+      <h1 style="margin-bottom: 10px;">{{ product.name }}</h1>
+      <p style="font-size: 24px; color: #e44d26; font-weight: bold;">{{ product.price|intcomma }}원</p>
+      <hr>
+      <p style="line-height: 1.6; color: #333;">{{ product.description }}</p>
+      <p style="color: #888;">남은 수량: {{ product.stock }}개</p>
+      <form method="post" style="margin-top: 20px;">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <div style="margin-bottom: 20px;">
+          <label for="quantity">수량: </label>
+          <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}" style="width: 60px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
+        </div>
+        <button type="submit" formaction="{% url 'add_to_cart' product.id %}" style="width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-bottom: 10px;">장바구니 담기</button>
+        <button type="submit" formaction="{% url 'checkout' %}" style="width: 100%; padding: 15px; background: #e44d26; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; font-weight: bold;">바로 구매하기</button>
+      </form>
+    </div>
   </div>
- <hr style="margin: 60px 0 20px;">
 
-  <div id="review-section" style="padding-top: 20px;"> {% if messages %}
-        {% for message in messages %}
-            <div style="padding: 15px; background-color: #d4edda; color: #155724; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+  <hr style="margin: 40px 0;">
+  
+  <h3 style="text-align: center; margin-bottom: 30px;">상품 상세 설명</h3>
+  {% if product.description_image1 %}<img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">{% endif %}
+  <p style="line-height: 1.8; margin-bottom: 30px;">{{ product.description_text1 }}</p>
 
-    <h3 style="display: flex; justify-content: space-between; align-items: center;">
-      사용자 리뷰 
-      <span style="font-size: 16px; color: #e44d26;">평균 ★ {{ average_rating }}</span>
-    </h3>
+  <hr style="margin: 60px 0 20px;">
 
+  <div id="review-section" style="padding-top: 20px;">
     {% if can_review %}
       <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
         <h4 style="margin-top: 0;">이 상품은 어떠셨나요?</h4>
-        <form action="{% url 'review_create' product.id %}" method="post">
+        <form action="{% url 'review_create' product.id %}" method="post" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
-          <div style="margin-bottom: 10px;">
+          <div style="margin-bottom: 15px;">
             <label>평점: </label>
             <select name="rating" style="padding: 5px; border-radius: 5px; border: 1px solid #ddd;">
               <option value="5">★★★★★ (5점)</option>
@@ -176,76 +120,115 @@
               <option value="1">★ (1점)</option>
             </select>
           </div>
-          <textarea name="content" placeholder="솔직한 후기를 남겨주세요." 
-                    style="width: 100%; height: 100px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; resize: none; margin-bottom: 10px; box-sizing: border-box;"></textarea>
-          <button type="submit" style="background: #333; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
-            리뷰 등록하기
-          </button>
+
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">📸 사진 첨부 (최대 5장)</label>
+            <div class="image-upload-wrapper">
+  {% for i in "12345" %}
+    <div class="image-upload-box">
+      <input type="file" name="review_images" accept="image/*" required 
+             onchange="if(this.value) this.parentElement.classList.add('has-file'); else this.parentElement.classList.remove('has-file');">
+      <div class="upload-status-text">
+        <span>No Image</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+            <p style="font-size: 11px; color: #888; margin-top: 5px;">* 사진을 선택하면 박스 색상이 변경됩니다.</p>
+          </div>
+
+          <textarea name="content" placeholder="솔직한 후기를 남겨주세요." style="width: 100%; height: 100px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; resize: none; margin-bottom: 10px; box-sizing: border-box;"></textarea>
+          <button type="submit" style="background: #333; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">리뷰 등록하기</button>
         </form>
       </div>
     {% endif %}
 
-    <div class="review-list">
-  {% for review in reviews %}
-    <div style="padding: 20px 0; border-bottom: 1px solid #eee;">
-
-      {% if edit_review_id == review.id %}
-        {# --- [수정 모드] 수정 입력 창 표시 --- #}
-        <form action="{% url 'review_update' review.id %}" method="post" style="background: #f0f0f0; padding: 15px; border-radius: 10px;">
-          {% csrf_token %}
-          <div style="margin-bottom: 10px;">
-            <label>평점 수정: </label>
-            <select name="rating" style="padding: 5px; border-radius: 5px;">
-              <option value="5" {% if review.rating == 5 %}selected{% endif %}>★★★★★</option>
-              <option value="4" {% if review.rating == 4 %}selected{% endif %}>★★★★</option>
-              <option value="3" {% if review.rating == 3 %}selected{% endif %}>★★★</option>
-              <option value="2" {% if review.rating == 2 %}selected{% endif %}>★★</option>
-              <option value="1" {% if review.rating == 1 %}selected{% endif %}>★</option>
-            </select>
-          </div>
-          <textarea name="content" style="width: 100%; height: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; resize: none; margin-bottom: 10px; box-sizing: border-box;">{{ review.content }}</textarea>
-          <div style="text-align: right;">
-            <a href="{% url 'product_detail' product.id %}#review-section" style="text-decoration: none; color: #666; margin-right: 15px; font-size: 14px;">취소</a>
-            <button type="submit" style="background: #333; color: white; padding: 5px 15px; border: none; border-radius: 5px; cursor: pointer;">수정완료</button>
-          </div>
-        </form>
-
-      {% else %}
-        {# --- [일반 모드] 리뷰 내용 표시 --- #}
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-          <div>
-            <span style="font-weight: bold; color: #333;">{{ review.user.username }}</span>
-            <span style="color: #e44d26; margin-left: 10px;">
-              {% if review.rating == 5 %}★★★★★{% elif review.rating == 4 %}★★★★{% elif review.rating == 3 %}★★★{% elif review.rating == 2 %}★★{% else %}★{% endif %}
-            </span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-  <span style="color: #999; font-size: 14px;">{{ review.created_at|date:"Y.m.d" }}</span>
-
-  {% if review.user == request.user %}
-    <a href="?edit_id={{ review.id }}#review-section" 
-       style="color: #666; font-size: 12px; text-decoration: underline;">
-       수정
-    </a>
-
-    <form action="{% url 'review_delete' review.id %}" method="post" 
-          style="display: flex; align-items: center; margin: 0; padding: 0;">
-      {% csrf_token %}
-      <button type="submit" 
-              onclick="return confirm('정말 삭제하시겠습니까?')" 
-              style="background: none; border: none; color: #ff4d4d; cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; height: 14px; line-height: 14px;">
-        삭제
-      </button>
-    </form>
-  {% endif %}
-</div>
+    <div style="margin-top: 30px;">
+      {% for review in reviews %}
+  <div style="border-bottom: 1px solid #eee; padding: 15px 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <strong>{{ review.user.username }}</strong>
+        <span style="color: #ffc107;">★ {{ review.rating }}</span>
+        <span style="color: #999; font-size: 12px;">{{ review.created_at|date:"Y.m.d" }}</span>
+      </div>
+      
+      {% if review.user == request.user %}
+        <div style="display: flex; align-items: center; gap: 5px;">
+          <a href="?edit_id={{ review.id }}#review-section" style="text-decoration: none; font-size: 12px; padding: 2px 8px; background: #f0f0f0; color: #666; border-radius: 4px;">수정</a>
+          
+          <form action="{% url 'review_delete' review.id %}" method="post" style="margin: 0; display: inline;">
+            {% csrf_token %}
+            <button type="submit" style="border: none; cursor: pointer; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #e44d26; color: white;" onclick="return confirm('정말 삭제하시겠습니까?')">삭제</button>
+          </form>
         </div>
-        <p style="margin: 0; line-height: 1.6; color: #555;">{{ review.content|linebreaksbr }}</p>
       {% endif %}
-
     </div>
-  {% empty %}
-    <p style="text-align: center; color: #999; padding: 40px 0;">아직 작성된 리뷰가 없습니다.</p>
+
+    {% if edit_review_id == review.id %}
+  <form action="{% url 'review_update' review.id %}" method="post" enctype="multipart/form-data" style="margin-top: 15px; background: #fffbe6; padding: 15px; border-radius: 8px; border: 1px solid #ffe58f;">
+    {% csrf_token %}
+    
+    <div style="margin-bottom: 10px;">
+      <label style="font-size: 13px; font-weight: bold;">평점 수정: </label>
+      <select name="rating" style="padding: 3px; border-radius: 4px;">
+        {% for i in "54321" %}
+          <option value="{{ i }}" {% if review.rating|stringformat:"i" == i %}selected{% endif %}>{{ i }}점</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <textarea name="content" required style="width: 100%; height: 80px; padding: 10px; border-radius: 5px; border: 1px solid #ddd; display: block; margin-bottom: 10px; box-sizing: border-box;">{{ review.content }}</textarea>
+
+    {% if review.images.all %}
+  <div style="margin-bottom: 20px;">
+    <p style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">🗑️ 현재 등록된 사진 (삭제하려면 선택):</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      {% for img in review.images.all %}
+        <div style="text-align: center; border: 1px solid #ddd; padding: 5px; border-radius: 5px; background: white;">
+          <img src="{{ img.image.url }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 5px;">
+          <input type="checkbox" name="delete_images" value="{{ img.id }}">
+          <span style="font-size: 11px; color: #e44d26;">삭제</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+<div style="margin-bottom: 15px;">
+  <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px;">📸 사진 추가 (최대 5장)</label>
+  <div class="image-upload-wrapper">
+  {% for i in "12345" %}
+    <div class="image-upload-box">
+      <input type="file" name="review_images" accept="image/*" 
+             onchange="if(this.value) this.parentElement.classList.add('has-file'); else this.parentElement.classList.remove('has-file');">
+      <div class="upload-status-text">
+        <span>No Image</span>
+      </div>
+    </div>
   {% endfor %}
+</div>
+  <p style="font-size: 11px; color: #888; margin-top: 5px;">* 추가하고 싶은 칸을 클릭하여 사진을 선택하세요.</p>
+</div>
+
+    <div style="display: flex; gap: 5px;">
+      <button type="submit" style="background: #333; color: white; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">수정 완료</button>
+      <a href="?" style="background: #ccc; color: white; padding: 5px 12px; border: none; border-radius: 4px; text-decoration: none; font-size: 12px;">취소</a>
+    </div>
+  </form>
+{% else %}
+      <p style="margin: 10px 0; line-height: 1.5;">{{ review.content }}</p>
+      {% if review.images.all %}
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+          {% for img in review.images.all %}
+            <img src="{{ img.image.url }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #eee;">
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endfor %}
+    </div>
+  </div>
 </div>
 {% endblock %}

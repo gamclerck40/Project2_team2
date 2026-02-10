@@ -7,9 +7,10 @@ from django.views import View
 from django.urls import reverse
 from django.views.generic import *
 from datetime import date
-from .models import Cart, Category, Product, Transaction, Review
+from .models import *
 from account.models import Account, Address
 from decimal import Decimal  # ✅ Decimal*float 에러 방지용
+
 
 
 # ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
@@ -210,25 +211,23 @@ class RemoveFromCartView(View):
 
 class OrderExecutionView(LoginRequiredMixin, View):
     def post(self, request):
-        # ✅ 다계좌 대응: 기본 계좌 우선
-        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        # 1. 계좌 선택 로직
         selected_account_id = request.POST.get('selected_account_id')
-        
         if selected_account_id:
             user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
         else:
             user_account = get_default_account(request.user)
 
-        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
-        address_id = request.POST.get('address_id') # HTML select name 확인 필요 (아래 팁 참고)
-
+        # 2. 배송지 정보 가져오기
+        address_id = request.POST.get('address_id')
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
         else:
-            # 주소 ID가 안 넘어왔을 경우 기본 배송지를 자동으로 선택
             selected_address = Address.objects.filter(user=request.user, is_default=True).first()
+        
         cart_items = Cart.objects.filter(user=request.user)
         
+        # 기본 예외처리
         if not cart_items.exists():
             messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")            
@@ -241,75 +240,101 @@ class OrderExecutionView(LoginRequiredMixin, View):
             messages.error(request, "결제 가능한 계좌 정보가 없습니다.")
             return redirect("cart_list")
 
-        # 3. 총 결제 금액 계산
+        # 3. 총 결제 금액 및 쿠폰 할인 계산
         total_price = sum(item.total_price() for item in cart_items)
+        selected_coupon_id = request.POST.get('coupon_id')
+        discount_amount = Decimal("0")
+        user_coupon = None
+
+        if selected_coupon_id:
+            user_coupon = UserCoupon.objects.filter(
+                id=selected_coupon_id, 
+                user=request.user, 
+                is_used=False
+            ).select_related('coupon').first()
+
+            if user_coupon:
+                coupon = user_coupon.coupon
+                if total_price >= coupon.min_purchase_amount:
+                    if coupon.discount_type == 'amount':
+                        discount_amount = Decimal(str(coupon.discount_value))
+                    else: # percentage
+                        discount_amount = total_price * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                        if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                            discount_amount = Decimal(str(coupon.max_discount_amount))
+
+        # 최종 결제 금액 (0원 미만 방지)
+        final_price = max(total_price - discount_amount, Decimal("0"))
 
         try:
             with transaction.atomic():
-                if user_account.balance < total_price:
-                    raise Exception(f"잔액 부족")
+                # (1) 잔액 검증
+                if user_account.balance < final_price:
+                    raise Exception("잔액이 부족합니다.")
                 
+                # (2) 재고 차감 및 거래내역 생성
+                # 여러 상품이더라도 '하나의 영수증' 개념으로 할인 정보를 모두 기록합니다.
+                now = timezone.now()
                 for item in cart_items:
                     target_product = item.product
-
                     if target_product.stock < item.quantity:
                         raise Exception(f"[{target_product.name}] 재고 부족")
 
                     target_product.stock -= item.quantity
                     target_product.save()
 
-                    # --- [수정] 이제 selected_address가 정의되어 있으므로 사용 가능 ---
                     Transaction.objects.create(
                         user=request.user,
                         account=user_account,
                         product=target_product,
                         product_name=target_product.name,
-                        category=item.product.category,
+                        category=target_product.category,
                         quantity=item.quantity,
                         tx_type=Transaction.OUT,
-                        amount=item.total_price(),
-                        occurred_at=timezone.now(),
-                        memo=f"장바구니 구매: {target_product.name}",
+                        # 영수증에 기록될 정보들
+                        amount=final_price,              # 실제 차감된 금액
+                        total_price_at_pay=total_price,   # 할인 전 원가
+                        discount_amount=discount_amount,  # 총 할인액
+                        used_coupon=user_coupon,          # 사용된 쿠폰
+                        occurred_at=now,
                         shipping_address=selected_address.address,
                         shipping_detail_address=selected_address.detail_address,
                         shipping_zip_code=selected_address.zip_code,
+                        receiver_name=selected_address.receiver_name or request.user.username
                     )
 
-                # (4) 유저 잔액 차감
-                user_account.balance -= total_price
+                # (3) 유저 잔액 차감
+                user_account.balance -= final_price
                 user_account.save()
+
+                # (4) 쿠폰 사용 완료 처리
+                if user_coupon:
+                    user_coupon.is_used = True
+                    user_coupon.used_at = now
+                    user_coupon.save()
 
                 # (5) 장바구니 비우기
                 cart_items.delete()
 
-            messages.success(
-                request, f"성공적으로 결제되었습니다! ({total_price:,}원 차감)"
-            )
+            messages.success(request, f"결제 완료! 할인금액: {discount_amount:,}원 / 실 결제금액: {final_price:,}원")
             return redirect("mypage")
 
         except Exception as e:
-            # 모든 에러 메시지를 사용자에게 알림으로 전달
-            messages.success(request, f"결제가 완료되었습니다!")
+            messages.error(request, f"결제 실패: {str(e)}")
             return redirect("cart_list")
 
-
 class DirectPurchaseView(LoginRequiredMixin, View):
-    """
-    상세 페이지에서 '바로 구매' 버튼을 눌렀을 때 실행
-    """
     def post(self, request, product_id):
-        # 1. 대상 상품 및 계좌 확인
         target_product = get_object_or_404(Product, id=product_id)
 
-        # ✅ [수정] 사용자가 선택한 계좌 ID를 가져옵니다.
+        # 1. 계좌 선택
         selected_account_id = request.POST.get('selected_account_id')
-        
         if selected_account_id:
             user_account = get_object_or_404(Account, id=selected_account_id, user=request.user)
         else:
             user_account = get_default_account(request.user)
 
-        # --- 배송지 정보 가져오기 (기존 코드 유지) ---
+        # 2. 배송지 정보
         address_id = request.POST.get('address_id')
         if address_id:
             selected_address = get_object_or_404(Address, id=address_id, user=request.user)
@@ -319,27 +344,46 @@ class DirectPurchaseView(LoginRequiredMixin, View):
         if not selected_address:
             messages.error(request, "배송지 정보가 없습니다.")
             return redirect("product_detail", pk=product_id)
-        # ----------------------------------        
-        # 수량 가져오기 (HTML의 <input name="quantity"> 값)
+        
+        # 3. 금액 및 쿠폰 계산
         buy_quantity = int(request.POST.get("quantity", 1))
         total_price = target_product.price * buy_quantity
+        selected_coupon_id = request.POST.get('coupon_id')
+        discount_amount = Decimal("0")
+        user_coupon = None
 
-        # 2. 결제 로직 (트랜잭션)
+        if selected_coupon_id:
+            user_coupon = UserCoupon.objects.filter(
+                id=selected_coupon_id, 
+                user=request.user, 
+                is_used=False
+            ).select_related('coupon').first()
+
+            if user_coupon:
+                coupon = user_coupon.coupon
+                if total_price >= coupon.min_purchase_amount:
+                    if coupon.discount_type == 'amount':
+                        discount_amount = Decimal(str(coupon.discount_value))
+                    else: # percentage
+                        discount_amount = total_price * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                        if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                            discount_amount = Decimal(str(coupon.max_discount_amount))
+
+        final_price = max(total_price - discount_amount, Decimal("0"))
+
         try:
             with transaction.atomic():
-                # (1) 잔액 검증
-                if user_account.balance < total_price:
+                # (1) 검증
+                if user_account.balance < final_price:
                     raise Exception("잔액 부족")
-
-                # (2) 재고 검증
                 if target_product.stock < buy_quantity:
                     raise Exception("재고 부족")
 
-                # (3) 재고 차감 및 저장
+                # (2) 재고 차감
                 target_product.stock -= buy_quantity
                 target_product.save()
 
-                # (4) 거래 내역 생성 (상품 삭제 대비 product_name 포함)
+                # (3) 거래 내역 생성 (중복 필드 정리 완료 ✨)
                 Transaction.objects.create(
                     user=request.user,
                     account=user_account,
@@ -348,20 +392,31 @@ class DirectPurchaseView(LoginRequiredMixin, View):
                     product_name=target_product.name,
                     quantity=buy_quantity,
                     tx_type=Transaction.OUT,
-                    amount=total_price,
+                    
+                    amount=final_price,               # 실제 차감액
+                    total_price_at_pay=total_price,    # 할인 전 원가
+                    discount_amount=discount_amount,   # 할인액
+                    used_coupon=user_coupon,           # 사용 쿠폰
+                    
                     occurred_at=timezone.now(),
-                    # memo=f"바로구매: {target_product.name}",
-                    memo=f"바로구매: {target_product.name}",
+                    memo=f"바로구매(할인 {discount_amount:,}원): {target_product.name}",
                     shipping_address=selected_address.address,
                     shipping_detail_address=selected_address.detail_address,
                     shipping_zip_code=selected_address.zip_code,
+                    receiver_name=selected_address.receiver_name or request.user.username
                 )
 
-                # (5) 잔액 차감
-                user_account.balance -= total_price
+                # (4) 잔액 차감
+                user_account.balance -= final_price
                 user_account.save()
 
-            messages.success(request, "결제가 완료되었습니다!")
+                # (5) 쿠폰 사용 완료 처리
+                if user_coupon:
+                    user_coupon.is_used = True
+                    user_coupon.used_at = timezone.now()
+                    user_coupon.save()
+
+            messages.success(request, f"결제가 완료되었습니다! (할인금액: {discount_amount:,}원)")
             return redirect("mypage")
 
         except Exception as e:
@@ -514,45 +569,63 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["selected_category"] = self.request.GET.get("category", "")
 
         return context
+    
 class CheckoutView(LoginRequiredMixin, View):
-    """
-    최종 결제 전, 배송지와 주문 내역을 확인하고 수량을 조절하는 페이지
-    """
-
     def _get_checkout_context(self, request, product_id=None, quantity=1):
-    # 1. 여기서 변수를 먼저 정의해야 합니다!
         all_accounts = Account.objects.filter(user=request.user, is_active=True).select_related('bank')
         
-        # ✅ 사용자가 selectbox에서 선택한 계좌 ID 확인
+        # 계좌 선택 로직
         selected_account_id = request.GET.get('selected_account_id') or request.POST.get('selected_account_id')
-        
         if selected_account_id:
             user_account = all_accounts.filter(id=selected_account_id).first()
         else:
             user_account = all_accounts.filter(is_default=True).first() or all_accounts.first()
 
         addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
+        user_coupons = UserCoupon.objects.filter(user=request.user, is_used=False).select_related('coupon')
 
-        # 상품 및 금액 로직
+        # ✅ 쿠폰 ID 가져오기 (이게 있어야 아래 if selected_coupon_id 가 작동함)
+        selected_coupon_id = request.GET.get('coupon_id')
+
+        # 상품 및 기본 금액 계산
         if product_id:
-            # 바로 구매 경로
             product = get_object_or_404(Product, id=product_id)
             total_amount = product.price * int(quantity)
             cart_items = None
         else:
-            cart_items = Cart.objects.filter(user=request.user)
-            total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else 0
             product = None
             quantity = None
+            cart_items = Cart.objects.filter(user=request.user)
+            total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else Decimal("0")
+
+        # ✅ 쿠폰 할인 로직 (변수명 total_amount로 통일)
+        discount_amount = Decimal("0")
+        if selected_coupon_id:
+            user_coupon = user_coupons.filter(id=selected_coupon_id).first()
+            if user_coupon:
+                coupon = user_coupon.coupon
+                if total_amount >= coupon.min_purchase_amount:
+                    if coupon.discount_type == 'amount':
+                        discount_amount = Decimal(str(coupon.discount_value))
+                    else:
+                        discount_amount = total_amount * (Decimal(str(coupon.discount_value)) / Decimal("100"))
+                        if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
+                            discount_amount = Decimal(str(coupon.max_discount_amount))
+
+        final_price = total_amount - discount_amount
 
         return {
-            "account": user_account,    # 결제 요약용 (단일)
+            "account": user_account,
             "accounts": all_accounts,
             "addresses": addresses,
             "product": product,
             "quantity": quantity,
             "cart_items": cart_items,
             "total_amount": total_amount,
+            "discount_amount": discount_amount,
+            "final_price": final_price,
+            "user_coupons": user_coupons,
+            "selected_coupon_id": selected_coupon_id,
         }
     
     def get(self, request):
@@ -600,11 +673,13 @@ class CheckoutView(LoginRequiredMixin, View):
             return redirect("cart_list")
 
         return render(request, "shop/checkout.html", context)
+    
+
 class ReviewCreateView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
 
-        # 1. 실구매자 인증 (보안 강화)
+        # 1. 구매 여부 확인
         has_purchased = Transaction.objects.filter(
             user=request.user, 
             product=product, 
@@ -613,30 +688,32 @@ class ReviewCreateView(LoginRequiredMixin, View):
 
         if not has_purchased:
             messages.error(request, "해당 상품을 구매하신 분만 리뷰를 남길 수 있습니다.")
-            return redirect("product_detail", pk=product_id)
+            return redirect("product_detail", pk=product.id)
 
-        if Review.objects.filter(user=request.user, product=product).exists():
-            messages.warning(request, "이미 이 상품에 대한 리뷰를 작성하셨습니다.")
-            return redirect("product_detail", pk=product_id)
-        # 2. 데이터 가져오기
-        content = request.POST.get("content")
-        rating = request.POST.get("rating")
+        # 2. 리뷰 데이터 가져오기
+        rating = request.POST.get('rating')
+        content = request.POST.get('content')
 
-        if not content or not rating:
-            messages.error(request, "내용과 평점을 모두 입력해주세요.")
-            return redirect("product_detail", pk=product_id)
-
-        # 3. 리뷰 생성
-        Review.objects.create(
+        # 3. 리뷰 본문 생성 (먼저 생성해야 review 객체의 ID가 생김)
+        review = Review.objects.create(
             product=product,
             user=request.user,
-            rating=int(rating),
+            rating=rating,
             content=content
         )
 
-        messages.success(request, "리뷰가 등록되었습니다!")
-        return redirect("product_detail", pk=product_id)
+        # 4. 🔥 여러 장의 이미지 처리 (핵심 부분)
+        # request.FILES.getlist를 사용하여 선택된 모든 파일을 리스트로 가져옵니다.
+        images = request.FILES.getlist('review_images') 
+    
+        for img in images:
+        # 파일이 실제로 존재할 때만(빈 칸이 아닐 때만) 저장
+            if img:
+                ReviewImage.objects.create(review=review, image=img)
 
+        messages.success(request, "리뷰가 성공적으로 등록되었습니다.")
+        return redirect("product_detail", pk=product.id)
+        
 class ReviewDeleteView(LoginRequiredMixin, View):
     def post(self, request, review_id):
         # 1. 내 리뷰인지 확인하며 가져오기 (보안)
@@ -663,18 +740,36 @@ class ReviewUpdateView(LoginRequiredMixin, View):
         # 2. 수정 데이터 가져오기
         content = request.POST.get("content")
         rating = request.POST.get("rating")
+        
+        # ✅ 추가된 데이터: 삭제할 이미지 ID 리스트와 새로 등록할 파일들
+        delete_image_ids = request.POST.getlist("delete_images")
+        new_images = request.FILES.getlist("review_images")
 
         # 3. 데이터 업데이트 및 저장
         if content and rating:
             review.content = content
             review.rating = int(rating)
             review.save()
+
+            # ✅ [추가] 이미지 삭제 로직
+            if delete_image_ids:
+                # 선택된 이미지들을 찾아서 한꺼번에 삭제
+                # (이때 review.images는 ReviewImage 모델과의 관계 이름입니다)
+                review.images.filter(id__in=delete_image_ids).delete()
+
+            # ✅ [추가] 새 이미지 저장 로직
+            for img in new_images:
+                # ReviewImage 모델을 사용하여 새 객체 생성
+                # (모델명이 다를 경우 본인의 모델명에 맞게 수정하세요)
+                ReviewImage.objects.create(review=review, image=img)
+
             messages.success(request, "리뷰가 성공적으로 수정되었습니다.")
         else:
             messages.error(request, "내용과 평점을 모두 입력해주세요.")
 
         # 4. 상세 페이지의 리뷰 섹션으로 다시 리다이렉트
         return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')
+
 class ConsultingProductListView(LoginRequiredMixin, ListView):
     model = Product
     template_name = "shop/product_consulting_list.html"
@@ -782,3 +877,37 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
             context["consult_msg"] = "이번 달은 지출이 많은 편이에요. 당분간은 가성비/필수 위주로 추천할게요."
 
         return context
+
+class CouponRegisterView(LoginRequiredMixin, View):
+    """
+    CBV 방식의 쿠폰 등록 및 목록 조회 뷰
+    """
+    def get(self, request):
+        # 유저가 보유한 쿠폰 목록을 최신순으로 가져옴
+        from .models import UserCoupon
+        user_coupons = UserCoupon.objects.filter(user=request.user).order_by('-issued_at')
+        return render(request, 'shop/register_coupon.html', {
+            'user_coupons': user_coupons
+        })
+
+    def post(self, request):
+        from .models import Coupon, UserCoupon
+        code = request.POST.get('coupon_code', '').strip().upper()
+        
+        # 1. 존재 여부 확인
+        coupon = Coupon.objects.filter(code=code, active=True).first()
+        
+        if not coupon:
+            messages.error(request, "유효하지 않거나 사용 중지된 쿠폰 코드입니다.")
+        # 2. 유효 기간 확인
+        elif coupon.valid_to < timezone.now():
+            messages.error(request, "사용 기간이 만료된 쿠폰입니다.")
+        # 3. 중복 발급 확인
+        elif UserCoupon.objects.filter(user=request.user, coupon=coupon).exists():
+            messages.warning(request, "이미 등록된 쿠폰입니다.")
+        else:
+            # 4. 발급 처리
+            UserCoupon.objects.create(user=request.user, coupon=coupon)
+            messages.success(request, f"🎉 [{coupon.name}] 쿠폰이 성공적으로 등록되었습니다!")
+            
+        return redirect('register_coupon')
