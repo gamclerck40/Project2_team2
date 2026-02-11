@@ -1,21 +1,8 @@
-from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
-from django.views import View
-from django.urls import reverse
-from django.views.generic import *
-from datetime import date
-from ..models import *
-from account.models import Account, Address
-from decimal import Decimal  # ✅ Decimal*float 에러 방지용
-# ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
-from account.utils.common import get_default_account
-from django.db.models import Sum, Case, When, Value, DecimalField, Q
-from django.db.models.functions import TruncMonth
-from django.core.paginator import Paginator
-from urllib.parse import urlencode
+from django.db.models import Avg, Q
+from django.views.generic import DetailView, ListView
+
+from shop.models import Category, Coupon, Product, Transaction
+
 
 
 # 상품 목록 페이지(사진,이름,가격 등의 리스트)

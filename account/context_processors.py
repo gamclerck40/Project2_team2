@@ -1,4 +1,4 @@
-from account.utils.common import get_default_account
+from account.utils.setdefault import get_default_account
 
 def inject_account(request):
     if request.user.is_authenticated:

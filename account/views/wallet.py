@@ -1,15 +1,11 @@
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from django.http import Http404
-from django.utils import timezone  # ✅ 추가
-
-# 1. 같은 앱(account) 내 views 폴더와 나란히 있는 models.py에서 Account 가져오기
-from ..models import Account
-# 2. 다른 앱(shop)의 models.py에서 Cart 모델 가져오기
-from shop.models import Cart, Transaction  # ✅ Transaction 추가
-from account.utils.common import get_default_account
 from django.contrib import messages
-from django.contrib.humanize.templatetags.humanize import intcomma 
+from django.contrib.auth.decorators import login_required
+from django.contrib.humanize.templatetags.humanize import intcomma
+from django.shortcuts import redirect
+from django.utils import timezone
+
+from account.models import Account
+from shop.models import Transaction
 
 @login_required
 def charge_balance(request):

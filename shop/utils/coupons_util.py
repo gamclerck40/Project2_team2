@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import Optional, Tuple
-from ..models import UserCoupon
+
+from shop.models import UserCoupon
+
 
 
 def get_valid_user_coupon(user, selected_coupon_id: Optional[str]) -> Optional[UserCoupon]:

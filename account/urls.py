@@ -59,9 +59,6 @@ urlpatterns = [
     # 기본 계좌 변경 (다계좌 중 하나를 기본으로 설정)
     path("accounts/default/<int:account_id>/", SetDefaultAccountView.as_view(), name="account_set_default"),
 
-    # 계좌 충전 페이지 (현재는 더미 페이지 / 추후 잔액 충전 기능 구현 예정)
-    path("accounts/charge/", AccountChargeView.as_view(), name="account_charge"),
-
     path('charge/', charge_balance, name='charge_balance'),
     
 ]

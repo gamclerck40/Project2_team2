@@ -16,7 +16,7 @@ from shop.models import Transaction, Category
 from account.utils.forms import MypageUpdateForm, AccountAddForm
 
 # ✅ 잔액 이관 포함 set_default_account 사용
-from account.utils.common import get_default_account, set_default_account
+from account.utils.setdefault import get_default_account, set_default_account
 
 
 #내 정보 뷰(Main)

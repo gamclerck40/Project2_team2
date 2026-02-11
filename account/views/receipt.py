@@ -12,10 +12,10 @@ from reportlab.pdfgen import canvas
 
 from shop.models import Transaction
 from account.models import Address
-from account.utils.receipt import _calc_vat, _money_int, _register_korean_font
+from account.utils.receipt import calc_vat, money_int, register_korean_font
 
 # ✅ 다계좌: 기본계좌 우선
-from account.utils.common import get_default_account
+from account.utils.setdefault import get_default_account
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -57,7 +57,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         page_h = 110 * mm
         pagesize = portrait((page_w, page_h))
 
-        font_name = _register_korean_font()
+        font_name = register_korean_font()
 
         filename = f"receipt_{tx.id}.pdf"
         resp = HttpResponse(content_type="application/pdf")
@@ -102,7 +102,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
                 y -= size + 4
 
         merchant = tx.merchant or "ACCOUNT BOOK"
-        amount = _money_int(tx.amount)
+        amount = money_int(tx.amount)
         occurred = tx.occurred_at.strftime("%Y-%m-%d %H:%M:%S")
 
         canv.setFont(font_name, 12)
@@ -128,12 +128,12 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         # =========================
         # ✅ 쿠폰/할인 내역을 PDF에 출력 (요구사항 포맷)
         # =========================
-        discount = _money_int(tx.discount_amount)
+        discount = money_int(tx.discount_amount)
         coupon_name = "-"
         if tx.used_coupon and getattr(tx.used_coupon, "coupon", None):
             coupon_name = tx.used_coupon.coupon.name or "-"
 
-        original_total = _money_int(tx.total_price_at_pay)
+        original_total = money_int(tx.total_price_at_pay)
         if original_total <= 0:
             # 할인 전 금액이 저장되지 않았다면 최종 + 할인으로 역산
             original_total = amount + discount
@@ -151,7 +151,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
 
         line()
 
-        supply, vat, fee = _calc_vat(amount)
+        supply, vat, fee = calc_vat(amount)
         kv("공급가액", f"{supply:,}원")
         kv("부가세", f"{vat:,}원")
         kv("봉사료", f"{fee:,}원")

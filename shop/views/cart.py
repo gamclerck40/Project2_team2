@@ -1,8 +1,10 @@
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.views import View
-from django.views.generic import *
-from ..models import *
+from django.views.generic import ListView
+
+from shop.models import Cart, Product
+
 
 
 

@@ -3,7 +3,7 @@ from typing import Optional
 from django.shortcuts import get_object_or_404
 
 from account.models import Account, Address
-from account.utils.common import get_default_account
+from account.utils.setdefault import get_default_account
 
 
 def get_selected_account(user, selected_account_id: Optional[str]) -> Optional[Account]:

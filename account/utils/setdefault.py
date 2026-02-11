@@ -1,6 +1,5 @@
 from django.db import transaction
 from account.models import Account,Bank
-from django.shortcuts import render
 
 
 def get_default_account(user):

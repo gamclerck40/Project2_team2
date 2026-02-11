@@ -1,13 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
-from django.db import transaction
+from account.models import Address
 
-from shop.models import *
-from account.models import *
 
 
 @method_decorator(never_cache, name="dispatch")

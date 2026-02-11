@@ -1,12 +1,17 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, Case, When, Value, DecimalField, Q
+from django.db.models import Case, DecimalField, Sum, Value, When, Q
 from django.db.models.functions import TruncMonth
 from django.views.generic import ListView
-from django.utils import timezone  # (지금 코드에선 안 쓰면 제거해도 됨)
 
 from account.models import Account
-from ..models import Transaction, Category  # ⭐ * 대신 필요한 것만 명시
-from ..utils.tx_summary import *
+from shop.models import Category, Transaction
+from shop.utils.tx_summary import (
+    aggregate_in_out,
+    month_start,
+    next_month_start,
+    parse_month_range,
+)
+
 
 
 class TransactionHistoryView(LoginRequiredMixin, ListView):

@@ -1,14 +1,16 @@
+from decimal import Decimal
+from urllib.parse import urlencode
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views import View
 from django.urls import reverse
-from ..models import *
+from django.views import View
+
 from account.models import Account, Address
-from decimal import Decimal  # ✅ Decimal*float 에러 방지용
-# ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
-from urllib.parse import urlencode
-from ..utils.checkout_util import build_checkout_context
+from shop.models import Cart, Product, UserCoupon
+from shop.utils.checkout_util import build_checkout_context
+
 
 
 # 체크아웃 페이지

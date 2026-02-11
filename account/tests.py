@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from account.models import Account, Address, Bank
-from account.utils.common import get_default_account, set_default_account
+from account.utils.setdefault import get_default_account, set_default_account
 from shop.models import Transaction
 
 

@@ -3,7 +3,7 @@
 .site-header {
     background: #333;
     color: #fff;
-    padding: 14px 20px;
+    padding: 1px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -21,7 +21,7 @@
   text-decoration: none;
 }
 .logo-img {
-  height: 42px;          /* 헤더 높이에 맞춰 조절 (28~36px 추천) */
+  height: 34px;          /* 헤더 높이에 맞춰 조절 (28~36px 추천) */
   width: auto;
   display: block;
   object-fit: contain;
