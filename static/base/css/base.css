@@ -1,0 +1,137 @@
+/* ✅ 1. 테마 변수 설정 (CSS Variables) */
+:root {
+    --bg: #ffffff;
+    --text: #222;
+    --muted: #666;
+    --card: #ffffff;
+    --card-border: #eee;
+    --input-bg: #ffffff;
+    --input-border: #ddd;
+    --btn-bg: #333;
+    --btn-text: #fff;
+    --soft-bg: #f7f7f7;
+    --shadow: 0 4px 15px rgba(0,0,0,0.10);
+    --footer-bg: #ffffff;
+    --footer-border: #eee;
+}
+
+/* ✅ 2. 컨설팅 모드 (다크 계열) */
+body.consulting-mode {
+    --bg: #0f1115;
+    --text: #f2f3f5;
+    --muted: rgba(242,243,245,.72);
+    --card: #151922;
+    --card-border: rgba(255,255,255,.08);
+    --input-bg: #111521;
+    --input-border: rgba(255,255,255,.14);
+    --btn-bg: #f2f3f5;
+    --btn-text: #111;
+    --soft-bg: rgba(255,255,255,.06);
+    --shadow: 0 10px 30px rgba(0,0,0,0.45);
+    --footer-bg: #0f1115;
+    --footer-border: rgba(255,255,255,.1);
+}
+
+/* ✅ 3. 기본 전역 스타일 */
+body {
+    background: var(--bg);
+    color: var(--text);
+    transition: background-color .25s ease, color .25s ease;
+    margin: 0;
+    padding: 0;
+}
+
+a, p, span, h1, h2, h3, h4, h5, h6, label, small {
+    color: inherit;
+    transition: color .25s ease;
+    text-decoration: none;
+}
+
+.container {
+    width : 100%;
+    margin: 0 auto;
+}
+
+.site-footer {
+    background: var(--footer-bg);
+    border-top: 1px solid var(--footer-border);
+    padding: 20px;
+    text-align: center;
+    margin-top: 50px;
+    color: var(--muted);
+}
+
+/* ✅ 4. 모달 시스템 스타일 */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay:target { display: flex; }
+
+.modal-content {
+    background: var(--card);
+    color: var(--text);
+    padding: 30px;
+    border-radius: 20px;
+    width: 320px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+
+/* ✅ 메시지 알림창 스타일 */
+.msg-container {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.msg-item {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.msg-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.msg-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+/* ✅ 메인 컨텐츠 영역 */
+.main-content {
+    min-height: 600px;
+    padding: 20px;
+    width: 100%;           /* 메인 영역도 꽉 차게 */
+    box-sizing: border-box; /* 패딩이 너비에 영향을 주지 않도록 */
+}
+
+/* ✅ 모달 내 입력창 및 버튼 */
+.modal-input {
+    width: 100%;
+    padding: 12px;
+    margin: 15px 0;
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--text);
+}
+
+.modal-btn-group { display: flex; gap: 10px; }
+
+.btn-cancel {
+    flex: 1; padding: 12px; background: #f1f1f1; color: #666;
+    border-radius: 10px; font-weight: bold; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+}
+
+.btn-charge {
+    flex: 1; padding: 12px; background: #ffcc00; color: #333;
+    border: none; border-radius: 10px; font-weight: bold;
+    font-size: 14px; cursor: pointer;
+}

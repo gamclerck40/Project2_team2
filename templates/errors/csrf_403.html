@@ -1,22 +1,22 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'base/css/errors.css' %}">
+{% endblock %}
+
 {% block content %}
-<div style="display:flex; justify-content:center; margin: 40px 0;">
-  <div style="width:100%; max-width:520px; background:#fff; border:1px solid #eee; border-radius:16px; padding:22px; box-shadow:0 6px 18px rgba(0,0,0,.06);">
-    <h2 style="margin:0 0 10px 0;">⚠️ 요청을 처리할 수 없어요</h2>
-    <p style="margin:0 0 14px 0; color:#555; line-height:1.6;">
+<div class="error-wrap">
+  <div class="error-card">
+    <h2 class="error-title">⚠️ 요청을 처리할 수 없어요</h2>
+    <p class="error-desc">
       로그인 상태가 갱신되어 보안 확인이 필요합니다.<br/>
       아래 버튼을 눌러 페이지를 새로고침하거나 다시 로그인해 주세요.
     </p>
 
-    <div style="display:flex; gap:10px; margin-top:16px;">
-      <button onclick="location.reload()"
-              style="flex:1; padding:12px 14px; border:0; background:#2d6cdf; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;">
-        새로고침
-      </button>
-      <a href="{% url 'login' %}"
-         style="flex:1; text-align:center; padding:12px 14px; background:#f4f6f8; color:#333; border-radius:12px; text-decoration:none; font-weight:800;">
-        로그인 페이지
-      </a>
+    <div class="error-actions">
+      <button type="button" class="btn-error-primary" onclick="location.reload()">새로고침</button>
+      <a class="btn-error-secondary" href="{% url 'login' %}">로그인 페이지</a>
     </div>
   </div>
 </div>

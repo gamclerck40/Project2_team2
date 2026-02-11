@@ -3,71 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <title>로그인</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'account/css/auth.css' %}">
 </head>
 <body>
 
   {% include "header.html" %}
 
-  <div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
-    <div style="width:100%; max-width: 420px;">
+  <div class="auth-wrapper">
+    <div class="auth-container">
 
-      <h2 style="margin: 0 0 18px 10px;">🔐 로그인</h2>
+      <h2 class="auth-title">🔐 로그인</h2>
 
-      <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
-
-        <div style="background:#333; color:white; padding: 18px 22px; font-weight: 700;">
+      <div class="auth-card">
+        <div class="auth-card-header">
           계정으로 로그인
         </div>
 
-        <form method="post" style="padding: 22px;">
+        <form method="post" class="auth-form">
           {% csrf_token %}
 
           {% if form.errors %}
-            <div style="padding: 12px 14px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; margin-bottom: 16px; color:#c0392b;">
+            <div class="error-box">
               아이디/비밀번호를 확인해주세요.
             </div>
           {% endif %}
 
-          <div style="display:flex; flex-direction: column; gap: 14px;">
-
+          <div class="input-stack">
             <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">아이디</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+              <div class="input-label">아이디</div>
+              <div class="input-box">
                 {{ form.username }}
               </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+              <div class="field-error">
                 {{ form.username.errors }}
               </div>
             </div>
 
             <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">비밀번호</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
+              <div class="input-label">비밀번호</div>
+              <div class="input-box">
                 {{ form.password }}
               </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
+              <div class="field-error">
                 {{ form.password.errors }}
               </div>
             </div>
-
           </div>
 
-          <div style="margin-top: 18px;">
-            <button type="submit"
-                    style="width: 100%; padding: 12px 14px; background: #333; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 900; font-size: 15px;">
-              로그인
-            </button>
-          </div>
+          <button type="submit" class="btn-submit">
+            로그인
+          </button>
 
-          <div style="margin-top: 14px; display:flex; gap: 10px;">
-            <a href="{% url 'account_signup' %}"
-               style="flex:1; text-align:center; padding: 12px 14px; background: #f4f4f4; color: #666; border-radius: 12px; text-decoration: none; font-weight: 900;">
-              회원가입
-            </a>
-            <a href="{% url 'find_account' %}?tab=id"
-               style="flex:1; text-align:center; padding: 12px 14px; background: #f4f4f4; color: #666; border-radius: 12px; text-decoration: none; font-weight: 900;">
-              ID/PW 찾기
-            </a>
+          <div class="btn-group">
+            <a href="{% url 'account_signup' %}" class="btn-sub">회원가입</a>
+            <a href="{% url 'find_account' %}?tab=id" class="btn-sub">ID/PW 찾기</a>
           </div>
 
         </form>

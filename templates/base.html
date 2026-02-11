@@ -1,168 +1,63 @@
+{% load static %}
+<!doctype html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}우리 가게{% endblock %}</title>
-<style>
-  /* ✅ 기본(일반 모드) 테마 변수 */
-  :root{
-    --bg: #ffffff;
-    --text: #222;
-    --muted: #666;
-
-    --card: #ffffff;
-    --card-border: #eee;
-
-    --input-bg: #ffffff;
-    --input-border: #ddd;
-
-    --btn-bg: #333;
-    --btn-text: #fff;
-
-    --soft-bg: #f7f7f7;       /* product_list / consulting 카드 내부 배경 톤 */
-    --shadow: 0 4px 15px rgba(0,0,0,0.10);
-  }
-
-  /* ✅ 컨설팅 모드(반전 톤: 다크 계열) */
-  body.consulting-mode{
-    --bg: #0f1115;
-    --text: #f2f3f5;
-    --muted: rgba(242,243,245,.72);
-
-    --card: #151922;
-    --card-border: rgba(255,255,255,.08);
-
-    --input-bg: #111521;
-    --input-border: rgba(255,255,255,.14);
-
-    --btn-bg: #f2f3f5;
-    --btn-text: #111;
-
-    --soft-bg: rgba(255,255,255,.06);
-    --shadow: 0 10px 30px rgba(0,0,0,0.45);
-  }
-
-  /* ✅ 전역 적용 + 부드러운 전환 */
-  body{
-    background: var(--bg);
-    color: var(--text);
-    transition: background-color .25s ease, color .25s ease;
-  }
-
-  /* 텍스트/링크/구성요소들도 자연스럽게 */
-  a, p, span, h1, h2, h3, h4, h5, h6, label, small{
-    color: inherit;
-    transition: color .25s ease, background-color .25s ease, border-color .25s ease, box-shadow .25s ease;
-  }
-
-  /* 카드/박스/구분선/테두리 톤 */
-  .card, .panel, .box{
-    background: var(--card);
-    border-color: var(--card-border);
-    box-shadow: var(--shadow);
-  }
-
-  /* 입력/셀렉트/버튼 등 공통 */
-  input, select, textarea{
-    background: var(--input-bg);
-    color: var(--text);
-    border-color: var(--input-border);
-    transition: background-color .25s ease, color .25s ease, border-color .25s ease;
-  }
-
-  button{
-    transition: background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease;
-  }
-  
-  .site-footer{
-  background: var(--footer-bg);
-  border-top: 1px solid var(--footer-border);
-  padding: 20px;
-  text-align: center;
-  margin-top: 50px;
-  color: var(--muted);
-  transition: background-color .25s ease, color .25s ease, border-color .25s ease;
-}
-
-  /* ✅ consulting 템플릿에서 쓰던 인라인 #f9f9f9 같은 "밝은 박스" 톤을 변수로 통일하고 싶으면
-     (가능하면) 앞으로는 background: var(--soft-bg)로 맞추면 다크에서도 자연스럽게 동작함 */
-</style>
-
+    
+    <link rel="stylesheet" href="{% static 'base/css/base.css' %}">
+    
+    {% block extra_css %}{% endblock %}
 </head>
+
 <body class="{% if '/shop/consulting' in request.path %}consulting-mode{% endif %}">
+    
     {% include 'header.html' %}
+
     {% if messages %}
-    <div style="max-width: 1000px; margin: 20px auto; padding: 0 20px;">
+    <div class="msg-container">
         {% for message in messages %}
-            <div style="padding: 15px; margin-bottom: 20px; border-radius: 5px; 
-            {% if message.tags == 'success' %} background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;
-            {% elif message.tags == 'warning' %} background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;
-            {% endif %}">
-        {{ message }}
+            <div class="msg-item {% if message.tags == 'success' %}msg-success{% elif message.tags == 'warning' %}msg-warning{% endif %}">
+                {{ message }}
             </div>
         {% endfor %}
     </div>
-        {% endif %}
-    <div class="container" style="min-height: 600px; padding: 20px;">
+    {% endif %}
+
+    <main class="container main-content">
         {% block content %}
-
         {% endblock %}
-</div> 
-    <style>
-        .modal-overlay {
-            display: none; /* 평소엔 숨김 */
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); /* 배경 어둡게 */
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-        /* URL 끝에 #recharge-modal이 붙으면 활성화 */
-        .modal-overlay:target {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            width: 320px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            font-family: sans-serif;
-        }
-    </style>
+    </main> 
 
-   {# ✅ 공통 충전 모달 #}
     <div id="recharge-modal" class="modal-overlay">
         <div class="modal-content">
-            <h3 style="margin-top:0;">🏦 계좌 충전</h3>
-            <p style="font-size:14px; color: var(--muted);">충전할 금액을 입력해주세요.</p>
+            <h3 class="modal-title">🏦 계좌 충전</h3>
+            <p class="modal-description">충전할 금액을 입력해주세요.</p>
             
             <form method="post" action="{% url 'charge_balance' %}">
                 {% csrf_token %}
-                {# ✅ 핵심: 현재 페이지의 쿼리스트링을 포함한 전체 주소를 next로 넘김 #}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 
-                {# ✅ 계좌 ID 전달 (변수가 없을 때를 대비해 유저의 첫번째 계좌를 기본값으로 설정) #}
+                {# 로그인 상태 확인 후 계좌 ID 자동 입력 #}
                 {% if user.is_authenticated %}
-                    {% with acc=account|default:user.accounts.first %}
-                        <input type="hidden" name="account_id" value="{% if acc %}{{ acc.id }}{% endif %}">
-                    {% endwith %}
+                {% with acc=account|default:user.accounts.first %}
+                <input type="hidden" name="account_id" value="{% if acc %}{{ acc.id }}{% endif %}">
+                {% endwith %}
                 {% else %}
-                    <input type="hidden" name="account_id" value="">
-                {% endif %}                
-                <input type="number" name="amount" placeholder="금액 입력" required 
-                    style="width:100%; padding:12px; margin:15px 0; border:1px solid var(--input-border); border-radius:10px; box-sizing:border-box; background: var(--input-bg); color: var(--text);">                 
+                <input type="hidden" name="account_id" value="">
+                {% endif %}
                 
-                <div style="display:flex; gap:10px;">
-                    <a href="#" style="flex:1; padding:12px; background:#f1f1f1; color:#666; text-decoration:none; border-radius:10px; font-weight:bold; font-size:14px; display: flex; align-items: center; justify-content: center;">취소</a>
-                    <button type="submit" style="flex:1; padding:12px; background:#ffcc00; color:#333; border:none; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer;">충전하기</button>
+                <input type="number" name="amount" placeholder="금액 입력" required class="modal-input">                 
+                
+                <div class="modal-btn-group">
+                    <a href="#" class="btn-cancel">취소</a>
+                    <button type="submit" class="btn-charge">충전하기</button>
                 </div>
             </form>
         </div>
     </div>
-
     {% include 'footer.html' %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

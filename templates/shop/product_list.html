@@ -1,94 +1,32 @@
 {% extends 'base.html' %}
 {% block title %}상품 목록{% endblock %}
 {% load humanize %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'shop/css/shop.css' %}">
+<link rel="stylesheet" href="{% static 'shop/css/coupon.css' %}">
+
+{% endblock %}
 
 {% block content %}
-<style>
-    /* 1. 슬라이더 외곽 컨테이너 */
-    .slide-wrapper {
-        position: relative;
-        width: 100%;
-        height: 180px; /* 그림자 공간 확보를 위해 약간 높임 */
-        margin: 20px 0 40px 0;
-        overflow: hidden; /* 영역 밖 쿠폰 숨김 */
-        border-radius: 20px;
-    }
-
-    /* 2. 라디오 버튼(숨김) */
-    .slide-input {
-        display: none;
-    }
-
-    /* 3. 쿠폰들이 가로로 배치될 트랙 */
-    .coupon-container {
-        display: flex;
-        /* 쿠폰 개수에 비례하여 너비 설정 */
-        width: calc(100% * {{ display_coupon|length|default:1 }});
-        height: 170px;
-        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* 부드러운 이동 */
-    }
-
-    .coupon-item {
-        /* 전체 컨테이너 너비를 쿠폰 개수로 나눔 */
-        width: calc(100% / {{ display_coupon|length|default:1 }});
-        flex-shrink: 0;
-        position: relative;
-    }
-
-    /* 4. 핵심 로직: 라디오 버튼이 체크되면 해당 순서로 트랙 이동 */
-    {% for coupon in display_coupon %}
-    #slide-{{ forloop.counter }}:checked ~ .coupon-container {
-        transform: translateX(calc(-100% / {{ display_coupon|length|default:1 }} * {{ forloop.counter0 }}));
-    }
-    {% endfor %}
-
-    /* 5. 화살표 버튼 스타일 (label) */
-    .nav-btn {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(255, 255, 255, 0.85);
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #222;
-        font-size: 18px;
-        font-weight: bold;
-        z-index: 20;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        transition: all 0.2s;
-        user-select: none;
-    }
-    .nav-btn:hover {
-        background: #fff;
-        transform: translateY(-50%) scale(1.1);
-    }
-    .prev-btn { left: 15px; }
-    .next-btn { right: 15px; }
-</style>
-
 <form method="get" action="." id="filter-form">
-    <div style="display: flex; justify-content: center; margin: 30px 0 50px 0;">
-        <div style="display: flex; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 30px; overflow: hidden; background: white;">
-            <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="찾으시는 상품이 있으신가요?" 
-                   style="flex: 1; padding: 15px 25px; border: none; outline: none; font-size: 16px;">
-            <button type="submit" style="padding: 0 30px; background: #333; color: white; border: none; cursor: pointer; font-weight: bold;">검색</button>
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="찾으시는 상품이 있으신가요?" class="search-input">
+            <button type="submit" class="search-btn">검색</button>
         </div>
     </div>
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px;">
-        <select name="category" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+    <div class="filter-bar">
+        <select name="category" onchange="this.form.submit()" class="select-styled">
             <option value="">전체 카테고리</option>
             {% for category in categories %}
                 <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>{{ category.name }}</option>
             {% endfor %}
         </select>
             
-        <select name="sort" onchange="this.form.submit()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+        <select name="sort" onchange="this.form.submit()" class="select-styled">
             <option value="newest" {% if request.GET.sort == 'newest' %}selected{% endif %}>최신순</option>
             <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>가격 낮은 순</option>
             <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>가격 높은 순</option>
@@ -105,31 +43,28 @@
     <div class="coupon-container">
         {% for coupon in display_coupon %}
             <div class="coupon-item">
-                
                 {% if not forloop.first %}
                     <label for="slide-{{ forloop.counter0 }}" class="nav-btn prev-btn">❮</label>
                 {% endif %}
 
-                <a href="{% url 'register_coupon' %}" style="text-decoration: none; display: block;">
-                    <div style="position: relative; width: 100%; height: 170px; border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
-                        <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&q=80" 
-                             style="width: 100%; height: 100%; object-fit: cover; opacity: 0.4; filter: brightness(0.6);">
-                        
-                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 80px 0 40px; color: white; box-sizing: border-box;"> 
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-                                    <span style="background: #e44d26; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">SPECIAL</span>
-                                    <span style="color: #ffcc00; font-weight: 800; font-size: 16px;">
+                <a href="{% url 'register_coupon' %}" class="coupon-link">
+                    <div class="coupon-banner">
+                        <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&q=80" class="coupon-bg-img">
+                        <div class="coupon-content"> 
+                            <div class="coupon-info">
+                                <div class="coupon-info-row">
+                                    <span class="coupon-badge">SPECIAL</span>
+                                    <span class="coupon-discount">
                                         {% if coupon.discount_type == 'amount' %}{{ coupon.discount_value|intcomma }}원{% else %}{{ coupon.discount_value }}%{% endif %} 할인
                                     </span>
                                 </div>
-                                <h3 style="margin: 0; font-size: 22px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ coupon.name }}</h3>
-                                <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 12px;">📅 ~ {{ coupon.valid_to|date:"Y.m.d" }}</p>
+                                <h3 class="coupon-title">{{ coupon.name }}</h3>
+                                <p class="coupon-valid">📅 ~ {{ coupon.valid_to|date:"Y.m.d" }}</p>
                             </div>
 
-                            <div style="background: white; padding: 12px 20px; border-radius: 12px; text-align: center; min-width: 140px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"> 
-                                <div style="color: #999; font-size: 9px; font-weight: bold; text-transform: uppercase;">Coupon Code</div>
-                                <div style="color: #222; font-size: 18px; font-weight: 900; letter-spacing: 1px; font-family: 'Courier New', monospace;">{{ coupon.code }}</div>
+                            <div class="coupon-code-box"> 
+                                <div class="coupon-code-label">Coupon Code</div>
+                                <div class="coupon-code-value">{{ coupon.code }}</div>
                             </div>
                         </div>
                     </div>
@@ -147,25 +82,47 @@
 <h2>🛍️ 판매 중인 상품들</h2>
 <hr>
     
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px;"> 
+<div class="product-grid"> 
     {% for product in products %}
-        <div style="border: 1px solid #eee; padding: 15px; border-radius: 12px; transition: all 0.2s; background: white; display: flex; flex-direction: column;">
-            <div style="width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px;">
+        <div class="product-card">
+            <div class="product-img-wrapper">
                 {% if product.image1 %}
-                    <img src="{{ product.image1.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="{{ product.image1.url }}">
                 {% else %}
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ccc;">No Image</div>
+                    <div class="product-no-image">No Image</div>
                 {% endif %}
             </div>
-            <div style="flex-grow: 1;">
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333; font-weight: 600;">{{ product.name }}</h3>
-                <p style="margin: 0; color: #e44d26; font-weight: bold; font-size: 18px;">{{ product.price|intcomma }}원</p>
+            <div class="product-info">
+                <h3 class="product-name">{{ product.name }}</h3>
+                <p class="product-price">{{ product.price|intcomma }}원</p>
             </div>
-            <a href="{% url 'product_detail' product.pk %}" style="display: block; margin-top: 15px; padding: 8px 0; background: #f4f4f4; color: #666; text-decoration: none; text-align: center; border-radius: 6px; font-size: 14px; font-weight: 500;">상세보기</a>
+            <a href="{% url 'product_detail' product.pk %}" class="btn-detail">상세보기</a>
         </div>
     {% empty %}
-        <div style="grid-column: span 4; text-align: center; padding: 50px 0; color: #999;">등록된 상품이 없습니다.</div>
+        <div class="product-empty-msg">등록된 상품이 없습니다.</div>
     {% endfor %}
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function(){
+  const wrapper = document.querySelector('.slide-wrapper');
+  if(!wrapper) return;
 
+  const container = wrapper.querySelector('.coupon-container');
+  const radios = wrapper.querySelectorAll('input.slide-input');
+  const count = radios.length || 1;
+
+  wrapper.style.setProperty('--coupon-count', count);
+
+  function setIndexFromChecked(){
+    let idx = 0;
+    radios.forEach((r,i)=>{ if(r.checked) idx = i; });
+    wrapper.style.setProperty('--coupon-index', idx);
+  }
+
+  radios.forEach(r => r.addEventListener('change', setIndexFromChecked));
+  setIndexFromChecked();
+})();
+</script>
 {% endblock %}

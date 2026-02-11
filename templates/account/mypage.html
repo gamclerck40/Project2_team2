@@ -1,275 +1,86 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'account/css/mypage.css' %}">
+<script src="{% static 'account/js/mypage.js' %}"></script>
+{% endblock %}
+
+
 {% block content %}
+<div class="mypage-wrapper">
+  <div class="mypage-container">
 
-<style>
-  /* =========================
-     Tabs
-  ========================= */
-  .tabbar{
-    display:flex;
-    gap:10px;
-    padding:12px 14px;
-    background:#333;
-    color:#fff;
-    border-bottom:1px solid rgba(255,255,255,.12);
-  }
-  .tabbtn{
-    appearance:none;
-    border:1px solid rgba(255,255,255,.18);
-    background:rgba(255,255,255,.06);
-    color:#fff;
-    padding:8px 12px;
-    border-radius:999px;
-    cursor:pointer;
-    font-weight:900;
-    font-size:13px;
-    opacity:.9;
-  }
-  .tabbtn[aria-selected="true"]{
-    background:rgba(255,255,255,.18);
-    opacity:1;
-  }
-  .tabpanel{ display:none; }
-  .tabpanel.active{ display:block; }
-
-  /* =========================
-     Card / Layout
-  ========================= */
-  .card{
-    box-shadow:0 4px 15px rgba(0,0,0,.1);
-    border-radius:20px;
-    overflow:hidden;
-    background:#fff;
-    border:1px solid #eee;
-  }
-  .section{ padding:22px; }
-  .divider{ height:1px; background:#eee; }
-
-  /* =========================
-     Grid
-  ========================= */
-  .grid2{
-    display:grid;
-    grid-template-columns:140px 1fr;
-    row-gap:14px;
-    column-gap:12px;
-    align-items:center;
-  }
-  .label{ color:#666; font-weight:600; }
-  .valueStrong{ color:#333; font-weight:700; }
-
-  /* =========================
-     Form / Inputs
-  ========================= */
-  .inputWrap{
-    border:1px solid #ddd;
-    border-radius:12px;
-    padding:10px 12px;
-    background:#fff;
-  }
-  .inputWrap input{
-    width:100%;
-    border:none;
-    outline:none;
-    font-size:14px;
-    background:transparent;
-  }
-  .help{
-    margin-top:6px;
-    color:#888;
-    font-size:13px;
-  }
-
-  /* =========================
-     Buttons
-  ========================= */
-  .btnPrimary,
-  .btnGhost{
-    border:none;
-    border-radius:12px;
-    padding:10px 12px;
-    cursor:pointer;
-    font-weight:900;
-  }
-  .btnPrimary{ background:#333; color:#fff; }
-  .btnGhost{ background:#f4f4f4; color:#555; }
-
-  /* =========================
-     ✅ UI 정돈용(추가)
-     - 잔액/충전 버튼 줄바꿈 방지 + 정렬
-  ========================= */
-  .balanceRow{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    width:100%;
-  }
-  .balanceText{
-    color:#e44d26;
-    font-weight:800;
-    font-size:18px;
-    white-space:nowrap;
-  }
-  .btnRecharge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:6px 14px;
-    background:#333;
-    color:#fff;
-    text-decoration:none;
-    border-radius:8px;
-    font-size:13px;
-    font-weight:600;
-    white-space:nowrap;
-    min-width:56px;
-    height:32px;
-    line-height:32px;
-  }
-
-  /* =========================
-     ✅ [추가] 영수증 삭제(숨김) 버튼 스타일
-     - 기존 버튼 톤과 충돌 없이 카드 내부에서만 쓰는 전용 클래스
-  ========================= */
-  .btnReceiptDanger{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:8px 10px;
-    border-radius:10px;
-    font-weight:900;
-    font-size:13px;
-    cursor:pointer;
-    border:1px solid #ffa39e;
-    background:#fff1f0;
-    color:#cf1322;
-    white-space:nowrap;
-  }
-</style>
-
-<div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
-  <div style="width:100%; max-width: 900px;">
-
-    <h2 style="margin: 0 0 18px 10px; display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+    <h2 class="header-area">
       <span>🙋 내 정보</span>
-      <span style="font-size:14px; font-weight:400; color:#888;">
-        <a>Created :{{account.created_at}} | Updated : {{account.updated_at}}</a>
-      </span>
+      <span class="header-meta">Created: {{ account.created_at }} | Updated: {{ account.updated_at }}</span>
     </h2>
 
     <div class="card">
-      <!-- ✅ 탭 헤더 -->
-      <div class="tabbar" role="tablist" aria-label="마이페이지 탭">
-        <button class="tabbtn" type="button" role="tab" data-tab="profile" aria-selected="true">
-          프로필
-        </button>
-        <button class="tabbtn" type="button" role="tab" data-tab="edit" aria-selected="false">
-          내정보 수정
-        </button>
-        <button class="tabbtn" type="button" role="tab" data-tab="receipt" aria-selected="false">
-          영수증
-        </button>
+      <div class="tabbar" role="tablist">
+        <button class="tabbtn" type="button" role="tab" data-tab="profile" aria-selected="true">프로필</button>
+        <button class="tabbtn" type="button" role="tab" data-tab="edit" aria-selected="false">내정보 수정</button>
+        <button class="tabbtn" type="button" role="tab" data-tab="receipt" aria-selected="false">영수증</button>
       </div>
 
-      <!-- ✅ TAB 1: 프로필 -->
-      <div class="tabpanel active" id="tab-profile" role="tabpanel" aria-label="프로필 탭">
+      <div class="tabpanel active" id="tab-profile">
         <div class="section">
           <div class="grid2">
             <div class="label">아이디</div>
-            <div class="valueStrong">{{ user_obj.username }}</div>
+            <div class="value-strong">{{ user_obj.username }}</div>
 
             <div class="label">전화번호</div>
-            <div style="color:#333;">
-              {% if formatted_phone %}
-                <span class="valueStrong">{{ formatted_phone }}</span>
-              {% else %}
-                <span style="color:#999;">등록된 전화번호 없음</span>
-              {% endif %}
+            <div>
+              {% if formatted_phone %}<span class="value-strong">{{ formatted_phone }}</span>
+              {% else %}<span class="mypage-phone-empty">등록된 전화번호 없음</span>{% endif %}
             </div>
 
-<div class="label">배송지 관리</div>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-    {% for addr in addresses %}
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; border:1px solid {% if addr.is_default %}#333{% else %}#eee{% endif %}; border-radius:14px; background:{% if addr.is_default %}#fcfcfc{% else %}#fff{% endif %};">
-            <div style="flex:1;">
-                <div style="font-size:14px; font-weight:700; color:#333;">
-                    {{ addr.alias }}
-                    {% if addr.is_default %}
-                        <span style="background:#333; color:#fff; font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">기본</span>                    
+            <div class="label">배송지 관리</div>
+            <div class="mypage-address-stack">
+              {% for addr in addresses %}
+                <div class="addr-list-item {% if addr.is_default %}addr-default{% else %}addr-normal{% endif %}">
+                  <div class="mypage-flex-main">
+                    <div class="value-strong">
+                      {{ addr.alias }}{% if addr.is_default %}<span class="badge-default">기본</span>{% endif %}
+                    </div>
+                    <div class="mypage-addr-line">{{ addr.address }}</div>
+                  </div>
+                  {% if not addr.is_default %}
+                    <form method="post" action="{% url 'address_delete' addr.id %}" class="mypage-form-nomargin">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-danger" onclick="return confirm('[{{ addr.alias }}] 배송지를 삭제하시겠습니까?')">삭제</button>
+                    </form>
                   {% endif %}
                 </div>
-              <div style="font-size:13px; color:#666; margin-top:4px;">{{ addr.address }}</div>
-            </div>
-            {% if not addr.is_default %}
-                <form method="post" action="{% url 'address_delete' addr.id %}" style="margin:0;">
-                    {% csrf_token %}
-                    <button type="submit" 
-                            style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:12px; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:900;" 
-                            onclick="return confirm('[{{ addr.alias }}] 배송지를 삭제하시겠습니까?')">
-                        삭제
-                    </button>
-                </form>
-            {% endif %}
-        </div>
-    {% endfor %}
+              {% endfor %}
 
-    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; font-size: 13px;">
-        {% if addresses.has_previous %}
-            <a href="?tab=profile&addr_page={{ addresses.previous_page_number }}" 
-               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-               이전
-            </a>
-        {% else %}
-            <span style="color: #ccc; padding: 5px 10px;">이전</span>
-        {% endif %}
-
-        <span style="font-weight: 700; color: #666;">
-            {{ addresses.number }} / {{ addresses.paginator.num_pages }}
-        </span>
-
-        {% if addresses.has_next %}
-            <a href="?tab=profile&addr_page={{ addresses.next_page_number }}" 
-               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-               다음
-            </a>
-        {% else %}
-            <span style="color: #ccc; padding: 5px 10px;">다음</span>
-        {% endif %}
-    </div>
-
-    <p class="help">※ 기본 배송지는 삭제 버튼이 나타나지 않으며, 수정은 '내 정보 수정' 탭에서 가능합니다.</p>
-</div>
-          </div>
-
-          <div class="divider" style="margin:18px 0;"></div>
-
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-            <h3 style="margin: 0; font-size: 16px; color:#333;">🏦 현재 내 계좌</h3>
-            <div style="font-size:12px; color:#888;">
-              {% if accounts and accounts|length > 1 %}
-                계좌 선택 가능
-              {% else %}
-                기본 계좌 표시
-              {% endif %}
+              <div class="pagination">
+                {% if addresses.has_previous %}
+                  <a href="?tab=profile&addr_page={{ addresses.previous_page_number }}" class="page-link">이전</a>
+                {% else %}<span class="page-disabled">이전</span>{% endif %}
+                <span class="mypage-pagination-current">{{ addresses.number }} / {{ addresses.paginator.num_pages }}</span>
+                {% if addresses.has_next %}
+                  <a href="?tab=profile&addr_page={{ addresses.next_page_number }}" class="page-link">다음</a>
+                {% else %}<span class="page-disabled">다음</span>{% endif %}
+              </div>
+              <p class="help">※ 기본 배송지는 삭제 버튼이 나타나지 않으며, 수정은 '내 정보 수정' 탭에서 가능합니다.</p>
             </div>
           </div>
 
-          <div style="margin-top:14px; display:flex; flex-direction:column; gap:12px;">
+          <div class="divider"></div>
 
-            {# ✅ 다계좌일 때: 프로필 탭에서 기본 계좌 선택(변경) 가능 #}
-            {% if accounts and accounts|length >= 1 %}
-              <form method="post" action="{% url 'account_set_default' 0 %}" autocomplete="off">
+          <div class="mypage-account-head">
+            <h3 class="mypage-section-title">🏦 현재 내 계좌</h3>
+            <div class="mypage-section-hint">{% if accounts|length > 1 %}계좌 선택 가능{% else %}기본 계좌 표시{% endif %}</div>
+          </div>
+
+          <div class="mypage-account-stack">
+            {% if accounts %}
+              <form method="post" action="{% url 'account_set_default' 0 %}" autocomplete="off" class="js-default-account-form" data-action-template="{% url 'account_set_default' 0 %}">
                 {% csrf_token %}
-                <div class="inputWrap">
+                <div class="input-wrap">
                   <select name="account_id"
-                          onchange="
-                            const base = '{% url 'account_set_default' 0 %}';
-                            this.form.action = base.replace('/0/', '/' + this.value + '/');
-                            this.form.submit();
-                          "
-                          style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
+                          class="mypage-select-default js-default-account-select">
                     {% for acc in accounts %}
                       <option value="{{ acc.id }}" {% if acc.is_default %}selected{% endif %}>
                         {{ acc.bank }} / {{ acc.masked_account_number }}{% if acc.is_default %} (기본){% endif %}
@@ -277,16 +88,16 @@
                     {% endfor %}
                   </select>
                 </div>
-                <p class="help" style="margin:4px 0 2px 0;">※ 계좌를 선택하면 기본 계좌가 변경됩니다.</p>
+                <p class="help">※ 계좌를 선택하면 기본 계좌가 변경됩니다.</p>
               </form>
-              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-left:5px; margin-top:0;">
+
+              
+              <div class="mypage-account-del-list">
                 {% for acc in accounts %}
                   {% if not acc.is_default %}
-                    <form method="post" action="{% url 'account_delete' acc.id %}" style="margin:0;">
+                    <form method="post" action="{% url 'account_delete' acc.id %}" class="mypage-form-nomargin">
                       {% csrf_token %}
-                      <button type="submit"
-                              style="background:#fff1f0; border:1px solid #ffa39e; color:#cf1322; font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer;"
-                              onclick="return confirm('이 계좌를 삭제하시겠습니까?')">
+                      <button type="submit" class="btn-small-del" onclick="return confirm('이 계좌를 삭제하시겠습니까?')">
                         {{ acc.bank }} {{ acc.masked_account_number }} 삭제
                       </button>
                     </form>
@@ -294,283 +105,236 @@
                 {% endfor %}
               </div>
             {% endif %}
-            </div>
-          <div class="divider" style="margin: 20px 0;"></div>
+          </div>
 
-          <div class="section" style="padding:0;">
-            <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏦 계좌 정보</h3>
+          <div class="divider mypage-divider-lg"></div>
+
+          <div class="mypage-section-plain">
+            <h3 class="mypage-section-title mypage-section-title-gap">🏦 상세 정보</h3>
             {% if account %}
               <div class="grid2">
-                <div class="label">예금주명</div>
-                <div style="color:#333; font-weight:600;">{{ account.name }}</div>
-
-                <div class="label">은행</div>
-                <div style="color:#333; font-weight:600;">{{ account.bank }}</div>
-
-                <div class="label">계좌번호</div>
-                <div style="color:#333; font-weight:600;">{{ account.masked_account_number }}</div>
-
+                <div class="label">예금주명</div><div class="value-strong">{{ account.name }}</div>
+                <div class="label">은행</div><div class="value-strong">{{ account.bank }}</div>
+                <div class="label">계좌번호</div><div class="value-strong">{{ account.masked_account_number }}</div>
                 <div class="label">잔액</div>
-                <div class="balanceRow">
-                  <div class="balanceText">{{ default_account.balance|intcomma }}원</div>
-                  <a href="#recharge-modal" class="btnRecharge">충전</a>
+                <div class="balance-row">
+                  <div class="balance-text">{{ default_account.balance|intcomma }}원</div>
+                  <a href="#recharge-modal" class="btn-recharge">충전</a>
                 </div>
               </div>
             {% else %}
-              <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
-                등록된 계좌가 없습니다. "내정보 수정" 탭에서 계좌를 등록할 수 있습니다.
-              </div>
+              <div class="receipt-memo">등록된 계좌가 없습니다.</div>
             {% endif %}
-
           </div>
         </div>
       </div>
 
-      <!-- ✅ TAB 2: 내정보 수정 -->
-      <div class="tabpanel" id="tab-edit" role="tabpanel" aria-label="내정보 수정 탭">
+      <div class="tabpanel" id="tab-edit">
         <div class="section">
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-            <h3 style="margin: 0; font-size: 16px; color:#333;">✏️ 내정보 수정</h3>
-            <div style="font-size:12px; color:#888;">전화번호 / 계좌 / 배송지</div>
+          <div class="mypage-edit-head">
+            <h3 class="mypage-section-title">✏️ 내정보 수정</h3>
+            <span class="mypage-section-hint">전화번호 / 계좌 / 배송지</span>
           </div>
 
-          <form id="mypageUpdateForm" method="post" action="{% url 'mypage_update' %}" autocomplete="off">
-            {% csrf_token %}
-          </form>
+          <form id="mypageUpdateForm" method="post" action="{% url 'mypage_update' %}" autocomplete="off">{% csrf_token %}</form>
 
-          <div style="margin-top:14px; display:flex; flex-direction:column; gap:14px;">
+          <div class="mypage-edit-stack">
+            <div class="addr-normal mypage-card-pad">
+              <div class="label mypage-label-gap">전화번호</div>
+              <div class="input-wrap">
+                <input form="mypageUpdateForm" name="phone" value="{{ account.phone|default:'' }}" placeholder="01012345678" />
+              </div>
+              <p class="help">※ 내정보 수정 저장 버튼으로 변경됩니다.</p>
+            </div>
 
-            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-              <div style="display:flex; flex-direction:column; gap:14px;">
-                <div>
-                  <div style="margin-bottom: 8px; font-weight: 800; color:#333;">전화번호</div>
-                  <div class="inputWrap">
-                    <input form="mypageUpdateForm" name="phone" value="{% if account %}{{ account.phone }}{% endif %}" placeholder="01012345678" />
+            <div class="addr-normal mypage-card-pad">
+              <div class="value-strong mypage-value-gap">➕ 새 계좌 추가</div>
+              <form method="post" action="{% url 'account_add' %}" class="mypage-form-stack">
+                {% csrf_token %}
+                <div class="input-wrap"><select name="bank" class="mypage-select-bold">
+                  <option value="">은행 선택</option>
+                  {% for b in banks %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+                </select></div>
+                <div class="input-wrap"><input name="account_number" placeholder="계좌번호 입력" /></div>
+                <button class="btn-primary" type="submit">계좌 추가</button>
+              </form>
+              <p class="help mypage-help-gap">
+                ※ 동일 계좌번호는 중복 등록할 수 없으며, 타인 계정에 등록된 계좌도 등록할 수 없습니다.
+              </p>
+            </div>
+
+            <div class="addr-normal mypage-card-pad">
+              <h3 class="mypage-section-title mypage-section-title-gap">🏠 배송지 정보 수정</h3>
+              {% for addr in edit_addresses %}
+                <div class="mypage-edit-box">
+                  <input form="mypageUpdateForm" type="hidden" name="address_id[]" value="{{ addr.id }}">
+                  <div class="mypage-form-stack">
+                    <div class="input-wrap"><input form="mypageUpdateForm" name="address_alias[]" value="{{ addr.alias }}"></div>
+                    <div class="mypage-grid-form">
+                      <div class="input-wrap"><input form="mypageUpdateForm" name="zip_code[]" value="{{ addr.zip_code }}"></div>
+                      <div class="input-wrap"><input form="mypageUpdateForm" name="address[]" value="{{ addr.address }}"></div>
+                    </div>
+                    <div class="input-wrap"><input form="mypageUpdateForm" name="detail_address[]" value="{{ addr.detail_address }}"></div>
                   </div>
-                  <p class="help">※ 전화번호는 내정보 수정 저장 버튼으로 변경됩니다.</p>
                 </div>
+              {% endfor %}
+              
+              <div class="pagination mypage-margin-b20">
+                {% if edit_addresses.has_previous %}
+                  <a href="?tab=edit&edit_addr_page={{ edit_addresses.previous_page_number }}" class="page-link">이전</a>
+                {% endif %}
+                <span class="mypage-pagination-current">{{ edit_addresses.number }} / {{ edit_addresses.paginator.num_pages }}</span>
+                {% if edit_addresses.has_next %}
+                  <a href="?tab=edit&edit_addr_page={{ edit_addresses.next_page_number }}" class="page-link">다음</a>
+                {% endif %}
+              </div>
 
-                <div style="padding-top:14px; border-top:1px dashed #eee;">
-                  <div style="font-weight:900; margin-bottom:10px; color:#333;">➕ 새 계좌 추가</div>
+              <div class="divider"></div>
+              <h3 class="mypage-section-title mypage-section-title-topgap">➕ 새 배송지 추가</h3>
+              <div class="mypage-newaddr-box">
+                <div class="input-wrap"><input form="mypageUpdateForm" name="new_alias" placeholder="배송지 이름"></div>
+                <div class="input-wrap"><input form="mypageUpdateForm" name="new_zip_code" placeholder="새 우편번호"></div>
+                <div class="input-wrap"><input form="mypageUpdateForm" name="new_address" placeholder="새 기본 주소"></div>
+                <div class="input-wrap"><input form="mypageUpdateForm" name="new_detail_address" placeholder="새 상세 주소"></div>
+              </div>
 
-                  <form method="post" action="{% url 'account_add' %}" autocomplete="off" style="display:flex; flex-direction:column; gap:10px;">
-                    {% csrf_token %}
-
-                    <div class="inputWrap" style="padding: 8px 10px;">
-                      <select name="bank"
-                              style="width:100%; border:none; outline:none; background:transparent; font-size:14px; font-weight:700; cursor:pointer;">
-                        <option value="">은행 선택</option>
-                        {% for b in banks %}
-                          <option value="{{ b.id }}">{{ b.name }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-
-                    <div class="inputWrap">
-                      <input name="account_number" placeholder="계좌번호 입력" />
-                    </div>
-
-                    <button class="btnPrimary" type="submit" style="width:100%;">계좌 추가</button>
-                  </form>
-
-                  <p class="help" style="margin-top:8px;">
-                    ※ 동일 계좌번호는 중복 등록할 수 없으며, 타인 계정에 등록된 계좌도 등록할 수 없습니다.
-                  </p>
-                </div>
+              <div class="mypage-btn-row">
+                <button type="button" class="btn-ghost" onclick="location.href='?tab=profile'" class="mypage-flex-1">취소</button>
+                <button type="submit" class="btn-primary" form="mypageUpdateForm" class="mypage-flex-1">저장</button>
               </div>
             </div>
 
-            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-
-              <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🏠 배송지 정보 수정</h3>
-
-    {% for addr in edit_addresses %}
-    <div style="background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-        <input form="mypageUpdateForm" type="hidden" name="address_id[]" value="{{ addr.id }}">
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            <div class="inputWrap">
-                <input form="mypageUpdateForm" name="address_alias[]" value="{{ addr.alias }}" placeholder="별칭 (예: 집, 회사)">
-            </div>
-            <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px;">
-                <div class="inputWrap">
-                    <input form="mypageUpdateForm" name="zip_code[]" value="{{ addr.zip_code }}">
-
-                </div>
-                <div class="inputWrap">
-                    <input form="mypageUpdateForm" name="address[]" value="{{ addr.address }}">
-                </div>
-            </div>
-            <div class="inputWrap">
-                <input form="mypageUpdateForm" name="detail_address[]" value="{{ addr.detail_address }}">
-            </div>
-        </div>
-    </div>
-    {% endfor %}
-    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px; font-size: 13px;">
-        {% if edit_addresses.has_previous %}
-            <a href="?tab=edit&edit_addr_page={{ edit_addresses.previous_page_number }}" 
-               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">이전</a>
-        {% endif %}
-        
-        <span style="font-weight: 700; color: #666;">{{ edit_addresses.number }} / {{ edit_addresses.paginator.num_pages }}</span>
-        
-        {% if edit_addresses.has_next %}
-            <a href="?tab=edit&edit_addr_page={{ edit_addresses.next_page_number }}" 
-               style="text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">다음</a>
-        {% endif %}
-    </div>
-
-              <div class="divider" style="margin: 20px 0;"></div>
-
-    <h3 style="margin: 10px 0 14px 0; font-size: 16px; color:#333;">➕ 새 배송지 추가</h3>
-    <div style="display:flex; flex-direction:column; gap:10px; background: #f9f9f9; padding: 15px; border-radius: 12px;">
-        <div class="inputWrap">
-            <input form="mypageUpdateForm" name="new_alias" placeholder="배송지 이름 (예: 우리집, 사무실)">
-        </div>
-        <div class="inputWrap"><input form="mypageUpdateForm" name="new_zip_code" placeholder="새 우편번호"></div>
-        <div class="inputWrap"><input form="mypageUpdateForm" name="new_address" placeholder="새 기본 주소"></div>
-        <div class="inputWrap"><input form="mypageUpdateForm" name="new_detail_address" placeholder="새 상세 주소"></div>
-    </div>
-
-    <div style="display:flex; gap:10px; margin-top: 16px;">
-        <button type="button" class="btnGhost" onclick="location.href='?tab=profile'" style="flex:1;">취소</button>
-        <button type="submit" class="btnPrimary" form="mypageUpdateForm" style="flex:1;">저장</button>
-    </div>
-</div>
-
-            <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-              <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🔒 비밀번호 변경</h3>
-              <div style="padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 14px; line-height: 1.6;">
-                안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.
-              </div>
-
+            <div class="addr-normal mypage-card-pad">
+              <h3 class="mypage-section-title mypage-section-title-gap">🔒 비밀번호 변경</h3>
+              <div class="info-box-blue">안전을 위해 <b>본인 인증</b> 후 새 비밀번호를 설정할 수 있습니다.</div>
               {% if not pw_verified %}
-                <form method="post" action="{% url 'pw_verify' %}" autocomplete="off">
+                <form method="post" action="{% url 'pw_verify' %}">
                   {% csrf_token %}
-                  <div style="margin-bottom: 12px;">
-                    <div style="margin-bottom: 8px; font-weight: 800; color:#333;">현재 비밀번호</div>
-                    <div class="inputWrap">
-                      <input type="password" name="current_password" placeholder="현재 비밀번호를 입력하세요" />
-                    </div>
+                  <div class="mypage-margin-b12">
+                    <div class="label mypage-label-gap">현재 비밀번호</div>
+                    <div class="input-wrap"><input type="password" name="current_password" placeholder="현재 비밀번호 입력" /></div>
                   </div>
-                  <button type="submit" class="btnPrimary" style="width:100%;">본인 인증</button>
+                  <button type="submit" class="btn-primary mypage-w-100">본인 인증</button>
                 </form>
               {% else %}
-                <form method="post" action="{% url 'pw_change' %}" autocomplete="off">
+                <form method="post" action="{% url 'pw_change' %}">
                   {% csrf_token %}
-                  <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 12px;">
-                    <div>
-                      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호</div>
-                      <div class="inputWrap"><input type="password" name="new_password1" placeholder="새 비밀번호" /></div>
-                    </div>
-                    <div>
-                      <div style="margin-bottom: 8px; font-weight: 800; color:#333;">새 비밀번호 확인</div>
-                      <div class="inputWrap"><input type="password" name="new_password2" placeholder="새 비밀번호 확인" /></div>
-                    </div>
+                  <div class="mypage-stack-14-b12">
+                    <div><div class="label">새 비밀번호</div><div class="input-wrap"><input type="password" name="new_password1" /></div></div>
+                    <div><div class="label">새 비밀번호 확인</div><div class="input-wrap"><input type="password" name="new_password2" /></div></div>
                   </div>
-                  <div style="display:flex; gap:10px;">
-                    <a href="/accounts/mypage/?tab=edit" class="btnGhost" style="text-decoration:none; flex:1; text-align:center; line-height: 36px;">취소</a>
-                    <button type="submit" class="btnPrimary" style="flex:1;">비밀번호 변경</button>
+                  <div class="mypage-btn-row">
+                    <a href="/accounts/mypage/?tab=edit" class="btn-ghost mypage-btn-link">취소</a>
+                    <button type="submit" class="btn-primary mypage-flex-1">비밀번호 변경</button>
                   </div>
                 </form>
               {% endif %}
             </div>
-
           </div>
         </div>
       </div>
 
-<!-- ✅ TAB 3: 영수증 -->
-<div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
-  <div class="section">
-    <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
+      <div class="tabpanel" id="tab-receipt">
+        <div class="section">
+          <h3 class="mypage-section-title mypage-section-title-gap">🧾 영수증</h3>
+          <p class="help mypage-margin-b14">구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.</p>
+          <form method="get" class="mypage-receipt-filter">
+          <input type="hidden" name="tab" value="receipt">
 
-    <div style="margin:0 0 14px 0; color:#666; font-size:13px; line-height:1.6;">
-      구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
-    </div>
-
-    {% if receipts_page and receipts_page.object_list %}
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        {% for tx in receipts_page %}
-          <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-
-              <div style="min-width:0;">
-                <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                  {{ tx.product_name|default:"구매" }}
-                  {% if tx.quantity %}
-                    <span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>
-                  {% endif %}
-
-                  {# ✅ [추가] 할인 적용된 거래 표시 태그 #}
-                  {% if tx.used_coupon or tx.discount_amount %}
-                    <span style="
-                      display:inline-flex;
-                      align-items:center;
-                      justify-content:center;
-                      margin-left:6px;
-                      padding:4px 8px;
-                      border-radius:999px;
-                      background:#e78181;
-                      color:#333;
-                      font-size:11px;
-                      font-weight:900;
-                      white-space:nowrap;
-                    ">
-                      할인
-                    </span>
-                  {% endif %}
+          <div class="mypage-receipt-filter-row">
+            <div class="mypage-filter-group">
+              <div class="label mypage-label-gap">기간</div>
+              <div class="mypage-filter-dates">
+                <div class="input-wrap">
+                  <input type="date" name="rc_start" value="{{ rc_start }}">
                 </div>
-
-                <div style="margin-top:6px; color:#888; font-size:13px;">
-                  {{ tx.occurred_at|date:"Y-m-d H:i" }}
-                  {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
-                  {% if tx.category %} · {{ tx.category.name }}{% endif %}
-                </div>
-
-                <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
-                  -{{ tx.amount|intcomma }}원
+                <span class="mypage-date-tilde">~</span>
+                <div class="input-wrap">
+                  <input type="date" name="rc_end" value="{{ rc_end }}">
                 </div>
               </div>
-
-              <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
-                  PDF 보기
-                </a>
-                <a href="{% url 'receipt_pdf' tx.id %}" download
-                   style="text-decoration:none; font-weight:900; font-size:13px;
-                          padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
-                  다운로드
-                </a>
-
-                {# ✅ [추가] 영수증 "삭제"(숨김) 버튼 - Transaction은 유지 #}
-                <form method="post" action="{% url 'receipt_hide' tx.id %}" style="margin:0;">
-                  {% csrf_token %}
-                  <button type="submit"
-                          class="btnReceiptDanger"
-                          onclick="return confirm('이 영수증을 삭제할까요?\\n(거래 내역은 유지되며, 영수증 탭/PDF에서만 숨김 처리됩니다)');">
-                    영수증 삭제
-                  </button>
-                </form>
-              </div>
-
             </div>
 
-            {% if tx.memo %}
-              <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
-                {{ tx.memo }}
+            <div class="mypage-filter-group">
+              <div div class="label mypage-label-gap">카테고리</div>
+              <div class="input-wrap">
+                <select name="rc_category">
+                    <option value="">전체</option>
+                  {% for c in receipt_categories %}
+                    <option value="{{ c.id }}" {% if rc_category == c.id|stringformat:"i" %}selected{% endif %}>
+                      {{ c.name }}
+                    </option>
+                  {% endfor %}
+                </select>
               </div>
-            {% endif %}
+            </div>
+
+            <div class="mypage-filter-actions">
+              <button type="submit" class="btn-primary">적용</button>
+                <a href="?tab=receipt" class="btn-ghost mypage-btn-link">초기화</a>
+            </div>
           </div>
-        {% endfor %}
+        </form>
+
+          {% if receipts_page and receipts_page.object_list %}
+            <div class="mypage-form-stack">
+              {% for tx in receipts_page %}
+                <div class="addr-normal mypage-card-pad">
+                  <div class="mypage-receipt-row">
+                    <div class="mypage-min-w0">
+                      <div class="value-strong mypage-ellipsis">
+                        {{ tx.product_name|default:"구매" }} {% if tx.quantity %}({{ tx.quantity }}개){% endif %}
+                        {% if tx.used_coupon or tx.discount_amount %}<span class="receipt-badge-discount">할인</span>{% endif %}
+                      </div>
+                      <div class="help">{{ tx.occurred_at|date:"Y-m-d H:i" }}{% if tx.merchant %} · {{ tx.merchant }}{% endif %}{% if tx.category %} · {{ tx.category.name }}{% endif %}</div>
+                      <div class="mypage-receipt-amount">-{{ tx.amount|intcomma }}원</div>
+                    </div>
+                    <div class="mypage-receipt-actions">
+                      <a href="{% url 'receipt_pdf' tx.id %}" target="_blank" class="page-link mypage-font-13">PDF 보기</a>
+                      <a href="{% url 'receipt_pdf' tx.id %}" download class="btn-primary mypage-font-13-link">다운로드</a>
+                      <form method="post" action="{% url 'receipt_hide' tx.id %}" class="mypage-form-nomargin">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-danger" onclick="return confirm('영수증을 숨기시겠습니까?');">영수증 삭제</button>
+                      </form>
+                    </div>
+                  </div>
+                  {% if tx.memo %}<div class="receipt-memo">{{ tx.memo }}</div>{% endif %}
+                </div>
+              {% endfor %}
+            </div>
+            {% if receipts_page.has_other_pages %}
+            <div class="pagination mypage-margin-b20">
+              {% if receipts_page.has_previous %}
+                <a class="page-link"
+                  href="?tab=receipt&rc_page={{ receipts_page.previous_page_number }}{% if rc_start %}&rc_start={{ rc_start }}{% endif %}{% if rc_end %}&rc_end={{ rc_end }}{% endif %}{% if rc_category %}&rc_category={{ rc_category }}{% endif %}">
+                  이전
+                </a>
+              {% else %}
+                <span span class="page-disabled">이전</span>
+              {% endif %}
+
+              <span class="mypage-pagination-current">
+                {{ receipts_page.number }} / {{ receipts_page.paginator.num_pages }}
+              </span>
+
+              {% if receipts_page.has_next %}
+                <a class="page-link"
+                  href="?tab=receipt&rc_page={{ receipts_page.next_page_number }}{% if rc_start %}&rc_start={{ rc_start }}{% endif %}{% if rc_end %}&rc_end={{ rc_end }}{% endif %}{% if rc_category %}&rc_category={{ rc_category }}{% endif %}">
+                  다음
+                </a>
+              {% else %}
+                <span class="page-disabled">다음</span>
+              {% endif %}
+            </div>
+            {% endif %}
+
+          {% else %}
+            <div class="receipt-memo">영수증 내역이 없습니다.</div>
+          {% endif %}
+        </div>
       </div>
-    {% else %}
-      <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
-        영수증 내역이 없습니다.
-      </div>
-    {% endif %}
+
+    </div>
   </div>
 </div>
 
@@ -585,12 +349,13 @@
 
     function setActive(name){
       tabs.forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
-      Object.keys(panels).forEach(k => panels[k].classList.toggle("active", k === name));
+      Object.keys(panels).forEach(k => {
+          if(panels[k]) panels[k].classList.toggle("active", k === name);
+      });
     }
 
     const params = new URLSearchParams(location.search);
-    const init = params.get("tab") || "profile";
-    setActive(init);
+    setActive(params.get("tab") || "profile");
 
     tabs.forEach(b => {
       b.addEventListener("click", () => {
@@ -602,5 +367,4 @@
     });
   })();
 </script>
-
 {% endblock %}

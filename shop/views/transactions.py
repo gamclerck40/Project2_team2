@@ -6,13 +6,14 @@ from django.utils import timezone  # (지금 코드에선 안 쓰면 제거해�
 
 from account.models import Account
 from ..models import Transaction, Category  # ⭐ * 대신 필요한 것만 명시
-from ..utils.tx_summary import parse_month_range, aggregate_in_out
+from ..utils.tx_summary import *
 
 
 class TransactionHistoryView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = "shop/transaction_list.html"
     context_object_name = "transactions"
+    paginate_by = 10   # ✅ 추가: 페이지당 10개 (원하면 20 등으로 변경)
 
     # ✅ tx_type 호환(데이터가 IN/OUT 이든 income/buy 든 모두 대응)
     IN_TYPES = ["IN", "income"]
@@ -57,7 +58,6 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         tab = self.request.GET.get("tab", "in")
         context["active_tab"] = tab
 
-        # ✅ 템플릿이 쓰는 공통 키
         context["categories"] = Category.objects.all()
         context["accounts"] = Account.objects.filter(user=self.request.user)
 
@@ -67,9 +67,6 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["selected_category"] = self.request.GET.get("category") or ""
         context["discounted"] = self.request.GET.get("discounted") or ""
 
-        # =========================
-        # ✅ summary 탭(요약/통계)
-        # =========================
         if tab == "summary":
             sum_start = self.request.GET.get("sum_start") or ""
             sum_end = self.request.GET.get("sum_end") or ""
@@ -80,38 +77,40 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
 
             reset = (self.request.GET.get("reset") == "1")
             if reset:
-                # ✅ 입력칸은 빈칸으로 보여주기
                 sum_start, sum_end, sum_category = "", "", ""
 
             context["sum_start"] = sum_start
             context["sum_end"] = sum_end
             context["sum_category"] = sum_category
 
-            # ✅ base: 기본은 전체기간
             base = Transaction.objects.filter(user=self.request.user)
 
-            # ✅ 월 범위가 둘 다 있을 때만 기간 필터 적용
+            # ✅ 열린 구간 필터링: 시작만/끝만/둘 다
             if sum_start and sum_end:
                 start, end = parse_month_range(sum_start, sum_end)
-                base = base.filter(
-                    occurred_at__date__gte=start,
-                    occurred_at__date__lt=end,
-                )
+                base = base.filter(occurred_at__date__gte=start, occurred_at__date__lt=end)
 
-            # ✅ 요약 숫자 (전체기간 / 기간필터 공통)
+            elif sum_start and not sum_end:
+                # 시작월부터 "현재"까지 (열린 끝)
+                start = month_start(sum_start)
+                base = base.filter(occurred_at__date__gte=start)
+
+            elif sum_end and not sum_start:
+                # "최초 거래"부터 끝월까지 (열린 시작)
+                end = next_month_start(sum_end)
+                base = base.filter(occurred_at__date__lt=end)            
+
+            # ✅ 요약 수치
             total_in, total_out = aggregate_in_out(base, self.IN_TYPES, self.OUT_TYPES)
             context["total_in"] = total_in
             context["total_out"] = total_out
             context["net_total"] = total_in - total_out
             context["has_summary_data"] = (total_in != 0 or total_out != 0)
 
-            # =========================================================
-            # ✅ 그래프 데이터 (HTML은 txCategoryChart만 제대로 렌더하는 구조)
-            #    → View가 chart_tab에 따라 cat_chart_labels/values를 "맞춰서" 공급
-            # =========================================================
+            # =========================
+            # ✅ 그래프 데이터
+            # =========================
             if chart_tab == "monthly":
-                # ✅ 월별(월단위)로 단일 시리즈를 만들어 txCategoryChart로 출력되게 함
-                # (HTML/JS 수정 없이 그래프가 나오게 하는 View-only 우회 방식)
                 monthly = (
                     base.annotate(m=TruncMonth("occurred_at"))
                     .values("m")
@@ -134,32 +133,24 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
                     .order_by("m")
                 )
 
-                labels = []
-                values = []
-
+                labels, ins, outs = [], [], []
                 for row in monthly:
                     if not row["m"]:
                         continue
                     labels.append(row["m"].strftime("%Y-%m"))
+                    ins.append(str(row["income"] or 0))
+                    outs.append(str(row["expense"] or 0))
 
-                    # ✅ 단일 시리즈 선택:
-                    # 1) 월별 지출만 보여주고 싶으면 아래로 교체:
-                    # v = row["expense"] or 0
-                    # 2) 월별 순이익(수익-지출)
-                    v = (row["income"] or 0) - (row["expense"] or 0)
-
-                    values.append(str(v))
-
-                context["has_category_data"] = len(labels) > 0
-                context["cat_chart_labels"] = "|".join(labels)
-                context["cat_chart_values"] = "|".join(values)
+                # ✅ 템플릿(txMonthlyChart)이 기대하는 키로 넣기
+                context["chart_labels"] = "|".join(labels)
+                context["chart_in"] = "|".join(ins)
+                context["chart_out"] = "|".join(outs)
 
             else:
-                # ✅ 카테고리별 지출 통계(기존 의도 유지)
+                # 카테고리별 지출 통계 (기존 유지)
+                base_for_cat = base.filter(tx_type__in=self.OUT_TYPES)
                 if sum_category:
-                    base_for_cat = base.filter(tx_type__in=self.OUT_TYPES, category_id=sum_category)
-                else:
-                    base_for_cat = base.filter(tx_type__in=self.OUT_TYPES)
+                    base_for_cat = base_for_cat.filter(category_id=sum_category)
 
                 by_cat = (
                     base_for_cat.values("category__name")
@@ -167,8 +158,7 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
                     .order_by("-total")
                 )
 
-                labels = []
-                values = []
+                labels, values = [], []
                 for row in by_cat:
                     labels.append(row["category__name"] or "미분류")
                     values.append(str(row["total"] or 0))

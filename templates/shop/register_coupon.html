@@ -1,30 +1,33 @@
 {% extends "base.html" %}
 {% load humanize %}
-{% block content %}
-<div style="max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: sans-serif;">
+{% load static %}
 
-    <div style="background: #1a1a1a; color: #fff; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-        <h2 style="margin: 0 0 20px 0; font-size: 22px;">🎟️ 쿠폰 등록</h2>
-        <form method="post" action="{% url 'register_coupon' %}" style="display: flex; gap: 10px;">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'shop/css/coupon.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="coupon-page-container">
+
+    <div class="coupon-reg-section">
+        <h2 class="coupon-reg-title">🎟️ 쿠폰 등록</h2>
+        <form method="post" action="{% url 'register_coupon' %}" class="coupon-reg-form">
             {% csrf_token %}
-            <input type="text" name="coupon_code" placeholder="쿠폰 코드를 입력하세요" required
-                   style="flex: 1; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: #fff; outline: none;">
-            <button type="submit" style="padding: 0 25px; background: #fbc02d; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: #000;">
-                등록
-            </button>
+            <input type="text" name="coupon_code" placeholder="쿠폰 코드를 입력하세요" required class="coupon-reg-input">
+            <button type="submit" class="coupon-reg-btn">등록</button>
         </form>
     </div>
 
-    <div style="margin-top: 40px;">
-        <h3 style="font-size: 18px; color: #444; margin-bottom: 20px; border-left: 4px solid #fbc02d; padding-left: 10px;">나의 쿠폰 목록</h3>
+    <div class="coupon-list-section">
+        <h3 class="coupon-list-title">나의 쿠폰 목록</h3>
 
-        <div style="display: grid; gap: 15px;">
+        <div class="coupon-grid">
             {% for uc in user_coupons %}
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 25px; border: 1px solid #eee; border-radius: 15px; background: {% if uc.is_used %}#fafafa{% else %}#fff{% endif %}; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+            <div class="coupon-ticket {% if uc.is_used %}used{% endif %}">
 
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="background: {% if uc.is_used %}#f0f0f0{% else %}#fffde7{% endif %}; color: {% if uc.is_used %}#aaa{% else %}#f57f17{% endif %}; padding: 15px; border-radius: 12px; text-align: center; min-width: 90px;">
-                        <span style="font-size: 20px; font-weight: 800;">
+                <div class="coupon-ticket-left">
+                    <div class="discount-box">
+                        <span class="discount-text">
                             {% if uc.coupon.discount_type == 'amount' %}
                                 {{ uc.coupon.discount_value|floatformat:0 }}원
                             {% else %}
@@ -34,34 +37,27 @@
                     </div>
 
                     <div>
-    <div style="font-weight: 700; font-size: 17px; color: {% if uc.is_used %}#999{% else %}#333{% endif %};">{{ uc.coupon.name }}</div>
-    <div style="font-size: 13px; color: #aaa; margin-top: 4px;">최소 주문: {{ uc.coupon.min_purchase_amount|intcomma }}원</div>
-    
-    {# ✅ 최대 할인 금액 표시 추가 #}
-    {% if uc.coupon.max_discount_amount %}
-    <div style="font-size: 13px; color: #e44d26; margin-top: 2px; font-weight: 500;">
-        최대 할인: {{ uc.coupon.max_discount_amount|intcomma }}원
-    </div>
-    {% endif %}
-</div>
+                        <div class="coupon-info-name">{{ uc.coupon.name }}</div>
+                        <div class="coupon-info-min">최소 주문: {{ uc.coupon.min_purchase_amount|floatformat:0 }}원</div>
+                    </div>
                 </div>
 
-                <div style="text-align: right; z-index: 1;">
-                    <div style="margin-bottom: 10px;">
+                <div class="coupon-status-box">
+                    <div>
                         {% if uc.is_used %}
-                            <span style="background: #eee; color: #999; padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: bold;">사용완료</span>
+                            <span class="status-badge status-used">사용완료</span>
                         {% else %}
-                            <span style="background: #e8f5e9; color: #2e7d32; padding: 5px 12px; border-radius: 30px; font-size: 11px; font-weight: bold;">사용가능</span>
+                            <span class="status-badge status-available">사용가능</span>
                         {% endif %}
                     </div>
-                    <div style="font-size: 12px; color: #ccc;">{{ uc.coupon.valid_to|date:"Y-m-d" }}까지</div>
+                    <div class="coupon-expiry">{{ uc.coupon.valid_to|date:"Y-m-d" }}까지</div>
                 </div>
 
-                <div style="position: absolute; left: -12px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #fdfdfd; border-radius: 50%; border: 1px solid #eee;"></div>
-                <div style="position: absolute; right: -12px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #fdfdfd; border-radius: 50%; border: 1px solid #eee;"></div>
+                <div class="punch-hole punch-l"></div>
+                <div class="punch-hole punch-r"></div>
             </div>
             {% empty %}
-            <div style="text-align: center; padding: 60px; color: #ccc; border: 2px dashed #f0f0f0; border-radius: 20px;">보유하신 쿠폰이 없습니다.</div>
+            <div class="empty-msg">보유하신 쿠폰이 없습니다.</div>
             {% endfor %}
         </div>
     </div>

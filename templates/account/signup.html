@@ -1,186 +1,103 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <title>회원가입</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% load static %}
 
-  {% include "header.html" %}
+{% block title %}회원가입{% endblock %}
 
-  <div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
-    <div style="width:100%; max-width: 520px;">
+{% block content %}
+<link rel="stylesheet" href="{% static 'account/css/signup.css' %}">
 
-      <h2 style="margin: 0 0 18px 10px;">📝 회원가입</h2>
+<div class="signup-container">
+    <div class="signup-wrapper">
+        <h2 class="signup-title">📝 회원가입</h2>
 
-      <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
+        <div class="signup-card">
+            <div class="signup-card-header">계정 정보 입력</div>
 
-        <div style="background:#333; color:white; padding: 18px 22px; font-weight: 700;">
-          계정 정보 입력
+            <form method="post" class="signup-form">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="error-summary">
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+
+                <div class="form-section">
+                    <div class="field-item">
+                        <div class="input-label">아이디</div>
+                        <div class="input-field-group">{{ form.username }}</div>
+                        <div class="field-error-msg">{{ form.username.errors }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">비밀번호</div>
+                        <div class="input-field-group">{{ form.password1 }}</div>
+                        <div class="field-error-msg">{{ form.password1.errors }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">비밀번호 확인</div>
+                        <div class="input-field-group">{{ form.password2 }}</div>
+                        <div class="field-error-msg">{{ form.password2.errors }}</div>
+                    </div>
+
+                    <div class="signup-divider"></div>
+
+                    <div class="field-item">
+                        <div class="input-label">이름</div>
+                        <div class="input-field-group">{{ form.name }}</div>
+                        <div class="field-error-msg">{{ form.name.errors }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">폰 번호</div>
+                        <div class="input-field-group">{{ form.phone }}</div>
+                        <div class="field-help-msg">예) 01012345678 (하이픈 없이)</div>
+                        <div class="field-error-msg">{{ form.phone.errors }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">은행명</div>
+                        <div class="input-field-group">{{ form.bank }}</div>
+                        <div class="field-error-msg">{{ form.bank.errors }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">계좌번호</div>
+                        <div class="input-field-group">{{ form.account_number }}</div>
+                        <div class="field-error-msg">{{ form.account_number.errors }}</div>
+                    </div>
+
+                    <div class="signup-divider"></div>
+
+                    <div class="field-item">
+                        <div class="input-label">우편번호</div>
+                        <div class="input-field-group">{{ form.zip_code }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">기본 주소</div>
+                        <div class="input-field-group">{{ form.address }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">상세 주소</div>
+                        <div class="input-field-group">{{ form.detail_address }}</div>
+                    </div>
+
+                    <div class="field-item">
+                        <div class="input-label">잔액</div>
+                        <div class="input-field-group">{{ form.balance }}</div>
+                        <div class="field-error-msg">{{ form.balance.errors }}</div>
+                    </div>
+                </div>
+
+                <div class="signup-btn-group">
+                    <button type="submit" class="btn-signup-submit">가입하기</button>
+                    <a href="{% url 'login' %}" class="btn-signup-login">이미 계정이 있어요</a>
+                </div>
+            </form>
         </div>
-
-        <form method="post" style="padding: 22px;">
-          {% csrf_token %}
-
-          {% if form.errors %}
-            <div style="padding: 12px 14px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; margin-bottom: 16px; color:#c0392b;">
-              {{ form.errors }}
-            </div>
-          {% endif %}
-
-          <div style="display:flex; flex-direction: column; gap: 14px;">
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">아이디</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.username }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.username.errors }}
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">비밀번호</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.password1 }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.password1.errors }}
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">비밀번호 확인</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.password2 }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.password2.errors }}
-              </div>
-            </div>
-
-            <div style="height: 1px; background:#eee; margin: 6px 0;"></div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">이름</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.name }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.name.errors }}
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">폰 번호</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.phone }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.phone.errors }}
-              </div>
-              <div style="margin-top: 6px; color:#888; font-size: 13px;">
-                예) 01012345678 (하이픈 없이)
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">은행명</div>
-
-              <!-- ✅ Bank FK용 select -->
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                <style>
-                  /* 이 템플릿에서만 select를 input처럼 보이게 */
-                  select[name="bank"]{
-                    width: 100%;
-                    border: none;
-                    outline: none;
-                    background: transparent;
-                    font-size: 14px;
-                    padding: 0;
-                    margin: 0;
-                    appearance: none;   /* 브라우저 기본 화살표 최소화 */
-                    -webkit-appearance: none;
-                    -moz-appearance: none;
-                  }
-                </style>
-                {{ form.bank }}
-              </div>
-
-  <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-    {{ form.bank.errors }}
-  </div>
-</div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">계좌번호</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.account_number }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.account_number.errors }}
-              </div>
-            </div>
-            <div style="height: 1px; background:#eee; margin: 6px 0;"></div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">우편번호</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.zip_code }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.zip_code.errors }}
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">기본 주소</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.address }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.address.errors }}
-              </div>
-            </div>
-
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">상세 주소</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.detail_address }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.detail_address.errors }}
-              </div>
-            </div>
-            <div>
-              <div style="margin-bottom: 8px; font-weight: 800; color:#333;">잔액</div>
-              <div style="border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: white;">
-                {{ form.balance }}
-              </div>
-              <div style="margin-top: 6px; color:#c0392b; font-size: 13px;">
-                {{ form.balance.errors }}
-              </div>
-            </div>
-
-          </div>
-
-          <div style="margin-top: 18px; display:flex; gap: 10px;">
-            <button type="submit"
-                    style="flex:1; padding: 12px 14px; background: #333; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 900;">
-              가입하기
-            </button>
-            <a href="{% url 'login' %}"
-               style="flex:1; text-align:center; padding: 12px 14px; background: #f4f4f4; color: #666; border-radius: 12px; text-decoration: none; font-weight: 900;">
-              이미 계정이 있어요
-            </a>
-          </div>
-
-        </form>
-      </div>
-
     </div>
-  </div>
-
-</body>
-</html>
+</div>
+{% endblock %}

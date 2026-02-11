@@ -1,188 +1,67 @@
-<header style="
-  background:#333; color:#fff;
-  padding: 14px 20px;
-  display:flex; align-items:center; justify-content:space-between;
-">
-  <!-- 로고 -->
-  <h1 style="margin:0; font-size:24px; line-height:1;">
-    <a href="{% url 'product_list' %}" style="color:#fff; text-decoration:none;">
-      🛒
-    </a>
+{% load static %}
+<link rel="stylesheet" href="{% static 'base/css/header.css' %}">
+
+<header class="site-header">
+  <h1 class="header-logo">
+    <a href="{% url 'product_list' %}">🛒</a>
   </h1>
 
-  <!-- 네비게이션 -->
-  <nav style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-
-    <!-- 공통 메뉴 -->
-    <a href="{% url 'product_list' %}" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
-      상품목록
-    </a>
-    <a href="/admin/" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
-      관리자
-    </a>
+  <nav class="header-nav">
+    <a href="{% url 'product_list' %}" class="nav-link">상품목록</a>
+    <a href="/admin/" class="nav-link">관리자</a>
 
     {% if user.is_authenticated %}
-      <!-- 로그인 시에만 장바구니 표시 -->
-      <a href="{% url 'cart_list' %}" style="color:#fff; text-decoration:none; font-weight:700; opacity:.95;">
-        🛒 장바구니
-      </a>
+      <a href="{% url 'cart_list' %}" class="nav-link">🛒 장바구니</a>
 
-      <!-- ✅ [추가] 페이지 뷰 토글(일반/컨설팅) -->
-      <div style="
-        display:flex; align-items:center; gap:10px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,.25);
-        background: rgba(255,255,255,.06);
-      ">
-        <span style="font-size:12px; font-weight:800; color:#ddd; white-space:nowrap;">일반</span>
-
-        <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
-          <input id="shop-view-toggle" type="checkbox"
-            {% if '/shop/consulting' in request.path %}checked{% endif %}
-            style="opacity:0; width:0; height:0;">
-          <span style="
-            position:absolute; inset:0;
-            background: rgba(255,255,255,.18);
-            border-radius: 999px;
-            transition: .2s;
-          "></span>
-          <span id="shop-view-knob" style="
-            position:absolute; left:3px; top:3px;
-            width:18px; height:18px;
-            background: #fff;
-            border-radius: 999px;
-            transition: .2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,.35);
-          "></span>
+      <div class="view-toggle-container">
+        <span class="toggle-label">일반</span>
+        <label class="switch">
+          <input id="shop-view-toggle" type="checkbox" {% if '/shop/consulting' in request.path %}checked{% endif %}>
+          <span class="slider"></span>
+          <span id="shop-view-knob" class="knob"></span>
         </label>
-
-        <span style="font-size:12px; font-weight:900; color:#fff; white-space:nowrap;">컨설팅</span>
+        <span class="toggle-label active">컨설팅</span>
       </div>
-      <!-- ✅ [추가 끝] -->
     {% endif %}
 
-    <!-- 구분선 -->
-    <span style="width:1px; height:18px; background: rgba(255,255,255,.25);"></span>
+    <span class="v-divider"></span>
 
     {% if user.is_authenticated %}
-      <!-- 로그인 상태 -->
-      <span style="color:#ddd; font-size:14px; white-space:nowrap;">
-        안녕하세요, <b style="color:#fff;">{{ user.username }}</b>님
-      </span>
+      <span class="user-greeting">안녕하세요, <b>{{ user.username }}</b>님</span>
 
-      <div style="display:flex; align-items:center; gap:12px;">
-        <!-- 로그아웃 (POST 유지) -->
-        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+      <div class="header-nav">
+        <form method="post" action="{% url 'logout' %}" class="header-logout-form">
           {% csrf_token %}
-          <button type="submit" style="
-            background: transparent;
-            border: 1px solid rgba(255,255,255,.25);
-            color:#fff;
-            padding: 7px 10px;
-            border-radius: 10px;
-            cursor:pointer;
-            font-weight:800;
-            font-size:13px;
-          ">
-            로그아웃
-          </button>
+          <button type="submit" class="btn-header">로그아웃</button>
         </form>
-         <a href="{% url 'register_coupon' %}" style="
-        color:#fff;
-        text-decoration:none;
-        font-weight:800;
-        font-size:13px;
-        padding: 7px 10px;
-        border-radius: 10px;
-        background: rgba(255, 193, 7, 0.2); /* 은은한 강조색(노란색 계열) */
-        border: 1px solid rgba(255, 193, 7, 0.3);
-    ">
-        🎟️ 쿠폰등록
-        </a>
-
-
-        <a href="{% url 'transaction_history' %}" style="
-          color:#bbb;
-          text-decoration:none;
-          font-weight:800;
-          font-size:13px;
-          padding: 7px 10px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,.25);
-        ">
-          거래 내역
-        </a>
-        <a href="{% url 'mypage' %}" style="
-          color:#bbb;
-          text-decoration:none;
-          font-weight:800;
-          font-size:13px;
-          padding: 7px 10px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,.18);
-        ">
-          내 정보
-        </a>
+        <a href="{% url 'register_coupon' %}" class="btn-header btn-coupon">🎟️ 쿠폰등록</a>
+        <a href="{% url 'transaction_history' %}" class="btn-header">거래 내역</a>
+        <a href="{% url 'mypage' %}" class="btn-header">내 정보</a>
       </div>
-
     {% else %}
-      <!-- 비로그인 상태 -->
-      <div style="display:flex; align-items:center; gap:12px;">
-        <a href="{% url 'login' %}" style="
-          color:#bbb;
-          text-decoration:none;
-          font-weight:800;
-          font-size:13px;
-          padding: 7px 10px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,.18);
-        ">
-          로그인
-        </a>
-        <a href="{% url 'account_signup' %}" style="
-          color:#fff;
-          text-decoration:none;
-          font-weight:900;
-          font-size:13px;
-          padding: 7px 12px;
-          border-radius: 10px;
-          background: rgba(255,255,255,.12);
-          border: 1px solid rgba(255,255,255,.18);
-        ">
-          회원가입
-        </a>
+      <div class="header-nav">
+        <a href="{% url 'login' %}" class="btn-header">로그인</a>
+        <a href="{% url 'account_signup' %}" class="btn-header btn-signup">회원가입</a>
       </div>
     {% endif %}
-
   </nav>
 
-  <!-- ✅ 토글 동작용 스크립트(헤더 톤 유지, 기능만 추가) -->
-<script>
-  (function () {
-    const toggle = document.getElementById("shop-view-toggle");
-    const knob = document.getElementById("shop-view-knob");
-    if (!toggle || !knob) return;
+  <script>
+    (function () {
+      const toggle = document.getElementById("shop-view-toggle");
+      const knob = document.getElementById("shop-view-knob");
+      if (!toggle || !knob) return;
 
-    function syncKnob() {
-      knob.style.transform = toggle.checked ? "translateX(20px)" : "translateX(0)";
-    }
-    syncKnob();
+      function syncKnob() {
+        knob.style.transform = toggle.checked ? "translateX(20px)" : "translateX(0)";
+      }
+      syncKnob();
 
-    toggle.addEventListener("change", function () {
-      const normalUrl = "{% url 'product_list' %}";
-      const consultingUrl = "{% url 'product_consulting_list' %}";
-      const targetUrl = toggle.checked ? consultingUrl : normalUrl;
-
-      // ✅ 이동 전에 현재 페이지에서 "부드럽게" 테마 전환 느낌 보여주기
-      document.body.classList.toggle("consulting-mode", toggle.checked);
-
-      // 살짝 딜레이 후 이동 (전환 느낌)
-      setTimeout(function () {
-        window.location.href = targetUrl;
-      }, 220);
-    });
-  })();
-</script>
-
+      toggle.addEventListener("change", function () {
+        const targetUrl = toggle.checked ? "{% url 'product_consulting_list' %}" : "{% url 'product_list' %}";
+        document.body.classList.toggle("consulting-mode", toggle.checked);
+        setTimeout(() => { window.location.href = targetUrl; }, 220);
+      });
+    })();
+  </script>
 </header>

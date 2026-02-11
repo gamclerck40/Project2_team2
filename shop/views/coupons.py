@@ -24,14 +24,12 @@ class CouponRegisterView(LoginRequiredMixin, View):
     """
     def get(self, request):
         # 유저가 보유한 쿠폰 목록을 최신순으로 가져옴
-        from models import UserCoupon
         user_coupons = UserCoupon.objects.filter(user=request.user).order_by('-issued_at')
         return render(request, 'shop/register_coupon.html', {
             'user_coupons': user_coupons
         })
 
     def post(self, request):
-        from models import Coupon, UserCoupon
         code = request.POST.get('coupon_code', '').strip().upper()
 
         # 1. 존재 여부 확인

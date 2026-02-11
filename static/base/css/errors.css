@@ -1,0 +1,7 @@
+.error-wrap{display:flex; justify-content:center; margin:40px 0;}
+.error-card{width:100%; max-width:520px; background:#fff; border:1px solid #eee; border-radius:16px; padding:22px; box-shadow:0 6px 18px rgba(0,0,0,.06);}
+.error-title{margin:0 0 10px 0;}
+.error-desc{margin:0 0 14px 0; color:#555; line-height:1.6;}
+.error-actions{display:flex; gap:10px; margin-top:16px;}
+.btn-error-primary{flex:1; padding:12px 14px; border:0; background:#2d6cdf; color:#fff; border-radius:12px; font-weight:800; cursor:pointer;}
+.btn-error-secondary{flex:1; text-align:center; padding:12px 14px; background:#f4f6f8; color:#333; border-radius:12px; text-decoration:none; font-weight:800;}

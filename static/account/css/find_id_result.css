@@ -1,0 +1,110 @@
+/* 컨테이너 및 카드 */
+.result-container {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0 50px 0;
+}
+
+.result-wrapper {
+    width: 100%;
+    max-width: 520px;
+}
+
+.result-title {
+    margin: 0 0 18px 10px;
+    font-size: 24px;
+}
+
+.result-card {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    background: white;
+    border: 1px solid #eee;
+}
+
+.result-card-header {
+    background: #333;
+    color: white;
+    padding: 18px 22px;
+    font-weight: 700;
+}
+
+.result-content {
+    padding: 22px;
+}
+
+/* 아이디 리스트 스타일 */
+.id-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.id-item {
+    padding: 15px 18px;
+    border: 1px solid #eee;
+    border-radius: 14px;
+    background: #f9f9f9;
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.id-item:hover {
+    transform: translateY(-2px);
+    border-color: #ddd;
+}
+
+.id-label {
+    color: #666;
+    font-weight: 700;
+    margin-right: 15px;
+    font-size: 14px;
+}
+
+.id-value {
+    color: #333;
+    font-weight: 800;
+    font-size: 16px;
+}
+
+/* 결과 없음 스타일 */
+.no-result {
+    padding: 18px;
+    background: #fff3f3;
+    border: 1px solid #ffd0d0;
+    border-radius: 14px;
+    color: #c0392b;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* 하단 버튼 그룹 */
+.result-btn-group {
+    margin-top: 22px;
+    display: flex;
+    gap: 12px;
+}
+
+.btn-login {
+    flex: 1;
+    text-align: center;
+    padding: 14px;
+    background: #333;
+    color: white;
+    border-radius: 14px;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.btn-retry {
+    flex: 1;
+    text-align: center;
+    padding: 14px;
+    background: #f4f4f4;
+    color: #666;
+    border-radius: 14px;
+    text-decoration: none;
+    font-weight: 800;
+}

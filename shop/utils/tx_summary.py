@@ -40,3 +40,15 @@ def aggregate_in_out(base_qs, in_types: List[str], out_types: List[str]):
     total_in = s["_in"] or 0
     total_out = s["_out"] or 0
     return total_in, total_out
+
+def month_start(ym: str) -> date:
+    """YYYY-MM -> 해당월 1일"""
+    y, m = map(int, ym.split("-"))
+    return date(y, m, 1)
+
+def next_month_start(ym: str) -> date:
+    """YYYY-MM -> 다음달 1일 (occurred_at__date__lt 용)"""
+    y, m = map(int, ym.split("-"))
+    if m == 12:
+        return date(y + 1, 1, 1)
+    return date(y, m + 1, 1)

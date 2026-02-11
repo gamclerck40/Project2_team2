@@ -1,66 +1,23 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'account/css/find_account.css' %}">
+{% endblock %}
+
 {% block content %}
 
-<style>
-  .findWrap { max-width: 520px; margin: 40px auto; }
-  .findCard {
-    background: #fff; border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    overflow: hidden; border: 1px solid #eee;
-  }
-  .findHeader { background: #333; color: #fff; padding: 18px 22px; font-weight: 900; font-size: 18px; }
-  .findBody { padding: 22px; }
 
-  .tabRow { display: flex; gap: 10px; margin-bottom: 18px; }
-  .tabBtn {
-    flex: 1; text-align: center; padding: 12px; border-radius: 14px;
-    font-weight: 900; text-decoration: none;
-    border: 1px solid #ddd; background: #fff; color: #333;
-  }
-  .tabBtnActive { background: #333; color: #fff; border-color: #333; }
+<div class="find-wrap">
+  <div class="find-card">
+    <div class="find-header">🔐 ID / 비밀번호 찾기</div>
 
-  /* ❗ 중복 탭 숨김 */
-  .tabRowDup { display: none; }
-
-  .infoBox {
-    padding: 14px 16px; border-radius: 14px; margin-bottom: 16px;
-    font-weight: 700; line-height: 1.5;
-  }
-  .infoBlue { background: #eef6ff; border: 1px solid #cfe6ff; color: #1f5ea8; }
-  .infoGreen { background: #e9f7ef; border: 1px solid #cfead8; color: #1e7a3a; }
-
-  .formGroup { margin-bottom: 14px; }
-  .formLabel { font-weight: 800; margin-bottom: 6px; color: #333; }
-
-  /* input/select/textarea 전부 같은 톤으로 */
-  .findBody input,
-  .findBody select,
-  .findBody textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 14px;
-    font-size: 14px;
-    box-sizing: border-box;
-  }
-
-  .formBtn {
-    width: 100%; padding: 14px; background: #333; color: #fff;
-    border: none; border-radius: 14px; font-weight: 900; cursor: pointer;
-    margin-top: 6px;
-  }
-</style>
-
-<div class="findWrap">
-  <div class="findCard">
-    <div class="findHeader">🔐 ID / 비밀번호 찾기</div>
-
-    <div class="findBody">
+    <div class="find-body">
 
       <!-- 메인 탭 -->
-      <div class="tabRow">
-        <a href="?tab=id" class="tabBtn {% if tab == 'id' %}tabBtnActive{% endif %}">ID 찾기</a>
-        <a href="?tab=pw" class="tabBtn {% if tab == 'pw' %}tabBtnActive{% endif %}">PW 찾기</a>
+      <div class="tab-row">
+        <a href="?tab=id" class="tab-btn {% if tab == 'id' %}tab-btn-active{% endif %}">ID 찾기</a>
+        <a href="?tab=pw" class="tab-btn {% if tab == 'pw' %}tab-btn-active{% endif %}">PW 찾기</a>
       </div>
 
       <!-- ID 찾기 -->
@@ -69,12 +26,12 @@
           {% csrf_token %}
           <input type="hidden" name="tab" value="id">
 
-          <div class="formGroup">
-            <div class="formLabel">{{ id_form.phone.label }}</div>
+          <div class="form-group">
+            <div class="form-label">{{ id_form.phone.label }}</div>
             {{ id_form.phone }}
           </div>
 
-          <button class="formBtn">ID 찾기</button>
+          <button class="form-btn">ID 찾기</button>
         </form>
       {% endif %}
 
@@ -82,13 +39,13 @@
       {% if tab == "pw" %}
 
         <!-- ❗ 중복 탭 (숨김 처리됨) -->
-        <div class="tabRow tabRowDup">
-          <a href="{% url 'found_account' %}?tab=id" class="tabBtn {% if tab == 'id' %}tabBtnActive{% endif %}">ID 찾기</a>
-          <a href="{% url 'found_account' %}?tab=pw" class="tabBtn {% if tab == 'pw' %}tabBtnActive{% endif %}">PW 찾기</a>
+        <div class="tab-row tab-row-dup">
+          <a href="{% url 'found_account' %}?tab=id" class="tab-btn {% if tab == 'id' %}tab-btn-active{% endif %}">ID 찾기</a>
+          <a href="{% url 'found_account' %}?tab=pw" class="tab-btn {% if tab == 'pw' %}tab-btn-active{% endif %}">PW 찾기</a>
         </div>
 
         {% if not reset_verified %}
-          <div class="infoBox infoBlue">
+          <div class="info-box info-blue">
             비밀번호를 재설정하려면 본인 확인이 필요합니다.<br>
             (아이디 / 이름 / 계좌번호)
           </div>
@@ -96,26 +53,26 @@
           <form method="post" action="{% url 'pw_reset_verify' %}">
             {% csrf_token %}
 
-            <div class="formGroup">
-              <div class="formLabel">아이디</div>
+            <div class="form-group">
+              <div class="form-label">아이디</div>
               <input name="username" placeholder="아이디">
             </div>
 
-            <div class="formGroup">
-              <div class="formLabel">이름 (예금주명)</div>
+            <div class="form-group">
+              <div class="form-label">이름 (예금주명)</div>
               <input name="name" placeholder="이름">
             </div>
 
-            <div class="formGroup">
-              <div class="formLabel">계좌번호</div>
+            <div class="form-group">
+              <div class="form-label">계좌번호</div>
               <input name="account_number" placeholder="숫자만 입력">
             </div>
 
-            <button class="formBtn">본인 확인</button>
+            <button class="form-btn">본인 확인</button>
           </form>
 
         {% else %}
-          <div class="infoBox infoGreen">
+          <div class="info-box info-green">
             본인 확인이 완료되었습니다.<br>
             새 비밀번호를 설정해 주세요.
           </div>
@@ -123,17 +80,17 @@
           <form method="post" action="{% url 'pw_reset_set' %}">
             {% csrf_token %}
 
-            <div class="formGroup">
-              <div class="formLabel">새 비밀번호</div>
+            <div class="form-group">
+              <div class="form-label">새 비밀번호</div>
               <input type="password" name="new_password1" autocomplete="new-password">
             </div>
 
-            <div class="formGroup">
-              <div class="formLabel">새 비밀번호 확인</div>
+            <div class="form-group">
+              <div class="form-label">새 비밀번호 확인</div>
               <input type="password" name="new_password2" autocomplete="new-password">
             </div>
 
-            <button class="formBtn">비밀번호 변경</button>
+            <button class="form-btn">비밀번호 변경</button>
           </form>
         {% endif %}
 

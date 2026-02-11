@@ -1,54 +1,61 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'shop/css/checkout.css' %}">
+{% endblock %}
 
 {% block content %}
-<div style="max-width: 900px; margin: 40px auto; padding: 20px; font-family: 'Apple SD Gothic Neo', sans-serif; background-color: #f8f9fa; border-radius: 20px;">
-    <h2 style="text-align: center; margin-bottom: 30px; color: #333;">📦 주문서 확인</h2>
+<div class="checkout-wrap">
+    <h2 class="checkout-title">📦 주문서 확인</h2>
 
-    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px;">
+    <div class="checkout-layout">
         
-        <div>
-            <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">주문 상품</h3>
+        <div class="main-column">
+            <div class="checkout-section">
+                <h3 class="section-title">주문 상품</h3>
                 
                 {% if product %} 
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0;">
-                        <img src="{{ product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
-                        <div style="flex: 1;">
+                    <div class="product-item">
+                        <img src="{{ product.image1.url }}" class="product-img">
+                        <div class="product-info">
                             <strong>{{ product.name }}</strong>
-                            <div style="color: #666;">{{ quantity }}개 / {{ product.price|intcomma }}원</div>
+                            <div class="product-meta">{{ quantity }}개 / {{ product.price|intcomma }}원</div>
                         </div>
                     </div>
                 {% else %}
                     {% for item in cart_items %}
-                    <div style="display: flex; align-items: center; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f5f5f5;">
-                        <img src="{{ item.product.image1.url }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px;">
-                        <div style="flex: 1;">
+                    <div class="product-item">
+                        <img src="{{ item.product.image1.url }}" class="product-img">
+                        <div class="product-info">
                             <strong>{{ item.product.name }}</strong>
-                            <div style="color: #666; font-size: 14px;">{{ item.quantity }}개</div>
+                            <div class="product-meta">{{ item.quantity }}개</div>
                         </div>
-                        <div style="text-align: right; font-weight: bold;">{{ item.total_price|intcomma }}원</div>
+                        <div class="product-total-price">{{ item.total_price|intcomma }}원</div>
                     </div>
                     {% endfor %}
                 {% endif %}
             </div>
 
-
-            <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">결제 정보 설정</h3>
+            <div class="checkout-section">
+                <h3 class="section-title">결제 정보 설정</h3>
                 <form method="get" action="{% url 'checkout' %}" id="selection-form">
-                    {% if request.GET.product_id %}
-                        <input type="hidden" name="product_id" value="{{ request.GET.product_id }}">
-                        <input type="hidden" name="quantity" value="{{ request.GET.quantity|default:'1' }}">
+          {% if request.GET.product_id %}
+            <input type="hidden" name="product_id" value="{{ request.GET.product_id }}">
+            <input type="hidden" name="quantity" value="{{ request.GET.quantity|default:'1' }}">
+          {% endif %}
+          {% if request.GET.coupon_id %}
+            <input type="hidden" name="coupon_id" value="{{ request.GET.coupon_id }}">
+          {% endif %}
+                    {% if product %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}">
+                        <input type="hidden" name="quantity" value="{{ quantity }}">
                     {% endif %}
-
-                    {% if request.GET.coupon_id %}
-                        <input type="hidden" name="coupon_id" value="{{ request.GET.coupon_id }}">
-                    {% endif %}
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 8px;">💳 결제 계좌</label>
-                        <select name="selected_account_id" onchange="this.form.submit()" required 
-                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; cursor: pointer; background-color: #fff;">
+                    
+                    <div class="form-group">
+                        <label class="form-label">💳 결제 계좌</label>
+                        <select name="selected_account_id" onchange="this.form.submit()" required class="form-select">
                             {% for acc in accounts %}
                                 <option value="{{ acc.id }}" {% if acc.id == account.id %}selected{% endif %}>
                                     {{ acc.bank.name }} | {{ acc.masked_account_number }} ({{ acc.balance|intcomma }}원)
@@ -59,10 +66,9 @@
                         </select>
                     </div>
 
-                    <div>
-                        <label style="display: block; font-size: 14px; color: #666; margin-bottom: 8px;">🎁 사용할 쿠폰</label>
-                        <select name="coupon_id" onchange="this.form.submit()"
-                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; cursor: pointer; background-color: #fff;">
+                    <div class="form-group">
+                        <label class="form-label">🎁 사용할 쿠폰</label>
+                        <select name="coupon_id" onchange="this.form.submit()" class="form-select">
                             <option value="">쿠폰 선택 안 함</option>
                             {% for uc in user_coupons %}
                                 <option value="{{ uc.id }}" {% if uc.id|stringformat:"s" == selected_coupon_id %}selected{% endif %}>
@@ -85,9 +91,9 @@
                     <input type="hidden" name="quantity" value="{{ quantity }}">
                 {% endif %}
 
-                <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                    <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">배송지 정보</h3>
-                    <select name="address_id" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;">
+                <div class="checkout-section">
+                    <h3 class="section-title">배송지 정보</h3>
+                    <select name="address_id" required class="form-select">
                         {% for addr in addresses %}
                             <option value="{{ addr.id }}">[{{ addr.alias }}] {{ addr.address }}</option>
                         {% endfor %}
@@ -95,46 +101,45 @@
                 </div>
         </div>
 
-        <div style="position: sticky; top: 20px; height: fit-content;">
-            <div style="background: #333; color: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
-                <h3 style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #555; padding-bottom: 15px;">결제 요약</h3>
-                <div style="display: flex; justify-content: space-between; margin-top: 20px; margin-bottom: 10px;">
-                    <span style="color: #ccc;">총 상품 금액</span>
+        <div class="sticky-sidebar">
+            <div class="summary-card">
+                <h3>결제 요약</h3>
+                <div class="summary-row">
+                    <span class="label">총 상품 금액</span>
                     <span>{{ total_amount|intcomma }}원</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px; color: #ff6b6b;">
-                    <span style="color: #ff9f9f;">할인 금액</span>
-                    <span>-{{ discount_amount|intcomma }}원</span>
+                <div class="summary-row">
+                    <span class="discount-label">할인 금액</span>
+                    <span class="discount-value">-{{ discount_amount|intcomma }}원</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px;">
-                    <span style="color: #aaa;">선택계좌 잔액</span>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-weight: bold; color: {% if account.balance < final_price %}#ff6b6b{% else %}#ffcc00{% endif %};">
+                <div class="balance-row">
+                    <span class="balance-label">선택계좌 잔액</span>
+                    <div class="balance-value-wrap">
+                        <span class="balance-value {% if account.balance < final_price %}balance-insufficient{% else %}balance-sufficient{% endif %}">
                             {{ account.balance|intcomma }}원
                         </span>
-                        <a href="#recharge-modal" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">충전</a>                         
+                        <a href="#recharge-modal" class="btn-recharge">충전</a>
                     </div>
                 </div>
-                <hr style="border: 0; border-top: 1px solid #555; margin: 20px 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <span style="font-size: 16px;">최종 결제 금액</span>
-                    <span style="font-size: 24px; font-weight: bold; color: #ffcc00;">{{ final_price|intcomma }}원</span>
+                <hr class="divider">
+                <div class="final-price-row">
+                    <span>최종 결제 금액</span>
+                    <span class="final-price-value">{{ final_price|intcomma }}원</span>
                 </div>
 
                 {% if account.balance >= final_price %}
-                    <button type="submit" formaction="{% if product %}{% url 'direct_purchase' product.id %}{% else %}{% url 'order_execute' %}{% endif %}" 
-                            style="width: 100%; padding: 15px; background: #ffcc00; color: #333; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                    <button type="submit" formaction="{% if product %}{% url 'direct_purchase' product.id %}{% else %}{% url 'order_execute' %}{% endif %}" class="btn-submit-pay">
                         결제하기
                     </button>
                 {% else %}
-                    <div style="text-align: center; color: #ff6b6b; font-weight: bold; font-size: 13px; margin-bottom: 10px;">⚠️ 잔액이 부족합니다</div>
-                    <button type="button" disabled style="width: 100%; padding: 15px; background: #555; color: #888; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: not-allowed;">
+                    <div class="warning-msg">⚠️ 잔액이 부족합니다</div>
+                    <button type="button" disabled class="btn-disabled-pay">
                         결제 불가
                     </button>
                 {% endif %}
             </div>
             </form> 
-            <a href="{% url 'cart_list' %}" style="display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 14px;">← 장바구니로 돌아가기</a>
+            <a href="{% url 'cart_list' %}" class="link-back">← 장바구니로 돌아가기</a>
         </div>
     </div>
 </div>

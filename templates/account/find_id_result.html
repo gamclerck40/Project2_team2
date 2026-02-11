@@ -1,48 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}아이디 조회 결과{% endblock %}
+
 {% block content %}
+<link rel="stylesheet" href="{% static 'account/css/find_id_result.css' %}">
 
-<div style="display:flex; justify-content:center; margin: 30px 0 50px 0;">
-  <div style="width:100%; max-width: 520px;">
+<div class="result-container">
+    <div class="result-wrapper">
+        <h2 class="result-title">✅ ID 조회 결과</h2>
 
-    <h2 style="margin: 0 0 18px 10px;">✅ ID 조회 결과</h2>
+        <div class="result-card">
+            <div class="result-card-header">
+                조회된 아이디
+            </div>
 
-    <div style="box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; background: white; border: 1px solid #eee;">
-      
-      <div style="background:#333; color:white; padding: 18px 22px; font-weight: 700;">
-        조회된 아이디
-      </div>
+            <div class="result-content">
+                {% if users %}
+                    <div class="id-list">
+                        {% for user in users %}
+                            <div class="id-item">
+                                <span class="id-label">아이디</span>
+                                <span class="id-value">{{ user.username }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-result">
+                        조회 결과가 없습니다.
+                    </div>
+                {% endif %}
 
-      <div style="padding: 22px;">
-        {% if users %}
-          <div style="display:flex; flex-direction: column; gap: 10px;">
-            {% for user in users %}
-              <div style="padding: 12px 14px; border: 1px solid #eee; border-radius: 12px; background:#fff;">
-                <span style="color:#666; font-weight:700; margin-right: 10px;">아이디</span>
-                <span style="color:#333; font-weight: 800;">{{ user.username }}</span>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div style="padding: 14px 16px; background:#fff3f3; border:1px solid #ffd0d0; border-radius: 12px; color:#c0392b;">
-            조회 결과 없음.
-          </div>
-        {% endif %}
-
-        <div style="margin-top: 18px; display:flex; gap: 10px;">
-          <a href="{% url 'login' %}"
-             style="flex:1; text-align:center; padding: 12px 14px; background:#333; color:white; border-radius: 12px; text-decoration:none; font-weight: 800;">
-            로그인하기
-          </a>
-          <a href="{% url 'found_account' %}"
-             style="flex:1; text-align:center; padding: 12px 14px; background:#f4f4f4; color:#666; border-radius: 12px; text-decoration:none; font-weight: 800;">
-            다시 찾기
-          </a>
+                <div class="result-btn-group">
+                    <a href="{% url 'login' %}" class="btn-login">로그인하기</a>
+                    <a href="{% url 'found_account' %}" class="btn-retry">다시 찾기</a>
+                </div>
+            </div>
         </div>
-      </div>
-
     </div>
-
-  </div>
 </div>
-
 {% endblock %}

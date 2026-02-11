@@ -83,6 +83,9 @@ class MypageView(LoginRequiredMixin, View):
         rc_category = (request.GET.get("rc_category") or "").strip()  # category_id
         rc_sort = (request.GET.get("rc_sort") or "newest").strip()    # newest | price_high | price_low
         rc_page = request.GET.get("rc_page") or "1"
+        rc_start = (request.GET.get("rc_start") or "").strip()  # YYYY-MM-DD
+        rc_end = (request.GET.get("rc_end") or "").strip()      # YYYY-MM-DD
+
 
         # ✅ 영수증 "삭제"는 Transaction을 지우지 않고 receipt_hidden=True로 숨김 처리
         receipts_qs = Transaction.objects.filter(
@@ -90,6 +93,10 @@ class MypageView(LoginRequiredMixin, View):
             tx_type=Transaction.OUT,
             receipt_hidden=False,
         )
+        if rc_start:
+            receipts_qs = receipts_qs.filter(occurred_at__date__gte=rc_start)
+        if rc_end:
+            receipts_qs = receipts_qs.filter(occurred_at__date__lte=rc_end)
 
         # 카테고리 필터
         if rc_category.isdigit():
@@ -149,6 +156,8 @@ class MypageView(LoginRequiredMixin, View):
                 "receipt_categories": receipt_categories,
                 "rc_category": rc_category,
                 "rc_sort": rc_sort,
+                "rc_start": rc_start,
+                "rc_end": rc_end,
 
                 # ✅ 요약 통계 탭
                 "total_out": total_out,
