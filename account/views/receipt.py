@@ -24,10 +24,12 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     /accounts/receipts/<tx_id>.pdf
     Transaction 1건을 영수증 PDF로 생성
 
-    ✅ 변경점:
-    - 영수증에 "주소(기본 배송지)" 출력 추가
-    - 영수증에 "계좌번호(마스킹)" 출력 개선 (****1234 형태)
-    - 기존 PDF 생성 흐름/표시 로직은 그대로 유지
+    ✅ 추가: 쿠폰 적용 내역을 PDF에 출력
+        쿠폰 이름 : ---
+        할인 가격 : ---
+        할인 된 가격 : ---
+        -----------------------------
+        최종 가격 : ---
     """
     login_url = "login"
 
@@ -36,9 +38,9 @@ class ReceiptPDFView(LoginRequiredMixin, View):
             Transaction.objects
             # ✅ 영수증 "삭제"(숨김)된 건은 PDF 접근도 막음
             .filter(id=tx_id, user=request.user, receipt_hidden=False)
-            .select_related("account", "account__bank")
+            .select_related("account", "account__bank", "used_coupon", "used_coupon__coupon")
             .first()
-            )
+        )
         if not tx:
             raise Http404("영수증을 찾을 수 없습니다.")
 
@@ -46,8 +48,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         if not account:
             raise Http404("결제 계좌 정보가 없습니다.")
 
-        # ✅ 기본배송지(프로필에서 기본 배송지 선택 기능이 있으니 is_default가 있다고 가정)
-        #    - 기본 배송지가 없으면 첫 번째 주소라도 잡거나, 없으면 "-" 처리
+        # ✅ 기본배송지 fallback (결제 시 저장된 주소가 없을 때만 사용)
         default_addr = Address.objects.filter(user=request.user, is_default=True).first()
         if not default_addr:
             default_addr = Address.objects.filter(user=request.user).first()
@@ -123,7 +124,30 @@ class ReceiptPDFView(LoginRequiredMixin, View):
 
         kv("승인일시", occurred)
         kv("거래구분", "출금" if tx.tx_type == Transaction.OUT else "입금")
-        kv("거래금액", f"{amount:,}원")
+
+        # =========================
+        # ✅ 쿠폰/할인 내역을 PDF에 출력 (요구사항 포맷)
+        # =========================
+        discount = _money_int(tx.discount_amount)
+        coupon_name = "-"
+        if tx.used_coupon and getattr(tx.used_coupon, "coupon", None):
+            coupon_name = tx.used_coupon.coupon.name or "-"
+
+        original_total = _money_int(tx.total_price_at_pay)
+        if original_total <= 0:
+            # 할인 전 금액이 저장되지 않았다면 최종 + 할인으로 역산
+            original_total = amount + discount
+
+        discounted_total = max(original_total - discount, 0)
+
+        if tx.used_coupon or discount > 0:
+            kv("쿠폰 이름", coupon_name)
+            kv("할인 가격", f"{discount:,}원")
+            kv("할인 된 가격", f"{discounted_total:,}원")
+            line()
+            kv("최종 가격", f"{amount:,}원")
+        else:
+            kv("최종 가격", f"{amount:,}원")
 
         line()
 
@@ -141,9 +165,12 @@ class ReceiptPDFView(LoginRequiredMixin, View):
 
         line()
 
-        # ✅ 주소 출력 추가 (기본 배송지 기준)
-        #    - 기본배송지 없으면 "-" 출력
-        if default_addr:
+        # ✅ 배송지: 결제 시 Transaction에 저장된 값이 있으면 그걸 우선 출력
+        if tx.shipping_address:
+            zip_code = tx.shipping_zip_code or ""
+            detail = tx.shipping_detail_address or ""
+            addr_text = f"({zip_code}) {tx.shipping_address} {detail}".strip()
+        elif default_addr:
             addr_text = f"({default_addr.zip_code}) {default_addr.address} {default_addr.detail_address}"
         else:
             addr_text = "-"

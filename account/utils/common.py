@@ -1,12 +1,28 @@
 from django.db import transaction
-from account.models import Account
+from account.models import Account,Bank
 from django.shortcuts import render
 
 
 def get_default_account(user):
-    return (
+    acc = (
         Account.objects.filter(user=user, is_default=True).first()
         or Account.objects.filter(user=user).order_by("-id").first()
+    )
+    if acc:
+        return acc
+
+    # ✅ 계좌가 아예 없으면 1개 자동 생성 (HTML 수정 없이 안전하게 만들기 위한 정책)
+    bank = Bank.objects.first()
+    if not bank:
+        return None  # 은행도 없으면 생성 못함 (이 경우는 어쩔 수 없이 다른 처리 필요)
+
+    return Account.objects.create(
+        user=user,
+        name="기본 계좌",
+        phone="00000000000",
+        bank=bank,
+        account_number="0000000000",
+        is_default=True,
     )
 
 @transaction.atomic

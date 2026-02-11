@@ -119,4 +119,4 @@ class FindAccountView(View):
 
             request.session["pw_verified"] = True
             request.session["pw_verified_at"] = timezone.now().timestamp()
-            return redirect("/accounts/find/password/")
+            return redirect("/accounts/password-reset/set/")

@@ -12,50 +12,45 @@ from account.models import Account, Address
 from decimal import Decimal  # ✅ Decimal*float 에러 방지용
 # ✅ 다계좌(기본 계좌) 대응: 결제/체크아웃은 항상 기본 계좌를 사용
 from account.utils.common import get_default_account
-from django.db.models import Sum, Case, When, Value, DecimalField
+from django.db.models import Sum, Case, When, Value, DecimalField, Q
 from django.db.models.functions import TruncMonth
 from django.core.paginator import Paginator
+from urllib.parse import urlencode
 
 
 # 상품 목록 페이지(사진,이름,가격 등의 리스트)
 class ProductListView(ListView):
-    model = Product  # 상품 모델 불러옴
-    template_name = "shop/product_list.html"  # html경로
-    context_object_name = "products"  # html에서 사용될 이름
-    paginate_by = 8  # 한 페이지에 보여질 상품 개수
+    model = Product
+    template_name = "shop/product_list.html"
+    context_object_name = "products"
+    paginate_by = 8
 
     def get_queryset(self):
-        # 1. 모든 상품을 일단 가져옴
+        # ... 기존 코드 그대로 유지 ...
         qs = Product.objects.all()
-
-        # 2. 검색어 가져오기 ("search")
-        # .strip()을 통해 앞뒤 공백을 제거해줌
         q = (self.request.GET.get("search") or "").strip()
         category_id = self.request.GET.get("category")
         sort_option = self.request.GET.get("sort", "newest")
 
-        # 1. 검색어 필터링
         if q:
             qs = qs.filter(name__icontains=q)
-
-        # 2. 카테고리 필터링 (DB의 id값과 비교)
         if category_id:
             qs = qs.filter(category_id=category_id)
 
-        # 3. 정렬
         if sort_option == "price_low":
             qs = qs.order_by("price")
         elif sort_option == "price_high":
             qs = qs.order_by("-price")
         else:
-            qs = qs.order_by("-id")  # 기본 값
-
+            qs = qs.order_by("-id")
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # DB에 있는 모든 카테고리를 가져와서 템플릿에 'categories'라는 이름으로 전달
+        # 1. 모든 카테고리 가져오기 (기존 코드)
         context["categories"] = Category.objects.all()
+        context["display_coupon"] = Coupon.objects.filter(active=True).order_by("-id")
+
         return context
 
 
@@ -450,7 +445,7 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         end_date = self.request.GET.get("end_date")
         if start_date and end_date:
             queryset = queryset.filter(occurred_at__date__range=[start_date, end_date])
-        
+
         account_id = self.request.GET.get("account")
         if account_id:
             queryset = queryset.filter(account_id=account_id)
@@ -458,20 +453,25 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         # 3. 탭별 특화 필터링
         if tab == "in":
             queryset = queryset.filter(tx_type=Transaction.IN)
-            # 입금 탭은 여기서 추가 로직 필요 없음 (날짜/계좌는 위에서 처리됨)
 
         elif tab == "out":
             queryset = queryset.filter(tx_type=Transaction.OUT)
+
             # 출금 탭 전용 카테고리 필터
             category_id = self.request.GET.get("category")
             if category_id:
                 queryset = queryset.filter(category_id=category_id)
 
+            # ✅ 할인 적용된 거래만 보기(쿠폰 사용 or 할인금액 존재)
+            discounted = (self.request.GET.get("discounted") or "").strip()
+            if discounted == "1":
+                queryset = queryset.filter(Q(discount_amount__gt=0) | Q(used_coupon__isnull=False))
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # 기본 필터 데이터
         context["accounts"] = Account.objects.filter(user=self.request.user).order_by("-is_default", "-id")
         context["categories"] = Category.objects.all()
@@ -481,14 +481,14 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["active_tab"] = tab
 
         # ✅ 기존 요약/통계 로직 (그대로 유지)
-        qs = Transaction.objects.filter(user=self.request.user) 
+        qs = Transaction.objects.filter(user=self.request.user)
         total_in = qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or 0
         total_out = qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or 0
         context["total_in"] = total_in
         context["total_out"] = total_out
         context["net_total"] = total_in - total_out
 
-        # [요약/통계 차트 전용 로직] - 건드리지 않음
+        # [요약/통계 차트 전용 로직]
         sum_start = (self.request.GET.get("sum_start") or "").strip()
         sum_end = (self.request.GET.get("sum_end") or "").strip()
         sum_category = (self.request.GET.get("sum_category") or "").strip()
@@ -497,10 +497,12 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["sum_category"] = sum_category
 
         summary_qs = qs
+
         def _parse_ym(s):
             y, m = s.split("-")
             return int(y), int(m)
 
+        # ✅ 월 범위 필터는 summary_qs에만 적용 (그래프/카테고리집계 공용)
         if sum_start:
             y, m = _parse_ym(sum_start)
             summary_qs = summary_qs.filter(occurred_at__date__gte=date(y, m, 1))
@@ -509,26 +511,38 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
             ny, nm = (y + 1, 1) if m == 12 else (y, m + 1)
             summary_qs = summary_qs.filter(occurred_at__date__lt=date(ny, nm, 1))
 
-        monthly = (
-            summary_qs.annotate(m=TruncMonth("occurred_at"))
-            .values("m")
-            .annotate(
-                in_sum=Sum(Case(When(tx_type=Transaction.IN, then="amount"), default=Value(0), output_field=DecimalField(max_digits=14, decimal_places=0))),
-                out_sum=Sum(Case(When(tx_type=Transaction.OUT, then="amount"), default=Value(0), output_field=DecimalField(max_digits=14, decimal_places=0))),
-            ).order_by("m")
-        )
+        # ✅ [추가] 상단 총 수익/지출/순이익도 summary_qs(필터 조건) 기준으로 표시되도록 덮어쓰기
+        total_in = summary_qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or 0
+        total_out = summary_qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or 0
+        context["total_in"] = total_in
+        context["total_out"] = total_out
+        context["net_total"] = total_in - total_out
 
-        labels, in_vals, out_vals = [], [], []
-        for row in monthly:
-            if row.get("m"):
-                labels.append(row["m"].strftime("%Y-%m"))
-                in_vals.append(int(row["in_sum"] or 0))
-                out_vals.append(int(row["out_sum"] or 0))
+        # ✅ (핵심) 그래프는 "항상 1개 막대"로 합쳐서 표시
+        #    - 필터 없으면: 전체
+        #    - 필터 있으면: YYYY-MM~YYYY-MM 집계
+        label = "전체"
+        if sum_start or sum_end:
+            # 둘 중 하나만 있어도 보기 좋은 라벨로
+            if sum_start and sum_end:
+                if sum_start == sum_end:
+                    label = f"{sum_start} 집계"
+                else:
+                    label = f"{sum_start} ~ {sum_end} 집계"
+            elif sum_start and not sum_end:
+                label = f"{sum_start}~ 집계"
+            elif (not sum_start) and sum_end:
+                label = f"~{sum_end} 집계"
 
-        context["chart_labels"] = "|".join(labels)
-        context["chart_in"] = "|".join(map(str, in_vals))
-        context["chart_out"] = "|".join(map(str, out_vals))
+        # ✅ 필터된 summary_qs 기준으로 총합만 계산해서 1개로 전달
+        period_in = summary_qs.filter(tx_type=Transaction.IN).aggregate(s=Sum("amount"))["s"] or 0
+        period_out = summary_qs.filter(tx_type=Transaction.OUT).aggregate(s=Sum("amount"))["s"] or 0
 
+        context["chart_labels"] = label
+        context["chart_in"] = str(int(period_in or 0))
+        context["chart_out"] = str(int(period_out or 0))
+
+        # ✅ 카테고리별 지출 통계는 기존 로직대로 유지 (월필터 적용된 summary_qs 사용)
         out_qs = summary_qs.filter(tx_type=Transaction.OUT)
         if sum_category:
             out_qs = out_qs.filter(category_id=sum_category)
@@ -547,8 +561,11 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
         context["end_date"] = self.request.GET.get("end_date", "")
         context["selected_account"] = self.request.GET.get("account", "")
         context["selected_category"] = self.request.GET.get("category", "")
-
+        context["discounted"] = self.request.GET.get("discounted", "")
+        context["has_summary_data"] = summary_qs.exists()
+        context["has_category_data"] = bool(cat_labels)
         return context
+    
 class CheckoutView(LoginRequiredMixin, View):
     """
     최종 결제 전, 배송지와 주문 내역을 확인하고 수량을 조절하는 페이지
@@ -656,7 +673,28 @@ class CheckoutView(LoginRequiredMixin, View):
             messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")
 
-        return render(request, "shop/checkout.html", context)
+        # ... (CheckoutView.post 내부, context 만든 뒤 아래 부분만 교체)
+
+        params = {}
+        # 단품 결제면 product_id/quantity를 URL에 유지
+        if product_id:
+            params["product_id"] = product_id
+            params["quantity"] = quantity
+
+        # 계좌/쿠폰 선택도 유지
+        selected_account_id = request.POST.get("selected_account_id") or request.GET.get("selected_account_id")
+        if selected_account_id:
+            params["selected_account_id"] = selected_account_id
+
+        selected_coupon_id = request.POST.get("coupon_id") or request.GET.get("coupon_id")
+        if selected_coupon_id:
+            params["coupon_id"] = selected_coupon_id
+
+        url = reverse("checkout")
+        if params:
+            url = f"{url}?{urlencode(params)}"
+
+        return redirect(url)
 class ReviewCreateView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         product = get_object_or_404(Product, id=product_id)
@@ -748,6 +786,40 @@ class ReviewUpdateView(LoginRequiredMixin, View):
         # 4. 상세 페이지의 리뷰 섹션으로 다시 리다이렉트
         return redirect(reverse('product_detail', kwargs={'pk': product_id}) + '#review-section')
     
+class ProductListView(ListView):
+    model = Product
+    template_name = "shop/product_list.html"
+    context_object_name = "products"
+    paginate_by = 8
+
+    def get_queryset(self):
+        # ... 기존 코드 그대로 유지 ...
+        qs = Product.objects.all()
+        q = (self.request.GET.get("search") or "").strip()
+        category_id = self.request.GET.get("category")
+        sort_option = self.request.GET.get("sort", "newest")
+
+        if q:
+            qs = qs.filter(name__icontains=q)
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+
+        if sort_option == "price_low":
+            qs = qs.order_by("price")
+        elif sort_option == "price_high":
+            qs = qs.order_by("-price")
+        else:
+            qs = qs.order_by("-id")
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # 1. 모든 카테고리 가져오기 (기존 코드)
+        context["categories"] = Category.objects.all()
+        context["display_coupon"] = Coupon.objects.filter(active=True).order_by("-id")
+
+        return context
+
 class ConsultingProductListView(LoginRequiredMixin, ListView):
     model = Product
     template_name = "shop/product_consulting_list.html"
@@ -953,8 +1025,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         else:
             context["consult_msg"] = "런웨이가 짧습니다. 당분간은 필수 소비 중심으로 예산을 강하게 제한하는 걸 권합니다."
 
-        return context
-    
+        return context    
 class CouponRegisterView(LoginRequiredMixin, View):
     """
     CBV 방식의 쿠폰 등록 및 목록 조회 뷰

@@ -133,19 +133,30 @@
         }
     </style>
 
+   {# ✅ 공통 충전 모달 #}
     <div id="recharge-modal" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin-top:0;">🏦 계좌 충전</h3>
-            <p style="font-size:14px; color:#666;">충전할 금액을 입력해주세요.</p>
+            <p style="font-size:14px; color: var(--muted);">충전할 금액을 입력해주세요.</p>
             
             <form method="post" action="{% url 'charge_balance' %}">
                 {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <input type="hidden" name="account_id" value="{{ account.id }}">
+                {# ✅ 핵심: 현재 페이지의 쿼리스트링을 포함한 전체 주소를 next로 넘김 #}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                
+                {# ✅ 계좌 ID 전달 (변수가 없을 때를 대비해 유저의 첫번째 계좌를 기본값으로 설정) #}
+                {% if user.is_authenticated %}
+                    {% with acc=account|default:user.accounts.first %}
+                        <input type="hidden" name="account_id" value="{% if acc %}{{ acc.id }}{% endif %}">
+                    {% endwith %}
+                {% else %}
+                    <input type="hidden" name="account_id" value="">
+                {% endif %}                
                 <input type="number" name="amount" placeholder="금액 입력" required 
-                    style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:10px; box-sizing:border-box;">                
+                    style="width:100%; padding:12px; margin:15px 0; border:1px solid var(--input-border); border-radius:10px; box-sizing:border-box; background: var(--input-bg); color: var(--text);">                 
+                
                 <div style="display:flex; gap:10px;">
-                    <a href="#" style="flex:1; padding:12px; background:#f1f1f1; color:#666; text-decoration:none; border-radius:10px; font-weight:bold; font-size:14px;">취소</a>
+                    <a href="#" style="flex:1; padding:12px; background:#f1f1f1; color:#666; text-decoration:none; border-radius:10px; font-weight:bold; font-size:14px; display: flex; align-items: center; justify-content: center;">취소</a>
                     <button type="submit" style="flex:1; padding:12px; background:#ffcc00; color:#333; border:none; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer;">충전하기</button>
                 </div>
             </form>

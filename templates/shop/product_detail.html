@@ -98,9 +98,23 @@
 
   <hr style="margin: 40px 0;">
   
+  <hr style="margin: 40px 0;">
+  
   <h3 style="text-align: center; margin-bottom: 30px;">상품 상세 설명</h3>
-  {% if product.description_image1 %}<img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">{% endif %}
+  
+  {% if product.description_image1 %}
+    <img src="{{ product.description_image1.url }}" style="width: 100%; margin-bottom: 15px;">
+  {% endif %}
+
+  {% if product.description_image2 %}
+    <img src="{{ product.description_image2.url }}" style="width: 100%; margin-bottom: 15px;">
+  {% endif %}
+
   <p style="line-height: 1.8; margin-bottom: 30px;">{{ product.description_text1 }}</p>
+
+  {% if product.description_text2 %}
+    <p style="line-height: 1.8; margin-bottom: 30px;">{{ product.description_text2 }}</p>
+  {% endif %}
 
   <hr style="margin: 60px 0 20px;">
 

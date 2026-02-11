@@ -60,6 +60,9 @@ TEMPLATES = [
         },
     },
 ]
+TEMPLATES[0]["OPTIONS"]["context_processors"] += [
+    "account.context_processors.inject_account",
+]
 
 WSGI_APPLICATION = "accountbook.wsgi.application"
 

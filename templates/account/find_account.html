@@ -83,8 +83,8 @@
 
         <!-- ❗ 중복 탭 (숨김 처리됨) -->
         <div class="tabRow tabRowDup">
-          <a href="{% url 'found_account' %}?tab=id" class="tabBtn {% if tab == 'id' %}tabBtnActive{% endif %}">ID 찾기</a>
-          <a href="{% url 'found_account' %}?tab=pw" class="tabBtn {% if tab == 'pw' %}tabBtnActive{% endif %}">PW 찾기</a>
+          <a href="{% url 'find_account' %}?tab=id" class="tabBtn {% if tab == 'id' %}tabBtnActive{% endif %}">ID 찾기</a>
+          <a href="{% url 'find_account' %}?tab=pw" class="tabBtn {% if tab == 'pw' %}tabBtnActive{% endif %}">PW 찾기</a>
         </div>
 
         {% if not reset_verified %}

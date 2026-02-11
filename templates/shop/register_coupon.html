@@ -1,4 +1,6 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
 <div style="max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: sans-serif;">
 
     <div style="background: #1a1a1a; color: #fff; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
@@ -32,9 +34,16 @@
                     </div>
 
                     <div>
-                        <div style="font-weight: 700; font-size: 17px; color: {% if uc.is_used %}#999{% else %}#333{% endif %};">{{ uc.coupon.name }}</div>
-                        <div style="font-size: 13px; color: #aaa; margin-top: 4px;">최소 주문: {{ uc.coupon.min_purchase_amount|floatformat:0 }}원</div>
-                    </div>
+    <div style="font-weight: 700; font-size: 17px; color: {% if uc.is_used %}#999{% else %}#333{% endif %};">{{ uc.coupon.name }}</div>
+    <div style="font-size: 13px; color: #aaa; margin-top: 4px;">최소 주문: {{ uc.coupon.min_purchase_amount|intcomma }}원</div>
+    
+    {# ✅ 최대 할인 금액 표시 추가 #}
+    {% if uc.coupon.max_discount_amount %}
+    <div style="font-size: 13px; color: #e44d26; margin-top: 2px; font-weight: 500;">
+        최대 할인: {{ uc.coupon.max_discount_amount|intcomma }}원
+    </div>
+    {% endif %}
+</div>
                 </div>
 
                 <div style="text-align: right; z-index: 1;">

@@ -11,8 +11,11 @@ urlpatterns = [
     path("login/", LoginView.as_view(template_name="account/login.html"), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
 
-    # 아이디 찾기 / 계정 찾기
-    path("found/", FindAccountView.as_view(), name="found_account"),
+    # # 아이디 찾기 / 계정 찾기
+    # path("found/", FindAccountView.as_view(), name="found_account"),
+
+    # ✅ (호환용) 기존에 /accounts/find/ 로 접근하는 링크가 있어서 추가
+    path("find/", FindAccountView.as_view(), name="find_account"),
 
     # 비밀번호 재설정(이메일 또는 인증 시작 단계)
     path("find/password/", PasswordResetView.as_view(), name="password_reset"),

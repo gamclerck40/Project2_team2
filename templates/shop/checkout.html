@@ -37,11 +37,14 @@
             <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
                 <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">결제 정보 설정</h3>
                 <form method="get" action="{% url 'checkout' %}" id="selection-form">
-                    {% if product %}
-                        <input type="hidden" name="product_id" value="{{ product.id }}">
-                        <input type="hidden" name="quantity" value="{{ quantity }}">
+                    {% if request.GET.product_id %}
+                        <input type="hidden" name="product_id" value="{{ request.GET.product_id }}">
+                        <input type="hidden" name="quantity" value="{{ request.GET.quantity|default:'1' }}">
                     {% endif %}
-                    
+
+                    {% if request.GET.coupon_id %}
+                        <input type="hidden" name="coupon_id" value="{{ request.GET.coupon_id }}">
+                    {% endif %}
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-size: 14px; color: #666; margin-bottom: 8px;">💳 결제 계좌</label>
                         <select name="selected_account_id" onchange="this.form.submit()" required 
@@ -109,9 +112,7 @@
                         <span style="font-weight: bold; color: {% if account.balance < final_price %}#ff6b6b{% else %}#ffcc00{% endif %};">
                             {{ account.balance|intcomma }}원
                         </span>
-                        <a href="{% url 'mypage' %}" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">
-                            충전
-                        </a>
+                        <a href="#recharge-modal" style="background: #555; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-size: 11px; border: 1px solid #777;">충전</a>                         
                     </div>
                 </div>
                 <hr style="border: 0; border-top: 1px solid #555; margin: 20px 0;">

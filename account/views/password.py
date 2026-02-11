@@ -56,54 +56,40 @@ class PasswordResetView(LoginRequiredMixin, View):
 
 @method_decorator(never_cache, name="dispatch")
 class PasswordResetVerifyView(View):
-    """
-    ✅ 목적: (로그인/비로그인 모두 가능하게 설계된 것으로 보임) '비밀번호 찾기' 흐름에서 본인확인을 수행하는 뷰
-    - POST만 지원
-    - PasswordResetVerifyForm으로 사용자를 검증(예: 아이디/이메일/휴대폰 등)
-    - 성공 시 reset_verified/reset_verified_at/reset_user_id를 세션에 저장하여
-      다음 단계(PasswordResetSetView)가 "인증 완료된 사용자"에 대해서만 비번 변경을 허용하게 함
-    """
     def post(self, request):
         form = PasswordResetVerifyForm(request.POST)
 
-        # ✅ 본인확인 실패: 폼 에러 메시지를 messages로 띄우고 find 페이지로 복귀
         if not form.is_valid():
             for field, errs in form.errors.items():
                 for e in errs:
                     messages.warning(request, e)
             return redirect("/accounts/find/?tab=pw")
 
-        # ✅ 본인확인 성공: 세션에 인증정보 저장(시간 제한 처리용 timestamp 포함)
+        # ✅ 본인확인 성공: 세션 저장
         request.session["reset_verified"] = True
         request.session["reset_verified_at"] = timezone.now().timestamp()
         request.session["reset_user_id"] = form.user.id
 
         messages.success(request, "본인 확인이 완료되었습니다. 새 비밀번호를 설정해 주세요.")
-        return redirect("/accounts/find/?tab=pw")
+        # ✅ 핵심: find로 보내지 말고, 바로 set 페이지로 보냄
+        return redirect("/accounts/password-reset/set/")
 
 # '비밀번호 찾기' 흐름에서, 본인확인이 끝난 사용자(reset_verified 세션)에 한해 새 비밀번호를 저장하는 뷰 (비로그인 사용자도 가능하도록 설계)
 @method_decorator(never_cache, name="dispatch")
 class PasswordResetSetView(View):
-    """
-    ✅ 목적: '비밀번호 찾기' 흐름에서, 본인확인이 끝난 사용자(reset_verified 세션)에 한해
-            새 비밀번호를 저장하는 뷰 (비로그인 사용자도 가능하도록 설계)
-    - POST만 지원
-    - 세션(reset_verified/reset_verified_at/reset_user_id) 검증
-    - 인증 유효시간(10분=600초) 체크
-    - SetPasswordForm으로 비밀번호 저장
-    - 성공 시 세션 정리 후 로그인 페이지로 이동
-    """
-    def post(self, request):
+    template_name = "account/find_account.html"  # 네가 한 페이지에서 처리한다면 이걸 유지
+    # 만약 별도 템플릿이면 "account/find_password_reset.html" 같은 걸로 바꿔
+
+    def get(self, request):
+        # ✅ 인증 세션 없으면 되돌림
         verified = request.session.get("reset_verified") is True
         verified_at = request.session.get("reset_verified_at")
         reset_user_id = request.session.get("reset_user_id")
 
-        # ✅ 인증 세션이 없으면: 먼저 본인확인 요구
         if not verified or not verified_at or not reset_user_id:
             messages.warning(request, "먼저 본인 확인을 진행해 주세요.")
             return redirect("/accounts/find/?tab=pw")
 
-        # ✅ 인증 유효시간 10분 제한
         age = timezone.now().timestamp() - float(verified_at)
         if age > 600:
             request.session.pop("reset_verified", None)
@@ -112,29 +98,51 @@ class PasswordResetSetView(View):
             messages.warning(request, "인증 시간이 만료되었습니다. 다시 진행해 주세요.")
             return redirect("/accounts/find/?tab=pw")
 
-        # ✅ 세션에 저장된 사용자 id로 대상 사용자 조회
+        # ✅ 여기서 바로 “PW 탭 + reset_verified=True”로 렌더하면
+        # 템플릿이 새 비밀번호 폼(else)을 보여줌
+        return render(request, "account/find_account.html", {
+            "tab": "pw",
+            "reset_verified": True,
+        })
+
+    def post(self, request):
+        verified = request.session.get("reset_verified") is True
+        verified_at = request.session.get("reset_verified_at")
+        reset_user_id = request.session.get("reset_user_id")
+
+        if not verified or not verified_at or not reset_user_id:
+            messages.warning(request, "먼저 본인 확인을 진행해 주세요.")
+            return redirect("/accounts/find/?tab=pw")
+
+        age = timezone.now().timestamp() - float(verified_at)
+        if age > 600:
+            request.session.pop("reset_verified", None)
+            request.session.pop("reset_verified_at", None)
+            request.session.pop("reset_user_id", None)
+            messages.warning(request, "인증 시간이 만료되었습니다. 다시 진행해 주세요.")
+            return redirect("/accounts/find/?tab=pw")
+
         user = User.objects.filter(id=reset_user_id).first()
         if not user:
             messages.warning(request, "사용자 정보를 찾을 수 없습니다. 다시 진행해 주세요.")
             return redirect("/accounts/find/?tab=pw")
 
-        # ✅ 새 비밀번호 검증 및 저장
         form = SetPasswordForm(user=user, data=request.POST)
         if not form.is_valid():
             for field, errs in form.errors.items():
                 for e in errs:
                     messages.warning(request, e)
-            return redirect("/accounts/find/?tab=pw")
+            return redirect("/accounts/password-reset/set/")
 
         form.save()
 
-        # ✅ 인증 세션 정리(재사용 방지)
         request.session.pop("reset_verified", None)
         request.session.pop("reset_verified_at", None)
         request.session.pop("reset_user_id", None)
 
         messages.success(request, "비밀번호가 변경되었습니다. 로그인해 주세요.")
         return redirect("/accounts/login/")
+
 
 # 마이페이지 내) '비밀번호 변경' 전에 현재 비밀번호를 확인(본인 인증)하는 뷰
 @method_decorator(never_cache, name="dispatch")

@@ -480,80 +480,97 @@
         </div>
       </div>
 
-      <!-- ✅ TAB 3: 영수증 -->
-      <div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
-        <div class="section">
-          <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
+<!-- ✅ TAB 3: 영수증 -->
+<div class="tabpanel" id="tab-receipt" role="tabpanel" aria-label="영수증 탭">
+  <div class="section">
+    <h3 style="margin: 0 0 14px 0; font-size: 16px; color:#333;">🧾 영수증</h3>
 
-          <div style="margin:0 0 14px 0; color:#666; font-size:13px; line-height:1.6;">
-            구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
-          </div>
+    <div style="margin:0 0 14px 0; color:#666; font-size:13px; line-height:1.6;">
+      구매(출금) 거래 내역을 기반으로 영수증(PDF)을 발급할 수 있습니다.
+    </div>
 
-          {% if receipts_page and receipts_page.object_list %}
-            <div style="display:flex; flex-direction:column; gap:10px;">
-              {% for tx in receipts_page %}
-                <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
-                  <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+    {% if receipts_page and receipts_page.object_list %}
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        {% for tx in receipts_page %}
+          <div style="border:1px solid #eee; border-radius:14px; padding:14px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
 
-                    <div style="min-width:0;">
-                      <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                        {{ tx.product_name|default:"구매" }}
-                        {% if tx.quantity %}<span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>{% endif %}
-                      </div>
+              <div style="min-width:0;">
+                <div style="font-weight:900; color:#333; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  {{ tx.product_name|default:"구매" }}
+                  {% if tx.quantity %}
+                    <span style="color:#777; font-weight:800;">({{ tx.quantity }}개)</span>
+                  {% endif %}
 
-                      <div style="margin-top:6px; color:#888; font-size:13px;">
-                        {{ tx.occurred_at|date:"Y-m-d H:i" }}
-                        {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
-                        {% if tx.category %} · {{ tx.category.name }}{% endif %}
-                      </div>
-
-                      <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
-                        -{{ tx.amount|intcomma }}원
-                      </div>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-                      <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
-                         style="text-decoration:none; font-weight:900; font-size:13px;
-                                padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
-                        PDF 보기
-                      </a>
-                      <a href="{% url 'receipt_pdf' tx.id %}" download
-                         style="text-decoration:none; font-weight:900; font-size:13px;
-                                padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
-                        다운로드
-                      </a>
-
-                      {# ✅ [추가] 영수증 "삭제"(숨김) 버튼 - Transaction은 유지 #}
-                      <form method="post" action="{% url 'receipt_hide' tx.id %}" style="margin:0;">
-                        {% csrf_token %}
-                        <button type="submit"
-                                class="btnReceiptDanger"
-                                onclick="return confirm('이 영수증을 삭제할까요?\\n(거래 내역은 유지되며, 영수증 탭/PDF에서만 숨김 처리됩니다)');">
-                          영수증 삭제
-                        </button>
-                      </form>
-                    </div>
-
-                  </div>
-
-                  {% if tx.memo %}
-                    <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
-                      {{ tx.memo }}
-                    </div>
+                  {# ✅ [추가] 할인 적용된 거래 표시 태그 #}
+                  {% if tx.used_coupon or tx.discount_amount %}
+                    <span style="
+                      display:inline-flex;
+                      align-items:center;
+                      justify-content:center;
+                      margin-left:6px;
+                      padding:4px 8px;
+                      border-radius:999px;
+                      background:#e78181;
+                      color:#333;
+                      font-size:11px;
+                      font-weight:900;
+                      white-space:nowrap;
+                    ">
+                      할인
+                    </span>
                   {% endif %}
                 </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
-              영수증 내역이 없습니다.
-            </div>
-          {% endif %}
-        </div>
-      </div>
 
-    </div>
+                <div style="margin-top:6px; color:#888; font-size:13px;">
+                  {{ tx.occurred_at|date:"Y-m-d H:i" }}
+                  {% if tx.merchant %} · {{ tx.merchant }}{% endif %}
+                  {% if tx.category %} · {{ tx.category.name }}{% endif %}
+                </div>
+
+                <div style="margin-top:8px; color:#dc3545; font-weight:900; font-size:16px;">
+                  -{{ tx.amount|intcomma }}원
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+                <a href="{% url 'receipt_pdf' tx.id %}" target="_blank"
+                   style="text-decoration:none; font-weight:900; font-size:13px;
+                          padding:8px 10px; border-radius:10px; border:1px solid #ddd; color:#333;">
+                  PDF 보기
+                </a>
+                <a href="{% url 'receipt_pdf' tx.id %}" download
+                   style="text-decoration:none; font-weight:900; font-size:13px;
+                          padding:8px 10px; border-radius:10px; background:#333; color:#fff;">
+                  다운로드
+                </a>
+
+                {# ✅ [추가] 영수증 "삭제"(숨김) 버튼 - Transaction은 유지 #}
+                <form method="post" action="{% url 'receipt_hide' tx.id %}" style="margin:0;">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="btnReceiptDanger"
+                          onclick="return confirm('이 영수증을 삭제할까요?\\n(거래 내역은 유지되며, 영수증 탭/PDF에서만 숨김 처리됩니다)');">
+                    영수증 삭제
+                  </button>
+                </form>
+              </div>
+
+            </div>
+
+            {% if tx.memo %}
+              <div style="margin-top:10px; font-size:13px; color:#666; background:#f7f7f7; border:1px solid #eee; padding:10px; border-radius:10px;">
+                {{ tx.memo }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="padding: 14px 16px; background:#f7f7f7; border:1px solid #eee; border-radius: 12px; color:#666;">
+        영수증 내역이 없습니다.
+      </div>
+    {% endif %}
   </div>
 </div>
 
