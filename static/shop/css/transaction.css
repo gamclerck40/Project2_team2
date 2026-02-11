@@ -250,3 +250,13 @@
 .tx-page-btn{padding:10px 15px; border:1px solid #eee; border-radius:6px; text-decoration:none; color:#666; font-size:14px; background:#fff; font-weight:700;}
 .tx-page-current{padding:10px 20px; background:#333; color:#fff; border-radius:6px; font-weight:700; font-size:14px; display:flex; align-items:center;}
 .tx-form-nomargin{margin:0;}
+/* 탭 활성화(aria-current=page) */
+.txTabbtn[aria-current="page"]{
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  border-color: rgba(255,255,255,.22);
+}
+.txTabbtn[aria-current="false"]{
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.78);
+}

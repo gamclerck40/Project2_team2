@@ -28,54 +28,37 @@
         </div>
 
         <div class="txFilterBox">
-          <form method="GET" class="row g-3 align-items-end">
-            <input type="hidden" name="tab" value="out">
+          <form method="GET" class="txForm">
+  <input type="hidden" name="tab" value="in">
 
-            <div class="col-lg-4 col-md-12">
-              <label class="form-label">조회 기간</label>
-              <div class="input-group input-group-sm">
-                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
-                <span class="input-group-text bg-white">~</span>
-                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
-              </div>
-            </div>
+  <div class="txGrid">
+    <div class="txField txField--range">
+      <label class="txLabel">조회 기간</label>
+      <div class="txRange">
+        <input type="date" name="start_date" class="txInput" value="{{ start_date }}">
+        <span class="txRangeSep">~</span>
+        <input type="date" name="end_date" class="txInput" value="{{ end_date }}">
+      </div>
+    </div>
 
-            <div class="col-lg-3 col-md-6">
-              <label class="form-label">결제 계좌</label>
-              <select name="account" class="form-select form-select-sm">
-                <option value="">모든 계좌</option>
-                {% for acc in accounts %}
-                  <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
-                    {{ acc.bank.name }} ({{ acc.masked_account_number }})
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
+    <div class="txField">
+      <label class="txLabel">입금 계좌</label>
+      <select name="account" class="txSelect">
+        <option value="">모든 계좌</option>
+        {% for acc in accounts %}
+          <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
+            {{ acc.bank.name }} ({{ acc.account_number }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
 
-            <div class="col-lg-3 col-md-6">
-              <label class="form-label">카테고리</label>
-              <select name="category" class="form-select form-select-sm">
-                <option value="">모든 카테고리</option>
-                {% for cat in categories %}
-                  <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>
-                    {{ cat.name }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
+    <div class="txField txField--action">
+      <button type="submit" class="txBtn">조회하기</button>
+    </div>
+  </div>
+</form>
 
-            <div class="col-lg-2 col-md-6">
-              <label class="form-label">할인</label>
-              <select name="discounted" class="form-select form-select-sm">
-                <option value="" {% if not discounted %}selected{% endif %}>전체</option>
-                <option value="1" {% if discounted == "1" %}selected{% endif %}>할인 거래만</option>
-              </select>
-            </div>
-
-            <div class="col-lg-2 col-md-12">
-              <button type="submit" class="btn btn-sm txBtn">조회하기</button>
-            </div>
-          </form>
         </div>
 
         <div class="table-responsive txTableWrap">
@@ -280,29 +263,57 @@
           <div class="txSub">계좌 충전 기록을 확인할 수 있습니다.</div>
         </div>
         <div class="txFilterBox">
-          <form method="GET" class="row g-3 align-items-end">
-            <input type="hidden" name="tab" value="in">
-            <div class="col-lg-5 col-md-12">
-              <label class="form-label">조회 기간</label>
-              <div class="input-group input-group-sm">
-                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
-                <span class="input-group-text bg-white">~</span>
-                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
-              </div>
-            </div>
-            <div class="col-lg-5 col-md-12">
-              <label class="form-label">입금 계좌</label>
-              <select name="account" class="form-select form-select-sm">
-                <option value="">모든 계좌</option>
-                {% for acc in accounts %}
-                  <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>{{ acc.bank.name }} ({{ acc.account_number }})</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-lg-2 col-md-12">
-              <button type="submit" class="btn btn-sm txBtn">조회하기</button>
-            </div>
-          </form>
+          <form method="GET" class="txForm">
+  <input type="hidden" name="tab" value="out">
+
+  <div class="txGrid txGrid--out">
+    <div class="txField txField--range">
+      <label class="txLabel">조회 기간</label>
+      <div class="txRange">
+        <input type="date" name="start_date" class="txInput" value="{{ start_date }}">
+        <span class="txRangeSep">~</span>
+        <input type="date" name="end_date" class="txInput" value="{{ end_date }}">
+      </div>
+    </div>
+
+    <div class="txField">
+      <label class="txLabel">결제 계좌</label>
+      <select name="account" class="txSelect">
+        <option value="">모든 계좌</option>
+        {% for acc in accounts %}
+          <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>
+            {{ acc.bank.name }} ({{ acc.masked_account_number }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="txField">
+      <label class="txLabel">카테고리</label>
+      <select name="category" class="txSelect">
+        <option value="">모든 카테고리</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>
+            {{ cat.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="txField">
+      <label class="txLabel">할인</label>
+      <select name="discounted" class="txSelect">
+        <option value="" {% if not discounted %}selected{% endif %}>전체</option>
+        <option value="1" {% if discounted == "1" %}selected{% endif %}>할인 거래만</option>
+      </select>
+    </div>
+
+    <div class="txField txField--action">
+      <button type="submit" class="txBtn">조회하기</button>
+    </div>
+  </div>
+</form>
+
         </div>
 
         <div class="table-responsive txTableWrap">
@@ -334,24 +345,23 @@
       {% endif %}
 
       {% if active_tab != 'summary' and is_paginated %}
-        <div style="display: flex; justify-content: center; margin: 40px 0; gap: 8px;">
-          {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}&discounted={{ discounted|default:'' }}"  
-               style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px; background: white; font-weight: 700;">
-               이전
-            </a>
-          {% endif %}
-          <span style="padding: 10px 20px; background: #333; color: white; border-radius: 6px; font-weight: bold; font-size: 14px; display: flex; align-items: center;">
-            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-          </span>
-          {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}&discounted={{ discounted|default:'' }}"  
-               style="padding: 10px 15px; border: 1px solid #eee; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px; background: white; font-weight: 700;">
-               다음
-            </a>
-          {% endif %}
-        </div>
-      {% endif %}
+  <div class="txPagination">
+    {% if page_obj.has_previous %}
+      <a class="txPageBtn" href="?page={{ page_obj.previous_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}&discounted={{ discounted|default:'' }}">
+        이전
+      </a>
+    {% endif %}
+
+    <span class="txPageStat">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+      <a class="txPageBtn" href="?page={{ page_obj.next_page_number }}&tab={{ active_tab }}&account={{ selected_account|default:'' }}&start_date={{ start_date|default:'' }}&end_date={{ end_date|default:'' }}&category={{ selected_category|default:'' }}&discounted={{ discounted|default:'' }}">
+        다음
+      </a>
+    {% endif %}
+  </div>
+{% endif %}
+
     </div>
   </div>
 </div>

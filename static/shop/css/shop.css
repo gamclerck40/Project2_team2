@@ -418,3 +418,222 @@
 .review-edit-submit-btn{padding:5px 12px; font-size:12px; width:auto;}
 .review-edit-cancel-link{padding:5px 12px; font-size:12px;}
 .review-content{margin:10px 0; line-height:1.5;}
+/* =========================
+   Consulting page: dark tone scope
+   ========================= */
+.consult-theme-dark{
+  background: radial-gradient(1200px 700px at 50% 0%, rgba(30,41,59,.85), rgba(2,6,23,.95) 55%, rgba(2,6,23,1));
+  color: rgba(255,255,255,.88);
+  padding: 28px 0 70px;
+  min-height: calc(100vh - 72px);
+}
+
+/* 컨설팅 내부 타이틀/텍스트 톤 */
+.consult-theme-dark h2{
+  color: #fff;
+  margin: 18px auto 10px;
+  max-width: 1100px;
+  padding: 0 18px;
+}
+.consult-theme-dark hr{
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  border: 0;
+  height: 1px;
+  background: rgba(255,255,255,.12);
+}
+
+/* 상단 대시보드 카드(글래스 느낌) */
+.consult-theme-dark .consult-container{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+.consult-theme-dark .consult-dashboard{
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 18px;
+}
+
+/* 상단 헤더 */
+.consult-theme-dark .dashboard-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  padding: 4px 4px 14px;
+}
+.consult-theme-dark .dashboard-title{
+  color:#fff;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.consult-theme-dark .dashboard-msg{
+  color: rgba(255,255,255,.72);
+  margin-top: 6px;
+}
+
+/* "전체 상품 보기" 버튼 */
+.consult-theme-dark .btn-view-all{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-decoration:none;
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.consult-theme-dark .btn-view-all:hover{
+  background: rgba(255,255,255,.14);
+  transform: translateY(-1px);
+}
+
+/* 통계 카드 */
+.consult-theme-dark .stats-grid{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.consult-theme-dark .stat-card{
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  padding: 14px;
+}
+.consult-theme-dark .stat-label{ color: rgba(255,255,255,.70); font-weight: 800; font-size: 12px; }
+.consult-theme-dark .stat-value{ color:#fff; font-weight: 1000; font-size: 20px; margin-top: 6px; }
+.consult-theme-dark .stat-value.highlight{ color: rgba(99, 179, 237, 1); }
+.consult-theme-dark .stat-sub{ color: rgba(255,255,255,.60); font-size: 12px; margin-top: 6px; }
+
+/* 검색/필터 영역도 다크에 맞게 */
+.consult-theme-dark .search-section,
+.consult-theme-dark .filter-row{
+  max-width: 1100px;
+  margin: 14px auto 0;
+  padding: 0 18px;
+}
+.consult-theme-dark .search-box{
+  display:flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+}
+.consult-theme-dark .search-box input{
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.35);
+  color: rgba(255,255,255,.92);
+  padding: 0 12px;
+  outline: none;
+}
+.consult-theme-dark .search-box button{
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+.consult-theme-dark .select-dark{
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(2,6,23,.35);
+  color: rgba(255,255,255,.90);
+  padding: 0 12px;
+  outline: none;
+}
+
+/* 반응형 */
+@media (max-width: 980px){
+  .consult-theme-dark .stats-grid{ grid-template-columns: 1fr; }
+}
+/* 컨설팅 페이지 전체 배경(바깥 흰 영역까지 전부) */
+body.theme-consult{
+  background: radial-gradient(1200px 700px at 50% 0%,
+    rgba(30,41,59,.90),
+    rgba(2,6,23,.96) 55%,
+    rgba(2,6,23,1)
+  ) !important;
+  color: rgba(255,255,255,.88);
+}
+
+/* base에서 main/container에 흰 배경을 깔아버리는 경우를 무조건 제거 */
+body.theme-consult main,
+body.theme-consult .container,
+body.theme-consult .content,
+body.theme-consult #content,
+body.theme-consult .page,
+body.theme-consult .wrap{
+  background: transparent !important;
+}
+
+tml, body{
+  transition: background-color .35s ease, color .25s ease;
+}
+
+/* body 배경이 gradient일 때 자연 전환용 오버레이 */
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity .45s ease;
+  pointer-events: none;
+}
+
+/* 기본(일반) 배경: 밝은 톤 */
+body{
+  background: radial-gradient(1200px 650px at 50% 0%,
+    rgba(240,244,248,1),
+    rgba(248,250,252,1) 60%,
+    rgba(255,255,255,1)
+  );
+}
+
+/* ===== Consulting mode overlay ===== */
+body.consulting-mode::before,
+body.theme-consult::before{
+  opacity: 1;
+  background: radial-gradient(1200px 700px at 50% 0%,
+    rgba(30,41,59,.92),
+    rgba(2,6,23,.96) 55%,
+    rgba(2,6,23,1)
+  );
+}
+
+/* 컨설팅 모드에서 글자 톤 */
+body.consulting-mode,
+body.theme-consult{
+  color: rgba(255,255,255,.9);
+}
+
+/* 컨설팅 모드에서 메인 래퍼가 흰 배경 덮지 않게 */
+body.consulting-mode main,
+body.consulting-mode .container,
+body.consulting-mode .content,
+body.consulting-mode #content,
+body.consulting-mode .wrap,
+body.theme-consult main,
+body.theme-consult .container,
+body.theme-consult .content,
+body.theme-consult #content,
+body.theme-consult .wrap{
+  background: transparent !important;
+}
