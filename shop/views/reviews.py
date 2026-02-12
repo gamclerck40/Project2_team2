@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -14,7 +15,7 @@ class ReviewCreateView(LoginRequiredMixin, View):
         product = get_object_or_404(Product, id=product_id)
 
         # 1. 구매 여부 확인
-        OUT_TYPES = ["OUT", "buy"]
+        OUT_TYPES = [Transaction.OUT]
 
         has_purchased = Transaction.objects.filter(
             user=request.user,
@@ -30,22 +31,24 @@ class ReviewCreateView(LoginRequiredMixin, View):
         rating = request.POST.get('rating')
         content = request.POST.get('content')
 
-        # 3. 리뷰 본문 생성 (먼저 생성해야 review 객체의 ID가 생김)
-        review = Review.objects.create(
-            product=product,
-            user=request.user,
-            rating=rating,
-            content=content
-        )
+        with transaction.atomic():
+            # 3. 리뷰 본문 생성 (먼저 생성해야 review 객체의 ID가 생김)
+            review = Review.objects.create(
+                product=product,
+                user=request.user,
+                rating=rating,
+                content=content
+            )
 
-        # 4. 🔥 여러 장의 이미지 처리 (핵심 부분)
-        # request.FILES.getlist를 사용하여 선택된 모든 파일을 리스트로 가져옵니다.
-        images = request.FILES.getlist('review_images') 
+            # 4. 🔥 여러 장의 이미지 처리 (핵심 부분)
+            # request.FILES.getlist를 사용하여 선택된 모든 파일을 리스트로 가져옵니다.
+            images = request.FILES.getlist('review_images') 
 
-        for img in images:
-        # 파일이 실제로 존재할 때만(빈 칸이 아닐 때만) 저장
-            if img:
-                ReviewImage.objects.create(review=review, image=img)
+            for img in images:
+            # 파일이 실제로 존재할 때만(빈 칸이 아닐 때만) 저장
+                if img:
+                    ReviewImage.objects.create(review=review, image=img)
+
         messages.success(request, "리뷰가 성공적으로 등록되었습니다.")
         return redirect("product_detail", pk=product.id)
 
@@ -81,21 +84,23 @@ class ReviewUpdateView(LoginRequiredMixin, View):
 
         # 3. 데이터 업데이트 및 저장
         if content and rating:
-            review.content = content
-            review.rating = int(rating)
-            review.save()
+            with transaction.atomic():
+                review.content = content
+                review.rating = int(rating)
+                review.save()
 
-            # ✅ [추가] 이미지 삭제 로직
-            if delete_image_ids:
-                # 선택된 이미지들을 찾아서 한꺼번에 삭제
-                # (이때 review.images는 ReviewImage 모델과의 관계 이름입니다)
-                review.images.filter(id__in=delete_image_ids).delete()
+                # ✅ [추가] 이미지 삭제 로직
+                if delete_image_ids:
+                    # 선택된 이미지들을 찾아서 한꺼번에 삭제
+                    # (이때 review.images는 ReviewImage 모델과의 관계 이름입니다)
+                    review.images.filter(id__in=delete_image_ids).delete()
 
-            # ✅ [추가] 새 이미지 저장 로직
-            for img in new_images:
-                # ReviewImage 모델을 사용하여 새 객체 생성
-                # (모델명이 다를 경우 본인의 모델명에 맞게 수정하세요)
-                ReviewImage.objects.create(review=review, image=img)            
+                # ✅ [추가] 새 이미지 저장 로직
+                for img in new_images:
+                    # ReviewImage 모델을 사용하여 새 객체 생성
+                    # (모델명이 다를 경우 본인의 모델명에 맞게 수정하세요)
+                    ReviewImage.objects.create(review=review, image=img)
+
             messages.success(request, "리뷰가 성공적으로 수정되었습니다.")
         else:
             messages.error(request, "내용과 평점을 모두 입력해주세요.")

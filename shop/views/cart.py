@@ -1,17 +1,18 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from shop.models import Cart, Product
 
 
-
-
 # 장바구니 추가
 class AddToCartView(View):
+    @method_decorator(require_POST)
     def post(self, request, product_id):
-        # 1. 담으려는 상품 정보를 DB에서 가져옴
         # 로그인 체크
         if not request.user.is_authenticated:
             messages.error(request, "장바구니는 로그인 후 이용 가능합니다.")
@@ -21,7 +22,16 @@ class AddToCartView(View):
         product = get_object_or_404(Product, id=product_id)
 
         # 2. 사용자가 선택한 수량을 가져옴 기본 1개
-        quantity = int(request.POST.get("quantity", 1))
+        quantity_raw = request.POST.get("quantity", 1)
+        try:
+            quantity = int(quantity_raw)
+        except (TypeError, ValueError):
+            quantity = 1
+
+        # 보안/무결성: 비정상 수량 방어 (0 이하, 과도한 값 등)
+        if quantity <= 0:
+            messages.warning(request, "수량이 올바르지 않습니다.")
+            return redirect("cart_list")
 
         # 3. 해당 상품이 장바구니에 있는지 확인, 없으면 생성
         cart_item, created = Cart.objects.get_or_create(
@@ -34,8 +44,6 @@ class AddToCartView(View):
                 request,
                 f"죄송합니다. 현재 재고가 부족합니다. (잔여 재고: {product.stock}개)",
             )
-            # 경고 warning 메세지 생성 사용자에게 재고 부족을 알림
-
             return redirect("cart_list")
 
         # 성공 로직 재고가 충분하면 수량을 더하고 DB에 저장
@@ -51,14 +59,14 @@ class AddToCartView(View):
 
 
 # 장바구니 목록 페이지
-class CartListView(ListView):
+class CartListView(LoginRequiredMixin, ListView):
+    login_url = "login"
     model = Cart
     template_name = "shop/cart_list.html"
     context_object_name = "cart_items"
 
     # 1. 화면에 보여줄 데이터를 가져오는 규칙에 대한 함수
     def get_queryset(self):
-        # 모든 사람이 장바구니를 보면 보안에 문제가 될 수 있음
         # filter를 사용하여 현재 로그인 한 유저(self.request.user)의 물건만 골라냄
         return Cart.objects.filter(user=self.request.user)
 
@@ -81,10 +89,12 @@ class CartListView(ListView):
 
 
 # 장바구니 제거
-class RemoveFromCartView(View):
-    # 사용자가 +/- 버튼 또는 삭제 버튼을 눌렀을때 post 방식으로 실행됨
-    def post(self, request, cart_item_id):
+class RemoveFromCartView(LoginRequiredMixin, View):
+    login_url = "login"
 
+    # 사용자가 +/- 버튼 또는 삭제 버튼을 눌렀을때 post 방식으로 실행됨
+    @method_decorator(require_POST)
+    def post(self, request, cart_item_id):
         # 1. 수정하려는 장바구니 상품이 실제 유저의 것인지 확인 후 가져옴
         cart_item = get_object_or_404(Cart, id=cart_item_id, user=request.user)
 
@@ -104,14 +114,14 @@ class RemoveFromCartView(View):
             if cart_item.quantity < cart_item.product.stock:
                 cart_item.quantity += 1
                 cart_item.save()
-
             else:
-                # 재고가 부족할 때 처리를 하고 싶다면 여기에 추가 (생략 가능)
-                pass
+                messages.warning(request, "재고가 부족합니다.")
+
         # 품목 삭제 로직
         # 모드 값이 아예 없거나(삭제 버튼),다른 값일 경우 실행
         else:
             # 장바구니에서 해당 상품을 완전히 제거
             cart_item.delete()
+
         # 모든 처리가 끝난 후 장바구니 화면으로 이동
         return redirect("cart_list")

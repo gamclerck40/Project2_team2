@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.humanize.templatetags.humanize import intcomma
+from django.db import transaction
 from django.shortcuts import redirect
 from django.utils import timezone
 
@@ -26,21 +27,23 @@ def charge_balance(request):
                 messages.warning(request, "충전할 계좌를 선택해주세요.")
                 return redirect(request.META.get("HTTP_REFERER", "/"))
 
-            # 계좌 잔액 증가
-            account.balance += amount_int
-            account.save()
+            with transaction.atomic():
+                # 계좌 잔액 증가
+                account.balance += amount_int
+                account.save()
 
-            # 거래 내역 기록
-            Transaction.objects.create(
-                user=request.user,
-                account=account,
-                tx_type=Transaction.IN,
-                amount=amount_int,
-                occurred_at=timezone.now(),
-                product_name="계좌 충전",
-                merchant="내 지갑",
-                memo=f"{account.bank.name} 충전 완료"
-            )
+                # 거래 내역 기록
+                Transaction.objects.create(
+                    user=request.user,
+                    account=account,
+                    tx_type=Transaction.IN,
+                    amount=amount_int,
+                    occurred_at=timezone.now(),
+                    product_name="계좌 충전",
+                    merchant="내 지갑",
+                    memo=f"{account.bank.name} 충전 완료"
+                )
+
             messages.success(request, f"{intcomma(amount_int)}원이 성공적으로 충전되었습니다!")
 
         # [리다이렉트 핵심] 

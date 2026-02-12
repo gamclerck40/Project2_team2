@@ -58,7 +58,6 @@ urlpatterns = [
 
     # 기본 계좌 변경 (다계좌 중 하나를 기본으로 설정)
     path("accounts/default/<int:account_id>/", SetDefaultAccountView.as_view(), name="account_set_default"),
-
-    path('charge/', charge_balance, name='charge_balance'),
     
+    path('charge/', charge_balance, name='charge_balance'),
 ]
