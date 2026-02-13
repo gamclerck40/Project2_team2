@@ -1,0 +1,279 @@
+/* 1. 기본 레이아웃 */
+.mypage-wrapper { display: flex; justify-content: center; margin: 30px 0 50px 0; }
+.mypage-container { width: 100%; max-width: 900px; }
+.header-area { margin: 0 0 18px 10px; display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.header-meta { font-size: 14px; font-weight: 400; color: #888; }
+
+/* 2. 탭 메뉴 */
+.tabbar { display: flex; gap: 10px; padding: 12px 14px; background: #333; color: #fff; border-bottom: 1px solid rgba(255,255,255,.12); }
+.tabbtn { appearance: none; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: #fff; padding: 8px 12px; border-radius: 999px; cursor: pointer; font-weight: 900; font-size: 13px; opacity: .9; }
+.tabbtn[aria-selected="true"] { background: rgba(255,255,255,.18); opacity: 1; }
+.tabpanel { display: none; }
+.tabpanel.active { display: block; }
+
+/* 3. 카드 및 공통 요소 */
+.card { box-shadow: 0 4px 15px rgba(0,0,0,.1); border-radius: 20px; overflow: hidden; background: #fff; border: 1px solid #eee; }
+.section { padding: 22px; }
+.divider { height: 1px; background: #eee; margin: 18px 0; }
+.grid2 { display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; align-items: center; }
+.label { color: #666; font-weight: 600; }
+.value-strong { color: #333; font-weight: 700; }
+
+/* 4. 배송지 리스트 스타일 */
+.addr-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-radius: 14px; margin-bottom: 4px; }
+.addr-default { border: 1px solid #333; background: #fcfcfc; }
+.addr-normal { border: 1px solid #eee; background: #fff; }
+.badge-default { background: #333; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+
+/* 5. 폼 및 입력창 */
+.input-wrap { border: 1px solid #ddd; border-radius: 12px; padding: 10px 12px; background: #fff; }
+.input-wrap input, .input-wrap select { width: 100%; border: none; outline: none; font-size: 14px; background: transparent; }
+.help { margin-top: 6px; color: #888; font-size: 13px; }
+
+/* 6. 버튼 시리즈 */
+.btn-primary { background: #333; color: #fff; border: none; border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 900; }
+.btn-ghost { background: #f4f4f4; color: #555; border: none; border-radius: 12px; padding: 10px 12px; cursor: pointer; font-weight: 900; }
+.btn-danger { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; font-size: 12px; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 900; }
+.btn-small-del { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; font-size: 11px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+
+/* 7. 페이지네이션 */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; font-size: 13px; }
+.page-link { text-decoration: none; color: #333; font-weight: 800; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
+.page-disabled { color: #ccc; padding: 5px 10px; }
+
+/* 8. 영수증 및 잔액 */
+.balance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.balance-text { color: #e44d26; font-weight: 800; font-size: 18px; white-space: nowrap; }
+.btn-recharge { padding: 6px 14px; background: #333; color: #fff; text-decoration: none; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.receipt-memo { margin-top: 10px; font-size: 13px; color: #666; background: #f7f7f7; border: 1px solid #eee; padding: 10px; border-radius: 10px; }
+.info-box-blue { padding: 12px 16px; background: #eef7ff; border: 1px solid #cfe6ff; border-radius: 12px; color: #1b4a7a; margin-bottom: 14px; line-height: 1.6; }
+
+/* ✅ 영수증 할인 배지 (사용자 기능 추가 - 최소 클래스) */
+.receipt-badge-discount{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#e78181;
+  color:#333;
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+/* 필터 박스: 카드처럼 보이게 */
+.mypage-receipt-filter{
+  margin: 12px 0 18px;
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  background: #fafafa;
+}
+
+/* 필터 레이아웃: 2열 느낌으로 정돈 */
+.mypage-receipt-filter-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+/* 라벨-입력 간격 정리 */
+.mypage-filter-group .label{
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+/* 기간 입력: 한 줄로 */
+.mypage-filter-dates{
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ~ 문자 정리 */
+.mypage-date-tilde{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width: 20px;
+  color:#999;
+  font-weight:800;
+}
+
+/* input-wrap: 높이/패딩 통일 */
+.mypage-receipt-filter .input-wrap{
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* 날짜 input/select 높이 통일 */
+.mypage-receipt-filter input[type="date"],
+.mypage-receipt-filter select{
+  height: 34px;
+  font-size: 14px;
+}
+
+/* 버튼 영역: 오른쪽 정렬 + 버튼 크기 통일 */
+.mypage-filter-actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
+.mypage-filter-actions .btn-primary,
+.mypage-filter-actions .btn-ghost{
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+/* '초기화' 링크가 버튼처럼 보이게(이미 btn-ghost 있음) */
+.mypage-filter-actions .mypage-btn-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex: 0 0 auto;
+}
+/* 마이페이지 inline style 분리 (필수 최소 클래스) */
+.mypage-phone-empty{color:#999;}
+.mypage-address-stack{display:flex; flex-direction:column; gap:12px;}
+.mypage-flex-main{flex:1;}
+.mypage-addr-line{font-size:13px; color:#666; margin-top:4px;}
+.mypage-form-nomargin{margin:0;}
+.mypage-pagination-current{font-weight:700; color:#666;}
+.mypage-account-head{display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;}
+.mypage-section-title{margin:0; font-size:16px; color:#333;}
+.mypage-section-title-gap{margin:0 0 14px 0;}
+.mypage-section-title-topgap{margin:10px 0 14px 0;}
+.mypage-section-hint{font-size:12px; color:#888;}
+.mypage-account-stack{margin-top:14px; display:flex; flex-direction:column; gap:12px;}
+.mypage-select-default{width:100%; font-weight:700; cursor:pointer;}
+.mypage-select-bold{font-weight:700;}
+.mypage-account-del-list{display:flex; flex-wrap:wrap; gap:8px; margin-left:5px;}
+.mypage-divider-lg{margin:20px 0;}
+.mypage-section-plain{padding:0;}
+.mypage-edit-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;}
+.mypage-edit-stack{display:flex; flex-direction:column; gap:14px;}
+.mypage-card-pad{padding:14px;}
+.mypage-label-gap{margin-bottom:8px;}
+.mypage-value-gap{margin-bottom:10px;}
+.mypage-form-stack{gap: 12px;}
+.mypage-help-gap{margin-top:8px;}
+.mypage-edit-box{background:#fdfdfd; border:1px solid #eee; padding:15px; border-radius:12px; margin-bottom:10px;}
+.mypage-grid-form{display:grid; grid-template-columns:100px 1fr; gap:8px;}
+.mypage-margin-b20{margin-bottom:20px;}
+.mypage-newaddr-box{display:flex; flex-direction:column; gap:10px; background:#f9f9f9; padding:15px; border-radius:12px;}
+.mypage-btn-row{display:flex; gap:10px; margin-top:16px;}
+.mypage-flex-1{flex:1;}
+.mypage-w-100{width:100%;}
+.mypage-margin-b12{margin-bottom:12px;}
+.mypage-stack-14-b12{display:flex; flex-direction:column; gap:14px; margin-bottom:12px;}
+.mypage-btn-link{flex:1; text-align:center; text-decoration:none;}
+.mypage-receipt-row{gap: 14px; align-items: center;}
+.mypage-min-w0{min-width:0;}
+.mypage-ellipsis{font-size: 14px;}
+.mypage-receipt-amount{font-size: 15px; margin-top: 6px;}
+
+/* 액션 버튼들: 가로 2개 + 아래 삭제 (더 compact) */
+.mypage-receipt-actions{gap: 8px; align-items: flex-end;}
+/* PDF/다운로드 링크/버튼 크기 통일 */
+.mypage-receipt-actions .page-link,
+.mypage-receipt-actions .btn-primary{
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+/* 삭제 버튼도 크기/정렬 통일 */
+.mypage-receipt-actions .btn-danger{
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.mypage-font-13{font-size:13px;}
+.mypage-font-13-link{font-size:13px; text-decoration:none;}
+
+/* 메모 박스(회색 박스)도 카드와 어울리게 */
+#tab-receipt .receipt-memo{
+  margin-top: 10px;
+  border-radius: 12px;
+  background: #f6f7f9;
+}
+#tab-receipt .addr-normal.mypage-card-pad{
+  border-radius: 16px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 10px rgba(0,0,0,.04);
+  padding: 14px;
+}
+
+/* PDF 보기 / 다운로드 버튼: 서브 액션 느낌 */
+#tab-receipt .mypage-receipt-actions .page-link,
+#tab-receipt .mypage-receipt-actions .btn-primary{
+  background: #f3f4f6;
+  color: #333;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+  padding: 6px 10px;
+  border-radius: 999px;  /* pill 형태 */
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* hover 시만 살짝 강조 */
+#tab-receipt .mypage-receipt-actions .page-link:hover,
+#tab-receipt .mypage-receipt-actions .btn-primary:hover{
+  background: #e9ecef;
+}
+
+/* 다운로드는 살짝 강조만 */
+#tab-receipt .mypage-receipt-actions .btn-primary{
+  background: #ececec;
+}
+
+/* 삭제 버튼: 위험 행동이니 작게, outline 스타일 */
+#tab-receipt .mypage-receipt-actions .btn-danger{
+  background: transparent;
+  border: 1px dashed #ffb3b3;
+  color: #d63333;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 삭제 버튼 hover 시만 경고 느낌 */
+#tab-receipt .mypage-receipt-actions .btn-danger:hover{
+  background: #fff1f1;
+  border-color: #ff8a8a;
+}
+
+/* 버튼들이 카드 하단 오른쪽으로 너무 튀지 않게 살짝 아래로 */
+#tab-receipt .mypage-receipt-actions{
+  margin-top: 4px;
+}
+
+/* 메모 박스 위 여백 정리 */
+#tab-receipt .receipt-memo{
+  margin-top: 8px;
+}
+
+/* 각 버튼이 자기 칸에서 우측 정렬 + 글자 줄바꿈 방지 */
+#tab-receipt .mypage-receipt-actions > *{
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* 화면이 아주 좁을 때는 1열로 내려서 완전 겹침 방지 */
+@media (max-width: 420px){
+  #tab-receipt .mypage-receipt-actions{
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+  #tab-receipt .mypage-receipt-actions > *{
+    justify-self: stretch;
+    text-align: center;
+  }
+}

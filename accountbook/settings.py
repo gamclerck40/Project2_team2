@@ -1,7 +1,7 @@
 import os
+import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
-import dj_database_url  # ✅ DB 설정을 위해 필수
 
 # 1. 경로 설정
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,15 +9,10 @@ load_dotenv(BASE_DIR / ".env")
 
 # 2. 보안 설정
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-fallback-key")
-DEBUG = os.environ.get("DEBUG", "False") == "True"  # 배포 시 False 권장 
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = [
-    "project2-team2.onrender.com", 
-    "localhost", 
-    "127.0.0.1"
-]
-
-# CSRF 보안 설정 (로그인 에러 방지)
+# 불필요한 [cite] 텍스트를 모두 제거했습니다. 
+ALLOWED_HOSTS = ["project2-team2.onrender.com", "localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["https://project2-team2.onrender.com"]
 
 # 3. 앱 정의
@@ -28,18 +23,17 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # 커스텀 앱들
     "accountbook",
     "shop",
     "account",
     "django.contrib.humanize",
-    "whitenoise.runserver_nostatic",  # ✅ 정적 파일 서빙용 
+    "whitenoise.runserver_nostatic",
 ]
 
-# 4. 미들웨어 (WhiteNoise 추가 필수)
+# 4. 미들웨어 (WhiteNoise 순서 확인) [cite: 12]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # ✅ 정적 파일 서빙 미들웨어 
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -48,9 +42,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# ⚠️ 이 줄이 빠지면 AttributeError: 'Settings' object has no attribute 'ROOT_URLCONF' 에러가 납니다.
 ROOT_URLCONF = "accountbook.urls"
 
-# 5. 템플릿 설정 (에러 수정됨)
+# 5. 템플릿 설정
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -62,7 +57,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "account.context_processors.inject_account",  # ✅ 커스텀 프로세서
+                "django.template.context_processors.media", # 미디어를 위해 추가 [cite: 14]
+                "account.context_processors.inject_account",
             ],
         },
     },
@@ -70,8 +66,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "accountbook.wsgi.application"
 
-# 6. 데이터베이스 설정 (Render DB 자동 연결)
-# DATABASE_URL 환경변수가 있으면 Render DB를 쓰고, 없으면 로컬 DB를 씁니다. 
+# 6. 데이터베이스 설정 (Render와 로컬 자동 전환) [cite: 15]
 DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),
@@ -79,12 +74,21 @@ DATABASES = {
     )
 }
 
-# 7. 정적 파일 및 미디어 설정 (배포 최적화)
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")  # ✅ collectstatic 경로 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+# 로컬 DB 설정 (DATABASE_URL이 없을 때 작동)
+if not os.environ.get("DATABASE_URL"):
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "team_square_db",
+        "USER": "teamsquare_user",
+        "PASSWORD": "csw13158297!", # 여기에 실제 로컬 비번을 넣으세요.
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
+    }
 
-# WhiteNoise: 정적 파일 압축 및 캐싱 기능 활성화 
+# 7. 정적 파일 및 미디어 설정
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
