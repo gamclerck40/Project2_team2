@@ -18,7 +18,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 CSRF_FAILURE_VIEW = "account.views.csrf_failure"
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["project2-team2.onrender.com"]
 LOGIN_REDIRECT_URL = "/shop/"
 LOGOUT_REDIRECT_URL = "/shop/"
 LOGIN_URL = "/accounts/login/"
