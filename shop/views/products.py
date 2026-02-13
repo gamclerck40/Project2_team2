@@ -13,7 +13,6 @@ class ProductListView(ListView):
     paginate_by = 8
 
     def get_queryset(self):
-        # ... 기존 코드 그대로 유지 ...
         qs = Product.objects.all()
         q = (self.request.GET.get("search") or "").strip()
         category_id = self.request.GET.get("category")
@@ -50,7 +49,7 @@ class ProductDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         product = self.get_object()
 
-        # [수정 부분] URL 파라미터에서 edit_id를 가져와 컨텍스트에 추가
+        # URL 파라미터에서 edit_id를 가져와 컨텍스트에 추가
         edit_id = self.request.GET.get('edit_id')
         if edit_id:
             context['edit_review_id'] = int(edit_id)

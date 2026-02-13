@@ -18,9 +18,9 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
     model = Transaction
     template_name = "shop/transaction_list.html"
     context_object_name = "transactions"
-    paginate_by = 10   # ✅ 추가: 페이지당 10개 (원하면 20 등으로 변경)
+    paginate_by = 10   # 추가: 페이지당 10개 (원하면 20 등으로 변경)
 
-    # ✅ tx_type 호환(데이터가 IN/OUT 이든 income/buy 든 모두 대응)
+    # tx_type 호환(데이터가 IN/OUT 이든 income/buy 든 모두 대응)
     IN_TYPES = ["IN", "income"]
     OUT_TYPES = ["OUT", "buy"]
 
@@ -29,14 +29,14 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
 
         tab = self.request.GET.get("tab", "in")  # 템플릿 탭과 동일
 
-        # ✅ 템플릿 탭 기준으로 DB tx_type 매핑 (호환)
+        # 템플릿 탭 기준으로 DB tx_type 매핑 (호환)
         if tab == "in":
             qs = qs.filter(tx_type__in=self.IN_TYPES)
         elif tab == "out":
             qs = qs.filter(tx_type__in=self.OUT_TYPES)
         # summary는 리스트가 아니라 요약이므로, 목록은 기본 qs 유지해도 됨.
 
-        # ✅ 공통 필터
+        # 공통 필터
         start_date = self.request.GET.get("start_date") or ""
         end_date = self.request.GET.get("end_date") or ""
         category = self.request.GET.get("category") or ""
@@ -113,7 +113,7 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
             context["has_summary_data"] = (total_in != 0 or total_out != 0)
 
             # =========================
-            # ✅ 그래프 데이터
+            # 그래프 데이터
             # =========================
             if chart_tab == "monthly":
                 monthly = (
@@ -146,7 +146,7 @@ class TransactionHistoryView(LoginRequiredMixin, ListView):
                     ins.append(str(row["income"] or 0))
                     outs.append(str(row["expense"] or 0))
 
-                # ✅ 템플릿(txMonthlyChart)이 기대하는 키로 넣기
+                # 템플릿(txMonthlyChart)이 기대하는 키로 넣기
                 context["chart_labels"] = "|".join(labels)
                 context["chart_in"] = "|".join(ins)
                 context["chart_out"] = "|".join(outs)

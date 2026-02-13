@@ -39,10 +39,10 @@ class SignUpView(View):
                     account_number=form.cleaned_data["account_number"],
                     balance=form.cleaned_data["balance"],
                     is_active=True,
-                    is_default=True,  # ✅ 첫 계좌는 기본 계좌
+                    is_default=True,  # 첫 계좌는 기본 계좌
                 )
 
-                # ✅ [핵심] 회원가입 초기 충전도 입금(Transaction)으로 기록
+                # [핵심]회원가입 초기 충전도 입금(Transaction)으로 기록
                 init_amount = int(form.cleaned_data.get("balance") or 0)
                 if init_amount > 0:
                     Transaction.objects.create(
@@ -91,7 +91,7 @@ class FindAccountView(View):
     def post(self, request):
         tab = request.POST.get("tab")
 
-        # ✅ ID 찾기
+        # ID 찾기
         if tab == "id":
             form = FindIDForm(request.POST)
             if not form.is_valid():
@@ -105,7 +105,7 @@ class FindAccountView(View):
             users = User.objects.filter(accounts__phone=phone)
             return render(request, "account/find_id_result.html", {"users": users})
 
-        # ✅ PW 찾기(기존 흐름 유지)
+        # PW 찾기(기존 흐름 유지)
         if tab == "pw":
             form = PasswordVerifyForm(request.POST)
             if not form.is_valid():

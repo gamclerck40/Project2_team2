@@ -40,7 +40,7 @@ class ReviewCreateView(LoginRequiredMixin, View):
                 content=content
             )
 
-            # 4. 🔥 여러 장의 이미지 처리 (핵심 부분)
+            # 여러 장의 이미지 처리 (핵심 부분)
             # request.FILES.getlist를 사용하여 선택된 모든 파일을 리스트로 가져옵니다.
             images = request.FILES.getlist('review_images') 
 
@@ -78,7 +78,7 @@ class ReviewUpdateView(LoginRequiredMixin, View):
         content = request.POST.get("content")
         rating = request.POST.get("rating")
 
-        # ✅ 추가된 데이터: 삭제할 이미지 ID 리스트와 새로 등록할 파일들
+        # 추가된 데이터: 삭제할 이미지 ID 리스트와 새로 등록할 파일들
         delete_image_ids = request.POST.getlist("delete_images")
         new_images = request.FILES.getlist("review_images")
 
@@ -89,13 +89,13 @@ class ReviewUpdateView(LoginRequiredMixin, View):
                 review.rating = int(rating)
                 review.save()
 
-                # ✅ [추가] 이미지 삭제 로직
+                # 이미지 삭제 로직
                 if delete_image_ids:
                     # 선택된 이미지들을 찾아서 한꺼번에 삭제
                     # (이때 review.images는 ReviewImage 모델과의 관계 이름입니다)
                     review.images.filter(id__in=delete_image_ids).delete()
 
-                # ✅ [추가] 새 이미지 저장 로직
+                # 새 이미지 저장 로직
                 for img in new_images:
                     # ReviewImage 모델을 사용하여 새 객체 생성
                     # (모델명이 다를 경우 본인의 모델명에 맞게 수정하세요)

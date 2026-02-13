@@ -31,7 +31,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
     def _calc_month_in(self, account=None):
         """이번 달 입금(IN) 합계
         - account가 주어지면 해당 계좌 기준
-        - account가 None이면 ✅ 계좌 상관없이(전체) 기준
+        - account가 None이면 계좌 상관없이(전체) 기준
         """
         start, end = self._month_range()
         qs = Transaction.objects.filter(
@@ -48,7 +48,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
     def _calc_month_out(self, account=None):
         """이번 달 출금(OUT) 합계
         - account가 주어지면 해당 계좌 기준
-        - account가 None이면 ✅ 계좌 상관없이(전체) 기준
+        - account가 None이면 계좌 상관없이(전체) 기준
         """
         start, end = self._month_range()
         qs = Transaction.objects.filter(
@@ -64,7 +64,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
 
     def _calc_total_in(self, account=None):
         """누적 입금(IN) 합계(가입 이후 전체)
-        - account=None이면 ✅ 계좌 상관없이(전체)
+        - account=None이면 계좌 상관없이(전체)
         """
         qs = Transaction.objects.filter(user=self.request.user, tx_type=Transaction.IN)
         if account is not None:
@@ -75,7 +75,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
 
     def _calc_total_out(self, account=None):
         """누적 출금(OUT) 합계: 가입 이후 전체
-        - account=None이면 ✅ 계좌 상관없이(전체)
+        - account=None이면 계좌 상관없이(전체)
         """
         qs = Transaction.objects.filter(user=self.request.user, tx_type=Transaction.OUT)
         if account is not None:
@@ -85,7 +85,7 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         return self._to_decimal(total_out).quantize(Decimal("1"))
 
     def _calc_asset_base(self, total_in, total_out):
-        """✅ Runway+SWR 모델 계산용 자산(순자산)
+        """Runway+SWR 모델 계산용 자산(순자산)
         = 누적입금 - 누적출금 (0 미만은 0 처리)
         """
         total_in = self._to_decimal(total_in)
@@ -136,8 +136,8 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         if category_id:
             qs = qs.filter(category_id=category_id)
 
-        # ✅ 예산 산정(모델 계산)은 "누적 순자산"을 기반으로,
-        # ✅ 분모(소비속도)는 "이번 달 지출"로 유지하는 구성이 가장 자연스러움
+        # 예산 산정(모델 계산)은 "누적 순자산"을 기반으로,
+        # 분모(소비속도)는 "이번 달 지출"로 유지하는 구성이 가장 자연스러움
         month_out = self._calc_month_out(account=None)
         total_in = self._calc_total_in(account=None)
         total_out = self._calc_total_out(account=None)
@@ -169,20 +169,20 @@ class ConsultingProductListView(LoginRequiredMixin, ListView):
         context["default_account"] = default_account
         context["balance"] = balance
 
-        # ✅ 이번 달 기준
+        # 이번 달 기준
         month_in = self._calc_month_in(account=None)
         month_out = self._calc_month_out(account=None)
 
-        # ✅ 누적(전체) 기준
+        # 누적(전체) 기준
         total_in = self._calc_total_in(account=None)
         total_out = self._calc_total_out(account=None)
 
-        # ✅ 모델 계산(예산/런웨이)용 자산: 누적 순자산
+        # 모델 계산(예산/런웨이)용 자산: 누적 순자산
         asset_base = self._calc_asset_base(total_in, total_out)
         budget = self._recommend_budget(asset_base, month_out)
 
         # -----------------------------------------
-        # ✅ 컨텍스트 키 구성 (기존 키 + 신규 키 공존)
+        # 컨텍스트 키 구성 (기존 키 + 신규 키 공존)
         # -----------------------------------------
 
         # 1) 이번 달 표기용(신규)
