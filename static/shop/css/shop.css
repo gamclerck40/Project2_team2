@@ -637,3 +637,25 @@ body.theme-consult #content,
 body.theme-consult .wrap{
   background: transparent !important;
 }
+
+.pagination{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  margin:24px 0;
+  flex-wrap:wrap;
+}
+.page-link{
+  padding:8px 12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  text-decoration:none;
+}
+.page-link.active{
+  font-weight:700;
+}
+.page-link.disabled{
+  opacity:.4;
+  cursor:not-allowed;
+}

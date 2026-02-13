@@ -246,9 +246,32 @@
 .tx-divider-md{margin:18px 0;}
 .tx-chart-title{font-weight:900; margin-bottom:8px;}
 .tx-badge-mr{margin-right:8px;}
-.tx-pagination-wrap{display:flex; justify-content:center; margin:40px 0; gap:8px;}
-.tx-page-btn{padding:10px 15px; border:1px solid #eee; border-radius:6px; text-decoration:none; color:#666; font-size:14px; background:#fff; font-weight:700;}
-.tx-page-current{padding:10px 20px; background:#333; color:#fff; border-radius:6px; font-weight:700; font-size:14px; display:flex; align-items:center;}
+.txPagination{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin:40px 0;
+}
+.txPageBtn{
+  padding:10px 15px;
+  border:1px solid #eee;
+  border-radius:6px;
+  text-decoration:none;
+  color:#666;
+  background:#fff;
+  font-weight:700;
+  font-size:14px;
+}
+.txPageStat{
+  padding:10px 20px;
+  background:#333;
+  color:#fff;
+  border-radius:6px;
+  font-weight:700;
+  font-size:14px;
+  display:flex;
+  align-items:center;
+}
 .tx-form-nomargin{margin:0;}
 /* 탭 활성화(aria-current=page) */
 .txTabbtn[aria-current="page"]{
@@ -259,4 +282,17 @@
 .txTabbtn[aria-current="false"]{
   background: rgba(255,255,255,.06);
   color: rgba(255,255,255,.78);
+}
+/* 할인 표시 */
+.txDiscountBadge{
+  display:inline-block;
+  margin-left:8px;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid currentColor;
+}
+.txRowDiscount td{
+  background:rgba(255, 193, 7, 0.08);
 }

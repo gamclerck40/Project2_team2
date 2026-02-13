@@ -1,15 +1,19 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")  # ✅ 이게 핵심
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-(8h4-k3%&c_*1mpiv0+zf-%4e$cox(x60j%s#mw14vz$vq$$9i"
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is missing. Check .env loading path.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -72,8 +76,12 @@ WSGI_APPLICATION = "accountbook.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB", "team_square_db"),
+        "USER": os.environ.get("POSTGRES_USER", "teamsquare_user"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "csw13158297!"),
+        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
 }
 

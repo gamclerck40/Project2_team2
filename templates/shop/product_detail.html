@@ -50,7 +50,12 @@
     
     <div class="detail-content">
         <h3 class="product-detail-title">상품 상세 설명</h3>
-        {% if product.description_image1 %}<img src="{{ product.description_image1.url }}" class="detail-desc-img">{% endif %}
+        {% if product.description_image1 %}
+            <img src="{{ product.description_image1.url }}" class="detail-desc-img">
+        {% endif %}
+        {% if product.description_image2 %}
+            <img src="{{ product.description_image2.url }}" class="detail-desc-img">
+        {% endif %}
         <p class="detail-desc-text">{{ product.description_text1 }}</p>
     </div>
 
