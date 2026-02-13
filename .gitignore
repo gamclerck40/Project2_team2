@@ -9,6 +9,7 @@ __pycache__/
 # 환경 변수 파일 (보안 중요)
 .env
 
+staticfiles/
 #미디어 파일 제거 
 media/
 # 개발중에만 사용
