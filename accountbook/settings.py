@@ -3,11 +3,11 @@ import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
-# 1. 경로 설정
+# 경로 설정
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-# 2. 보안 설정
+# 보안 설정
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-fallback-key")
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
@@ -15,7 +15,7 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = ["project2-team2.onrender.com", "localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["https://project2-team2.onrender.com"]
 
-# 3. 앱 정의
+# 앱 정의
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
 ]
 
-# 4. 미들웨어 (WhiteNoise 순서 확인) [cite: 12]
+# 미들웨어 (WhiteNoise 순서 확인) [cite: 12]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -42,10 +42,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# ⚠️ 이 줄이 빠지면 AttributeError: 'Settings' object has no attribute 'ROOT_URLCONF' 에러가 납니다.
+# 이 줄이 빠지면 AttributeError: 'Settings' object has no attribute 'ROOT_URLCONF' 에러가 납니다.
 ROOT_URLCONF = "accountbook.urls"
 
-# 5. 템플릿 설정
+# 템플릿 설정
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -66,7 +66,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "accountbook.wsgi.application"
 
-# 6. 데이터베이스 설정 (Render와 로컬 자동 전환) [cite: 15]
+# 데이터베이스 설정 (Render와 로컬 자동 전환) [cite: 15]
 DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),
@@ -85,7 +85,7 @@ if not os.environ.get("DATABASE_URL"):
         "PORT": "5432",
     }
 
-# 7. 정적 파일 및 미디어 설정
+# 정적 파일 및 미디어 설정
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
@@ -94,7 +94,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-# 8. 언어 및 시간 설정
+# 언어 및 시간 설정
 LANGUAGE_CODE = "ko-kr"
 TIME_ZONE = "Asia/Seoul"
 USE_I18N = True
