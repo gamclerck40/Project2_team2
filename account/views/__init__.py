@@ -1,4 +1,3 @@
-# account/views/__init__.py
 from .auth import FindAccountView, SignUpView
 from .address import AddressDeleteView, SetDefaultAddressView
 from .mypage import (

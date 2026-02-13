@@ -15,7 +15,7 @@ from account.models import Account, Address, Bank
 from shop.models import Transaction, Category
 from account.utils.forms import MypageUpdateForm, AccountAddForm
 
-# ✅ 잔액 이관 포함 set_default_account 사용
+# 잔액 이관 포함 set_default_account 사용
 from account.utils.setdefault import get_default_account, set_default_account
 
 
@@ -27,7 +27,7 @@ class MypageView(LoginRequiredMixin, View):
     redirect_field_name = "next"
 
     def get(self, request): # 세션 (Key) 생성.
-        # ✅ 비밀번호 인증(10분 유지)
+        # 비밀번호 인증(10분 유지)
         # 세션에 'pw_verified = True일 때 인증됨 상태로 판단.
         pw_verified = request.session.get("pw_verified") is True
 
@@ -69,7 +69,7 @@ class MypageView(LoginRequiredMixin, View):
         edit_addr_paginator = Paginator(address_list, 3) # 3개씩 제한
         edit_addresses_page = edit_addr_paginator.get_page(edit_addr_page_num) 
 
-        # ✅ “현재 선택 계좌(=기본계좌)”를 프로젝트 전체 정책과 동일하게 통일
+        # “현재 선택 계좌(=기본계좌)”를 프로젝트 전체 정책과 동일하게 통일
         account = get_default_account(request.user)
         default_account = account
         
@@ -78,7 +78,7 @@ class MypageView(LoginRequiredMixin, View):
             formatted_phone = format_korean_phone(default_account.phone)
 
         # ==========================
-        # ✅ 영수증 탭: 페이지네이션 + 필터 + 정렬
+        # 영수증 탭: 페이지네이션 + 필터 + 정렬
         # ==========================
         rc_category = (request.GET.get("rc_category") or "").strip()  # category_id
         rc_sort = (request.GET.get("rc_sort") or "newest").strip()    # newest | price_high | price_low
@@ -87,7 +87,7 @@ class MypageView(LoginRequiredMixin, View):
         rc_end = (request.GET.get("rc_end") or "").strip()      # YYYY-MM-DD
 
 
-        # ✅ 영수증 "삭제"는 Transaction을 지우지 않고 receipt_hidden=True로 숨김 처리
+        # 영수증 "삭제"는 Transaction을 지우지 않고 receipt_hidden=True로 숨김 처리
         receipts_qs = Transaction.objects.filter(
             user=request.user,
             tx_type=Transaction.OUT,
@@ -116,7 +116,7 @@ class MypageView(LoginRequiredMixin, View):
         receipt_categories = Category.objects.all().order_by("name")
 
         # ==========================
-        # ✅ 요약 통계 탭: 누적 전체 지출/수익 합계
+        # 요약 통계 탭: 누적 전체 지출/수익 합계
         # ==========================
         total_out = (
             Transaction.objects.filter(user=request.user, tx_type=Transaction.OUT)
@@ -132,7 +132,7 @@ class MypageView(LoginRequiredMixin, View):
         )
         net_total = total_in - total_out
 
-        # ✅ 기존 기능을 해치지 않게: 폼은 그대로 두되, 템플릿에서 쓰는 경우만 사용
+        # 기존 기능을 해치지 않게: 폼은 그대로 두되, 템플릿에서 쓰는 경우만 사용
         account_add_form = AccountAddForm()
 
         return render(
@@ -141,17 +141,17 @@ class MypageView(LoginRequiredMixin, View):
             {
                 "user_obj": request.user,
 
-                # ✅ 기존 템플릿 호환
+                # 기존 템플릿 호환
                 "account": account,
 
-                # ✅ 다계좌(추가 기능이 아니라 계좌번호 정책 변경의 필수 데이터)
+                # 다계좌(추가 기능이 아니라 계좌번호 정책 변경의 필수 데이터)
                 "accounts": accounts,
                 "default_account": default_account,
                 "account_add_form": account_add_form,
                 "addresses": addresses_page,                
                 "formatted_phone": formatted_phone,
 
-                # ✅ 영수증 탭
+                # 영수증 탭
                 "receipts_page": receipts_page,
                 "receipt_categories": receipt_categories,
                 "rc_category": rc_category,
@@ -159,7 +159,7 @@ class MypageView(LoginRequiredMixin, View):
                 "rc_start": rc_start,
                 "rc_end": rc_end,
 
-                # ✅ 요약 통계 탭
+                # 요약 통계 탭
                 "total_out": total_out,
                 "total_in": total_in,
                 "net_total": net_total,
@@ -185,7 +185,7 @@ class MypageUpdateView(LoginRequiredMixin, View):
                     messages.warning(request, e)
             return redirect("/accounts/mypage/?tab=edit")
 
-        # ✅ 기존 first() 대신: 기본계좌를 수정 대상으로 사용(정책 일관)
+        # 기존 first() 대신: 기본계좌를 수정 대상으로 사용(정책 일관)
         account = Account.objects.filter(user=request.user).first()
         addr_ids = request.POST.getlist("address_id[]")
         aliases = request.POST.getlist("address_alias[]")
@@ -243,7 +243,7 @@ class MypageUpdateView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"오류가 발생했습니다: {str(e)}")
             return redirect("/accounts/mypage/?tab=edit")
-        # ✅ ✅ ✅ [핵심] 성공 시에도 반드시 HttpResponse 반환해야 함
+        # [핵심] 성공 시에도 반드시 HttpResponse 반환해야 함
         messages.success(request, "내 정보가 수정되었습니다.")
         return redirect("/accounts/mypage/?tab=profile")
 
@@ -256,7 +256,7 @@ class SetDefaultAccountView(LoginRequiredMixin, View):
             messages.warning(request, "계좌를 찾을 수 없습니다.")
             return redirect("/accounts/mypage/?tab=profile")
 
-        # ✅ 잔액 이관 포함 기본계좌 변경
+        # 잔액 이관 포함 기본계좌 변경
         set_default_account(request.user, account_id)
         messages.success(request, "기본 계좌가 변경되었습니다.")
         return redirect("/accounts/mypage/?tab=profile")
@@ -278,7 +278,7 @@ class AccountAddView(LoginRequiredMixin, View):
         # 기본 계좌가 없으면 첫 등록 계좌를 기본으로
         has_default = Account.objects.filter(user=request.user, is_default=True).exists()
 
-        # ✅ 기존 기능(잔액 wallet 개념) 유지:
+        # 기존 기능(잔액 wallet 개념) 유지:
         # 새 계좌를 추가할 때 잔액을 0으로 만들면,
         # 기본계좌를 새 계좌로 바꾸는 순간 잔액이 0처럼 보여서 "balance가 무쓸모"가 된다.
         # 따라서 현재 기본계좌 잔액을 복사해둔다.
@@ -295,7 +295,7 @@ class AccountAddView(LoginRequiredMixin, View):
                     bank=bank,
                     account_number=acc,
 
-                    # ✅ 계좌별 잔액 분리: 신규 계좌는 0원 시작(또는 필요 시 입력받아 세팅)
+                    # 계좌별 잔액 분리: 신규 계좌는 0원 시작(또는 필요 시 입력받아 세팅)
                     balance=0,
 
                     is_active=True,

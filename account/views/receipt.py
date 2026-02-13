@@ -14,7 +14,7 @@ from shop.models import Transaction
 from account.models import Address
 from account.utils.receipt import calc_vat, money_int, register_korean_font
 
-# ✅ 다계좌: 기본계좌 우선
+# 다계좌: 기본계좌 우선
 from account.utils.setdefault import get_default_account
 
 
@@ -24,7 +24,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     /accounts/receipts/<tx_id>.pdf
     Transaction 1건을 영수증 PDF로 생성
 
-    ✅ 추가: 쿠폰 적용 내역을 PDF에 출력
+    추가: 쿠폰 적용 내역을 PDF에 출력
         쿠폰 이름 : ---
         할인 가격 : ---
         할인 된 가격 : ---
@@ -36,7 +36,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
     def get(self, request, tx_id):
         tx = (
             Transaction.objects
-            # ✅ 영수증 "삭제"(숨김)된 건은 PDF 접근도 막음
+            # 영수증 "삭제"(숨김)된 건은 PDF 접근도 막음
             .filter(id=tx_id, user=request.user, receipt_hidden=False)
             .select_related("account", "account__bank", "used_coupon", "used_coupon__coupon")
             .first()
@@ -48,7 +48,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         if not account:
             raise Http404("결제 계좌 정보가 없습니다.")
 
-        # ✅ 기본배송지 fallback (결제 시 저장된 주소가 없을 때만 사용)
+        # 기본배송지 fallback (결제 시 저장된 주소가 없을 때만 사용)
         default_addr = Address.objects.filter(user=request.user, is_default=True).first()
         if not default_addr:
             default_addr = Address.objects.filter(user=request.user).first()
@@ -113,7 +113,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         canv.drawString(x, y, f"{amount:,}원")
         y -= 20
 
-        # ✅ 계좌 출력 (마스킹)
+        # 계좌 출력 (마스킹)
         last4 = str(account.account_number)[-4:] if account.account_number else "----"
         masked = f"****{last4}" if last4 != "----" else "----"
         canv.setFont(font_name, 10)
@@ -126,7 +126,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
         kv("거래구분", "출금" if tx.tx_type == Transaction.OUT else "입금")
 
         # =========================
-        # ✅ 쿠폰/할인 내역을 PDF에 출력 (요구사항 포맷)
+        # 쿠폰/할인 내역을 PDF에 출력 (요구사항 포맷)
         # =========================
         discount = money_int(tx.discount_amount)
         coupon_name = "-"
@@ -165,7 +165,7 @@ class ReceiptPDFView(LoginRequiredMixin, View):
 
         line()
 
-        # ✅ 배송지: 결제 시 Transaction에 저장된 값이 있으면 그걸 우선 출력
+        # 배송지: 결제 시 Transaction에 저장된 값이 있으면 그걸 우선 출력
         if tx.shipping_address:
             zip_code = tx.shipping_zip_code or ""
             detail = tx.shipping_detail_address or ""
@@ -192,7 +192,7 @@ class ReceiptHideView(LoginRequiredMixin, View):
     """
     /accounts/receipts/<tx_id>/hide/
 
-    ✅ 요구사항: Transaction(거래내역)은 유지하고, 영수증만 "삭제"(숨김)
+    요구사항: Transaction(거래내역)은 유지하고, 영수증만 "삭제"(숨김)
     - DB delete() 하지 않음
     - receipt_hidden=True로 처리
     """
@@ -211,5 +211,5 @@ class ReceiptHideView(LoginRequiredMixin, View):
         tx.save(update_fields=["receipt_hidden"])
         messages.success(request, "영수증이 삭제되었습니다. (거래 내역은 유지됩니다)")
 
-        # ✅ 삭제 후 원래 보고 있던 화면으로 복귀(없으면 영수증 탭)
+        # 삭제 후 원래 보고 있던 화면으로 복귀(없으면 영수증 탭)
         return redirect(request.META.get("HTTP_REFERER", "/accounts/mypage/?tab=receipt"))

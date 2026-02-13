@@ -65,12 +65,12 @@ class CartListView(LoginRequiredMixin, ListView):
     template_name = "shop/cart_list.html"
     context_object_name = "cart_items"
 
-    # 1. 화면에 보여줄 데이터를 가져오는 규칙에 대한 함수
+    # 화면에 보여줄 데이터를 가져오는 규칙에 대한 함수
     def get_queryset(self):
         # filter를 사용하여 현재 로그인 한 유저(self.request.user)의 물건만 골라냄
         return Cart.objects.filter(user=self.request.user)
 
-    # 2. 목록 외에 추가로 화면에 전달할 데이터 (총 금액)을 계산
+    # 목록 외에 추가로 화면에 전달할 데이터 (총 금액)을 계산
     def get_context_data(self, **kwargs):
         # 부모 클래스(list_view)가 기본적으로 준비한 데이터를 먼저 가져옴 (context)
         context = super().get_context_data(**kwargs)
@@ -95,7 +95,7 @@ class RemoveFromCartView(LoginRequiredMixin, View):
     # 사용자가 +/- 버튼 또는 삭제 버튼을 눌렀을때 post 방식으로 실행됨
     @method_decorator(require_POST)
     def post(self, request, cart_item_id):
-        # 1. 수정하려는 장바구니 상품이 실제 유저의 것인지 확인 후 가져옴
+        # 수정하려는 장바구니 상품이 실제 유저의 것인지 확인 후 가져옴
         cart_item = get_object_or_404(Cart, id=cart_item_id, user=request.user)
 
         # html에서 보낸 mode값을 읽어옴 (increase, derease등)

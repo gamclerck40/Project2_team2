@@ -33,7 +33,7 @@ class CheckoutView(LoginRequiredMixin, View):
 
         addresses = Address.objects.filter(user=request.user).order_by("-is_default", "-id")
         user_coupons = UserCoupon.objects.filter(user=request.user, is_used=False).select_related('coupon')
-        # ✅ 쿠폰 ID 가져오기 (이게 있어야 아래 if selected_coupon_id 가 작동함)
+        # 쿠폰 ID 가져오기 (이게 있어야 아래 if selected_coupon_id 가 작동함)
         selected_coupon_id = request.GET.get('coupon_id')
 
         # 상품 및 기본 금액 계산
@@ -48,7 +48,7 @@ class CheckoutView(LoginRequiredMixin, View):
             cart_items = Cart.objects.filter(user=request.user)
             total_amount = sum(item.total_price() for item in cart_items) if cart_items.exists() else Decimal("0")
 
-        # ✅ 쿠폰 할인 로직 (변수명 total_amount로 통일)
+        # 쿠폰 할인 로직 (변수명 total_amount로 통일)
         discount_amount = Decimal("0")
         if selected_coupon_id:
             user_coupon = user_coupons.filter(id=selected_coupon_id).first()
@@ -78,7 +78,7 @@ class CheckoutView(LoginRequiredMixin, View):
         }
     
     def get(self, request):
-        # 🌟 [수정 포인트] GET 파라미터에서 정보를 가져와서 context 함수에 넣어줘야 합니다!
+        # GET 파라미터에서 정보를 가져와서 context 함수에 넣어줘야 합니다!
         product_id = request.GET.get("product_id")
         quantity = request.GET.get("quantity", 1)
         
@@ -126,7 +126,6 @@ class CheckoutView(LoginRequiredMixin, View):
             messages.error(request, "결제할 상품이 없습니다.")
             return redirect("cart_list")
 
-        # ... (CheckoutView.post 내부, context 만든 뒤 아래 부분만 교체)
 
         params = {}
         # 단품 결제면 product_id/quantity를 URL에 유지

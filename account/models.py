@@ -50,7 +50,7 @@ class Account(models.Model):
 
     class Meta:
         constraints = [
-            # ✅ “같은 은행 + 같은 계좌번호”는 딱 1번만 존재 가능 (유저가 누구든)
+            # “같은 은행 + 같은 계좌번호”는 딱 1번만 존재 가능 (유저가 누구든)
             models.UniqueConstraint(
                 fields=["bank", "account_number"],
                 name="uniq_bank_account_number",

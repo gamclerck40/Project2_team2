@@ -1,4 +1,3 @@
-# account/views/csrf_failure.py
 from django.shortcuts import render
 
 def csrf_failure(request, reason=""):

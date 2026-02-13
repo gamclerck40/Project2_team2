@@ -27,15 +27,15 @@ class AddressDeleteView(LoginRequiredMixin, View):
 
 class SetDefaultAddressView(LoginRequiredMixin, View):
     def post(self, request):
-        # 1. 프로필 탭의 라디오 버튼(name="default_addr_id")에서 선택된 ID 가져오기
+        # 프로필 탭의 라디오 버튼(name="default_addr_id")에서 선택된 ID 가져오기
         selected_addr_id = request.POST.get("default_addr_id")
         
         if selected_addr_id:
             # 트랜잭션을 사용해 '전체 False -> 하나 True'가 한 세트로 묶이게 합니다.
             with transaction.atomic():
-                # 1. 내 주소 전부 False
+                # 내 주소 전부 False
                 Address.objects.filter(user=request.user).update(is_default=False)
-                # 2. 선택한 놈만 True
+                # 선택한 놈만 True
                 Address.objects.filter(id=selected_addr_id, user=request.user).update(is_default=True)
         # 탭 위치를 유지하기 위해 경로 수정
         return redirect("/accounts/mypage/?tab=profile")
